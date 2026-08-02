@@ -125,3 +125,15 @@ try {
 }
 
 console.log('\nAll persistence validations completed.')
+
+// --- Sprint 7: PostgreSQL skeleton ---
+console.log('\n--- Sprint 7 PostgreSQL skeleton ---')
+try {
+  execSync('node scripts/postgres-skeleton-validation.mjs', {
+    cwd: ROOT,
+    stdio: 'inherit',
+    env: process.env,
+  })
+} catch {
+  process.exit(1)
+}
