@@ -1,4 +1,5 @@
 import { SALES_ORDERS } from './orders'
+import { lazyArray, lazyObject } from './lazy-cache'
 import {
   colorCardRepository,
   containerTypeRepository,
@@ -53,7 +54,7 @@ function pick<T>(arr: readonly T[] | T[], i: number): T {
   return arr[i % arr.length]
 }
 
-export const MERCHANDISING_RECORDS: MerchandisingRecord[] = SALES_ORDERS.map(
+export const MERCHANDISING_RECORDS = lazyArray((): MerchandisingRecord[] => SALES_ORDERS.map(
   (o, i) => {
     const approved = i % 3
     const samples = SAMPLE_TYPES.map((type, si) => ({
@@ -92,13 +93,13 @@ export const MERCHANDISING_RECORDS: MerchandisingRecord[] = SALES_ORDERS.map(
               : 'Hazırlık',
     }
   },
-)
+))
 
-export const PURCHASE_REQUISITIONS: PurchaseRequisition[] = SALES_ORDERS.flatMap(
+export const PURCHASE_REQUISITIONS = lazyArray((): PurchaseRequisition[] => SALES_ORDERS.flatMap(
   (o) => generatePurchaseRequisitions(o.mrp),
-)
+))
 
-export const PURCHASE_ORDERS: PurchaseOrder[] = PURCHASE_REQUISITIONS.slice(
+export const PURCHASE_ORDERS = lazyArray((): PurchaseOrder[] => PURCHASE_REQUISITIONS.slice(
   0,
   60,
 ).map((pr, i) => {
@@ -140,9 +141,9 @@ export const PURCHASE_ORDERS: PurchaseOrder[] = PURCHASE_REQUISITIONS.slice(
             : 'Açık',
     totalAmount: Math.round(lineTotal * 100) / 100,
   }
-})
+}))
 
-export const FABRIC_ROLLS: FabricRoll[] = Array.from({ length: 48 }, (_, i) => ({
+export const FABRIC_ROLLS = lazyArray((): FabricRoll[] => Array.from({ length: 48 }, (_, i) => ({
   id: String(i + 1),
   receiptNo: `KR-${String(2000 + (i % 10)).padStart(4, '0')}`,
   lot: `LOT-D-${2400 + (i % 15)}`,
@@ -163,9 +164,9 @@ export const FABRIC_ROLLS: FabricRoll[] = Array.from({ length: 48 }, (_, i) => (
   reservedForOrder: i % 4 === 0 ? pick(SALES_ORDERS, i).orderNo : undefined,
   status: pick(['Serbest', 'Rezerve', 'Kesimde', 'Tüketildi'] as const, i),
   receivedDate: new Date(2026, 1, 10 + (i % 20)).toLocaleDateString('tr-TR'),
-}))
+})))
 
-export const PASTAL_PLANS: PastalPlan[] = SALES_ORDERS.slice(0, 30).map(
+export const PASTAL_PLANS = lazyArray((): PastalPlan[] => SALES_ORDERS.slice(0, 30).map(
   (o, i) => ({
     id: `pastal-${o.id}`,
     orderId: o.id,
@@ -181,9 +182,9 @@ export const PASTAL_PLANS: PastalPlan[] = SALES_ORDERS.slice(0, 30).map(
     plannedPieces: o.matrixTotals.grandTotal,
     status: pick(['Taslak', 'Onaylı', 'Kesimde', 'Tamamlandı'] as const, i),
   }),
-)
+))
 
-export const CUTTING_ORDERS: CuttingOrder[] = PASTAL_PLANS.filter(
+export const CUTTING_ORDERS = lazyArray((): CuttingOrder[] => PASTAL_PLANS.filter(
   (p) => p.status !== 'Taslak',
 ).map((p, i) => {
   const planned = p.plannedPieces
@@ -204,9 +205,9 @@ export const CUTTING_ORDERS: CuttingOrder[] = PASTAL_PLANS.filter(
     warehouse: getWarehouseName(warehouseRepository.find((w) => w.type === 'Kesimhane')[0]?.code ?? 'KES-01'),
     status: cut >= planned ? 'Tamamlandı' : i % 3 === 0 ? 'Kesimde' : 'Planlandı',
   }
-})
+}))
 
-export const SEWING_LINE_RECORDS: SewingLineRecord[] = Array.from(
+export const SEWING_LINE_RECORDS = lazyArray((): SewingLineRecord[] => Array.from(
   { length: 40 },
   (_, i) => {
     const order = pick(SALES_ORDERS, i)
@@ -233,9 +234,9 @@ export const SEWING_LINE_RECORDS: SewingLineRecord[] = Array.from(
       status: i % 5 === 0 ? 'Duruş' : produced >= planned ? 'Tamamlandı' : 'Devam Ediyor',
     }
   },
-)
+))
 
-export const WASHING_LOTS: WashingLot[] = SALES_ORDERS.slice(0, 25).map(
+export const WASHING_LOTS = lazyArray((): WashingLot[] => SALES_ORDERS.slice(0, 25).map(
   (o, i) => ({
     id: `wash-${o.id}`,
     lotNo: `YKM-${String(100 + i).padStart(4, '0')}`,
@@ -257,9 +258,9 @@ export const WASHING_LOTS: WashingLot[] = SALES_ORDERS.slice(0, 25).map(
     ] as const, i),
     facility: `${workshopRepository.getByCode('FSN-B')?.name ?? ''} — ${warehouseRepository.find((w) => w.type === 'Yıkama')[0]?.location ?? ''}`,
   }),
-)
+))
 
-export const QUALITY_INSPECTIONS: QualityInspection[] = Array.from(
+export const QUALITY_INSPECTIONS = lazyArray((): QualityInspection[] => Array.from(
   { length: 36 },
   (_, i) => {
     const order = pick(SALES_ORDERS, i)
@@ -293,9 +294,9 @@ export const QUALITY_INSPECTIONS: QualityInspection[] = Array.from(
       status: 'Tamamlandı',
     }
   },
-)
+))
 
-export const CARTONS: Carton[] = SALES_ORDERS.slice(0, 20).flatMap((o, oi) =>
+export const CARTONS = lazyArray((): Carton[] => SALES_ORDERS.slice(0, 20).flatMap((o, oi) =>
   Array.from({ length: 3 + (oi % 4) }, (_, ci) => {
     const lines = [
       { color: 'BLACK', size: 'M', quantity: 12 },
@@ -313,9 +314,9 @@ export const CARTONS: Carton[] = SALES_ORDERS.slice(0, 20).flatMap((o, oi) =>
       status: pick(['Açık', 'Kapandı', 'Sevk Edildi'] as const, oi + ci),
     }
   }),
-)
+))
 
-export const CONTAINER_PLANS: ContainerPlan[] = Array.from({ length: 12 }, (_, i) => {
+export const CONTAINER_PLANS = lazyArray((): ContainerPlan[] => Array.from({ length: 12 }, (_, i) => {
   const orders = SALES_ORDERS.slice(i * 3, i * 3 + 3)
   return {
     id: String(i + 1),
@@ -332,11 +333,11 @@ export const CONTAINER_PLANS: ContainerPlan[] = Array.from({ length: 12 }, (_, i
     totalQty: orders.reduce((s, o) => s + o.matrixTotals.grandTotal, 0),
     status: pick(['Planlandı', 'Yüklendi', 'Yolda', 'Varış'] as const, i),
   }
-})
+}))
 
-export const ORDER_COSTS = SALES_ORDERS.slice(0, 20).map((o) =>
+export const ORDER_COSTS = lazyArray(() => SALES_ORDERS.slice(0, 20).map((o) =>
   calculateOrderCost(o),
-)
+))
 
 export const ERP_NOTIFICATIONS: ErpNotification[] = [
   {
@@ -404,7 +405,7 @@ export const ERP_NOTIFICATIONS: ErpNotification[] = [
   },
 ]
 
-export const OPERATIONAL_DASHBOARD: OperationalDashboard = {
+export const OPERATIONAL_DASHBOARD = lazyObject((): OperationalDashboard => ({
   todayCutting: CUTTING_ORDERS.filter((c) => c.status !== 'Tamamlandı')
     .slice(0, 5)
     .map((c) => ({
@@ -467,7 +468,7 @@ export const OPERATIONAL_DASHBOARD: OperationalDashboard = {
     { date: '07 Mar', cutting: 4, sewing: 11, shipping: 4 },
     { date: '08 Mar', cutting: 6, sewing: 9, shipping: 5 },
   ],
-}
+}))
 
 export function getMerchandisingByOrderId(orderId: string) {
   return MERCHANDISING_RECORDS.find((m) => m.orderId === orderId)

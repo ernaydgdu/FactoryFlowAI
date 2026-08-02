@@ -1,14 +1,17 @@
+import { masterDataEnterpriseConfig } from '../master-data-port-access'
+import { runDomainCommandInTransaction } from '@/domain/ports/persistence/command-transaction.port'
 import type { MasterDataAttributeDefinition, MasterDataAttributeValue } from './types'
-import { FABRIC_TYPE_ATTRIBUTE_VALUES, MASTER_DATA_ATTRIBUTE_DEFINITIONS } from './enterprise-seed'
+
+function configRepo() {
+  return masterDataEnterpriseConfig()
+}
 
 export function getAttributeDefinitions(entityType: string): MasterDataAttributeDefinition[] {
-  return MASTER_DATA_ATTRIBUTE_DEFINITIONS.filter((d) => d.entityType === entityType).sort(
-    (a, b) => a.sortOrder - b.sortOrder,
-  )
+  return configRepo().getAttributeDefinitions(entityType)
 }
 
 export function getAttributeValues(entityType: string, entityId: string): MasterDataAttributeValue[] {
-  return FABRIC_TYPE_ATTRIBUTE_VALUES.filter((v) => v.entityType === entityType && v.entityId === entityId)
+  return configRepo().getAttributeValues(entityType, entityId)
 }
 
 export function resolveAttributeMap(entityType: string, entityId: string): Record<string, string | number | boolean> {
@@ -25,7 +28,18 @@ export function setAttributeValue(
   attributeCode: string,
   value: string | number | boolean,
 ): MasterDataAttributeValue {
-  const def = MASTER_DATA_ATTRIBUTE_DEFINITIONS.find((d) => d.code === attributeCode)
+  return runDomainCommandInTransaction(() =>
+    setAttributeValueInternal(entityType, entityId, attributeCode, value),
+  )
+}
+
+function setAttributeValueInternal(
+  entityType: string,
+  entityId: string,
+  attributeCode: string,
+  value: string | number | boolean,
+): MasterDataAttributeValue {
+  const def = configRepo().getAllAttributeDefinitions().find((d) => d.code === attributeCode)
   if (!def) throw new Error(`Attribute tanımı bulunamadı: ${attributeCode}`)
   const entry: MasterDataAttributeValue = {
     attributeDefinitionId: def.id,
@@ -34,15 +48,15 @@ export function setAttributeValue(
     entityId,
     value,
   }
-  FABRIC_TYPE_ATTRIBUTE_VALUES.push(entry)
-  return entry
+  return configRepo().saveAttributeValue(entry)
 }
 
 export function countAttributeCoverage(): { definitions: number; values: number; entityTypes: number } {
-  const entityTypes = new Set(MASTER_DATA_ATTRIBUTE_DEFINITIONS.map((d) => d.entityType))
+  const definitions = configRepo().getAllAttributeDefinitions()
+  const entityTypes = new Set(definitions.map((d) => d.entityType))
   return {
-    definitions: MASTER_DATA_ATTRIBUTE_DEFINITIONS.length,
-    values: FABRIC_TYPE_ATTRIBUTE_VALUES.length,
+    definitions: definitions.length,
+    values: configRepo().getAllAttributeValues().length,
     entityTypes: entityTypes.size,
   }
 }

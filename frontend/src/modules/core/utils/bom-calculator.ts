@@ -1,6 +1,6 @@
 import type { BomLine } from '@/domain/types'
 import { getStockCardById } from '@/domain/data/stock-cards'
-import { getDefaultWorkshopName } from '@/domain/master-data/ui-options'
+import { getDefaultWorkshopName } from '@/domain/master-data/ui-options-defaults'
 import {
   calcActualConsumption,
   computeMatrixTotals,

@@ -1,8 +1,12 @@
 import type { DomainEvent, DomainEventType, EventHandler } from '../types'
+import { requireUnitOfWork } from '../../ports/persistence/persistence-registry'
 
-const eventStore: DomainEvent[] = []
+/** @deprecated Legacy test hooks — production consumers use outbox worker only */
 const handlers = new Map<DomainEventType | '*', EventHandler[]>()
-let eventCounter = 0
+
+function outboxRepo() {
+  return requireUnitOfWork().outbox
+}
 
 export type PublishEventInput = {
   type: DomainEventType
@@ -14,10 +18,13 @@ export type PublishEventInput = {
   correlationId?: string
 }
 
+/**
+ * Publish domain event — TX içi outbox enqueue.
+ * Brain / Dashboard / Notification / Twin consumers commit sonrası worker'da çalışır.
+ */
 export function publishEvent(input: PublishEventInput): DomainEvent {
-  eventCounter += 1
   const event: DomainEvent = {
-    id: `evt-${eventCounter}`,
+    id: outboxRepo().nextEventId(),
     type: input.type,
     aggregateType: input.aggregateType,
     aggregateId: input.aggregateId,
@@ -27,13 +34,7 @@ export function publishEvent(input: PublishEventInput): DomainEvent {
     causedBy: input.causedBy,
     correlationId: input.correlationId,
   }
-  eventStore.push(event)
-
-  const typeHandlers = handlers.get(input.type) ?? []
-  const allHandlers = handlers.get('*') ?? []
-  for (const handler of [...typeHandlers, ...allHandlers]) {
-    handler(event)
-  }
+  outboxRepo().publishDomainEvent(event)
   return event
 }
 
@@ -52,26 +53,19 @@ export function getEvents(filter?: {
   aggregateType?: string
   aggregateId?: string
 }): DomainEvent[] {
-  return eventStore.filter((e) => {
-    if (filter?.type && e.type !== filter.type) return false
-    if (filter?.aggregateType && e.aggregateType !== filter.aggregateType) return false
-    if (filter?.aggregateId && e.aggregateId !== filter.aggregateId) return false
-    return true
-  })
+  return outboxRepo().getDomainEvents(filter)
 }
 
 export function getEventsByCorrelation(correlationId: string): DomainEvent[] {
-  return eventStore.filter((e) => e.correlationId === correlationId)
+  return outboxRepo().getDomainEventsByCorrelation(correlationId)
 }
 
 export function getAllEvents(): DomainEvent[] {
-  return [...eventStore]
+  return outboxRepo().getAllDomainEvents()
 }
 
 export function seedEvents(events: DomainEvent[]): void {
-  eventStore.length = 0
-  eventStore.push(...events)
-  eventCounter = events.length
+  outboxRepo().seedFromLegacyEvents(events)
 }
 
 export function clearEventHandlers(): void {
@@ -79,10 +73,9 @@ export function clearEventHandlers(): void {
 }
 
 export function getEventCount(): number {
-  return eventStore.length
+  return outboxRepo().getDomainEventCount()
 }
 
-// Convenience publishers
 export function publishOrderCreated(orderId: string, orderNo: string, causedBy: string, payload: Record<string, unknown>) {
   return publishEvent({ type: 'OrderCreated', aggregateType: 'SalesOrder', aggregateId: orderId, aggregateNo: orderNo, payload, causedBy, correlationId: orderId })
 }

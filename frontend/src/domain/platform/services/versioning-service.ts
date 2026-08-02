@@ -4,6 +4,12 @@ import type {
   VersionedEntityType,
   VersionedRecord,
 } from '../types'
+import {
+  DEFAULT_TENANT_ID,
+  requireUnitOfWork,
+} from '../../ports/persistence/persistence-registry'
+import type { PersistedEntityRevision } from '../../ports/persistence/persistence-aggregates'
+import { PERSISTENCE_CURSOR_MAX_LIMIT } from '../../ports/persistence/persistence.types'
 
 export type CreateRevisionInput<T> = {
   entityType: VersionedEntityType
@@ -21,12 +27,25 @@ export type ActivateRevisionInput = {
   effectiveFrom?: string
 }
 
-const revisionStore: VersionedRecord[] = []
+function revisionRepo() {
+  return requireUnitOfWork().entityRevisions
+}
+
+function stripRevisionMeta(row: PersistedEntityRevision): VersionedRecord {
+  const {
+    tenantId: _t,
+    version: _v,
+    schemaVersion: _s,
+    createdAt: _c,
+    updatedAt: _u,
+    deletedAt: _d,
+    ...rest
+  } = row
+  return rest as VersionedRecord
+}
 
 function nextRevisionNo(entityType: VersionedEntityType, entityKey: string): number {
-  const existing = revisionStore.filter(
-    (r) => r.entityType === entityType && r.entityKey === entityKey,
-  )
+  const existing = revisionRepo().findByEntity(DEFAULT_TENANT_ID, entityType, entityKey)
   return existing.length > 0 ? Math.max(...existing.map((r) => r.revision.revisionNo)) + 1 : 1
 }
 
@@ -34,6 +53,7 @@ export function createRevision<T extends Record<string, unknown>>(
   input: CreateRevisionInput<T>,
 ): VersionedRecord<T> {
   const revisionNo = nextRevisionNo(input.entityType, input.entityKey)
+  const now = new Date().toISOString()
   const record: VersionedRecord<T> = {
     id: `rev-${input.entityType}-${input.entityKey}-${revisionNo}`,
     entityType: input.entityType,
@@ -44,48 +64,83 @@ export function createRevision<T extends Record<string, unknown>>(
       status: input.status ?? 'Draft',
       effectiveFrom: new Date().toISOString().slice(0, 10),
       createdBy: input.createdBy,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
       reasonOfChange: input.reasonOfChange,
     },
     payload: input.payload,
   }
-  revisionStore.push(record as VersionedRecord)
+  const persisted: PersistedEntityRevision = {
+    ...(record as VersionedRecord),
+    tenantId: DEFAULT_TENANT_ID,
+    version: revisionNo,
+    schemaVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+  }
+  revisionRepo().save(DEFAULT_TENANT_ID, persisted)
   return record
 }
 
 export function activateRevision(input: ActivateRevisionInput): VersionedRecord | null {
-  const record = revisionStore.find((r) => r.id === input.recordId)
-  if (!record) return null
+  const row = revisionRepo().findById(DEFAULT_TENANT_ID, input.recordId)
+  if (!row) return null
+  const record = stripRevisionMeta(row)
 
-  for (const r of revisionStore) {
-    if (r.entityType === record.entityType && r.entityKey === record.entityKey && r.revision.status === 'Active') {
-      r.revision.status = 'Obsolete'
-      r.revision.effectiveTo = input.effectiveFrom ?? new Date().toISOString().slice(0, 10)
+  const allForEntity = revisionRepo().findByEntity(DEFAULT_TENANT_ID, record.entityType, record.entityKey)
+  for (const r of allForEntity) {
+    if (r.revision.status === 'Active') {
+      revisionRepo().save(DEFAULT_TENANT_ID, {
+        ...r,
+        revision: {
+          ...r.revision,
+          status: 'Obsolete',
+          effectiveTo: input.effectiveFrom ?? new Date().toISOString().slice(0, 10),
+        },
+        updatedAt: new Date().toISOString(),
+      })
     }
   }
 
-  record.revision.status = 'Active'
-  record.revision.approvedBy = input.approvedBy
-  record.revision.approvedDate = new Date().toISOString()
-  record.revision.effectiveFrom = input.effectiveFrom ?? new Date().toISOString().slice(0, 10)
-  return record
+  const updated: PersistedEntityRevision = {
+    ...row,
+    revision: {
+      ...row.revision,
+      status: 'Active',
+      approvedBy: input.approvedBy,
+      approvedDate: new Date().toISOString(),
+      effectiveFrom: input.effectiveFrom ?? new Date().toISOString().slice(0, 10),
+    },
+    updatedAt: new Date().toISOString(),
+  }
+  revisionRepo().save(DEFAULT_TENANT_ID, updated)
+  return stripRevisionMeta(updated)
 }
 
 export function obsoleteRevision(recordId: string, reason: string): VersionedRecord | null {
-  const record = revisionStore.find((r) => r.id === recordId)
-  if (!record) return null
-  record.revision.status = 'Obsolete'
-  record.revision.effectiveTo = new Date().toISOString().slice(0, 10)
-  record.revision.reasonOfChange = reason
-  return record
+  const row = revisionRepo().findById(DEFAULT_TENANT_ID, recordId)
+  if (!row) return null
+  const updated: PersistedEntityRevision = {
+    ...row,
+    revision: {
+      ...row.revision,
+      status: 'Obsolete',
+      effectiveTo: new Date().toISOString().slice(0, 10),
+      reasonOfChange: reason,
+    },
+    updatedAt: new Date().toISOString(),
+  }
+  revisionRepo().save(DEFAULT_TENANT_ID, updated)
+  return stripRevisionMeta(updated)
 }
 
 export function getRevisions(
   entityType: VersionedEntityType,
   entityKey: string,
 ): VersionedRecord[] {
-  return revisionStore
-    .filter((r) => r.entityType === entityType && r.entityKey === entityKey)
+  return revisionRepo()
+    .findByEntity(DEFAULT_TENANT_ID, entityType, entityKey)
+    .map(stripRevisionMeta)
     .sort((a, b) => b.revision.revisionNo - a.revision.revisionNo)
 }
 
@@ -93,25 +148,22 @@ export function getActiveRevision(
   entityType: VersionedEntityType,
   entityKey: string,
 ): VersionedRecord | undefined {
-  return revisionStore.find(
-    (r) =>
-      r.entityType === entityType &&
-      r.entityKey === entityKey &&
-      r.revision.status === 'Active',
-  )
+  const row = revisionRepo().findActive(DEFAULT_TENANT_ID, entityType, entityKey)
+  return row ? stripRevisionMeta(row) : undefined
 }
 
 export function getRevisionById(id: string): VersionedRecord | undefined {
-  return revisionStore.find((r) => r.id === id)
+  const row = revisionRepo().findById(DEFAULT_TENANT_ID, id)
+  return row ? stripRevisionMeta(row) : undefined
 }
 
 export function seedRevisions(records: VersionedRecord[]): void {
-  revisionStore.length = 0
-  revisionStore.push(...records)
+  revisionRepo().seedFromLegacy(records)
 }
 
 export function getAllRevisions(): VersionedRecord[] {
-  return [...revisionStore]
+  const page = revisionRepo().cursor(DEFAULT_TENANT_ID, {}, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return page.items.map(stripRevisionMeta)
 }
 
 export function canUseRevisionInProduction(record: VersionedRecord): boolean {

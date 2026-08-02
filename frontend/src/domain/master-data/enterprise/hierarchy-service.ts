@@ -1,13 +1,13 @@
+import { masterDataEnterpriseConfig } from '../master-data-port-access'
 import type { BaseMasterEntity } from '../types'
 import type { HierarchyEntityType } from './types'
-import { productGroupRepository, warehouseRepository, operationRepository, accessoryCategoryRepository, countryRepository } from '../repositories'
 import {
-  ENTERPRISE_CUSTOMER_GROUPS,
-  ENTERPRISE_DEPARTMENTS,
-  ENTERPRISE_FABRIC_CATEGORIES,
-  ENTERPRISE_MACHINE_GROUPS,
-  ENTERPRISE_SUPPLIER_GROUPS,
-} from './enterprise-seed'
+  accessoryCategoryRepository,
+  countryRepository,
+  operationRepository,
+  productGroupRepository,
+  warehouseRepository,
+} from '../repositories'
 
 type HierarchyNode = {
   entityType: HierarchyEntityType
@@ -15,17 +15,23 @@ type HierarchyNode = {
   children: HierarchyNode[]
 }
 
-const HIERARCHY_REPOS: Partial<Record<HierarchyEntityType, { getAll(): Array<BaseMasterEntity & { parentId?: string }> }>> = {
+function configRepo() {
+  return masterDataEnterpriseConfig()
+}
+
+const HIERARCHY_REPOS: Partial<
+  Record<HierarchyEntityType, { getAll(): Array<BaseMasterEntity & { parentId?: string }> }>
+> = {
   productGroup: productGroupRepository,
   warehouse: warehouseRepository,
   operation: operationRepository,
   accessoryCategory: accessoryCategoryRepository,
-  fabricCategory: { getAll: () => ENTERPRISE_FABRIC_CATEGORIES },
-  customerGroup: { getAll: () => ENTERPRISE_CUSTOMER_GROUPS },
-  supplierGroup: { getAll: () => ENTERPRISE_SUPPLIER_GROUPS },
+  fabricCategory: { getAll: () => configRepo().getHierarchyEntities('fabricCategory') },
+  customerGroup: { getAll: () => configRepo().getHierarchyEntities('customerGroup') },
+  supplierGroup: { getAll: () => configRepo().getHierarchyEntities('supplierGroup') },
   country: countryRepository,
-  department: { getAll: () => ENTERPRISE_DEPARTMENTS },
-  machineGroup: { getAll: () => ENTERPRISE_MACHINE_GROUPS },
+  department: { getAll: () => configRepo().getHierarchyEntities('department') },
+  machineGroup: { getAll: () => configRepo().getHierarchyEntities('machineGroup') },
 }
 
 export function buildHierarchyTree(entityType: HierarchyEntityType): HierarchyNode[] {
@@ -67,7 +73,7 @@ export function countHierarchyCoverage(): { supported: number; total: number; wi
   const types = Object.keys(HIERARCHY_REPOS) as HierarchyEntityType[]
   let withParentLinks = 0
   for (const t of types) {
-    withParentLinks += (HIERARCHY_REPOS[t]?.getAll().filter((e) => e.parentId).length ?? 0)
+    withParentLinks += HIERARCHY_REPOS[t]?.getAll().filter((e) => e.parentId).length ?? 0
   }
   return { supported: types.length, total: 10, withParentLinks }
 }

@@ -16,6 +16,7 @@ import {
 import { applySplitToOrder } from '../services/production-split-service'
 import { getSizeSetSizes } from './size-sets'
 import { getProductById } from './products'
+import { lazyArray } from './lazy-cache'
 
 const REFERENCE = new Date('2026-08-02')
 
@@ -154,12 +155,13 @@ function pick<T>(arr: T[], i: number): T {
   return arr[i % arr.length]
 }
 
-export const SALES_ORDERS: SalesOrder[] = Array.from({ length: 45 }, (_, i) =>
-  createOrder(i),
-)
+function buildSalesOrders(): SalesOrder[] {
+  const orders = Array.from({ length: 45 }, (_, i) => createOrder(i))
+  orders[0] = applySplitToOrder(orders[0])
+  return orders
+}
 
-/** Demo: SIP-2026-0100 — 3 atölyeye bölünmüş sipariş */
-SALES_ORDERS[0] = applySplitToOrder(SALES_ORDERS[0])
+export const SALES_ORDERS = lazyArray(buildSalesOrders)
 
 export function getSalesOrderById(id: string): SalesOrder | undefined {
   return SALES_ORDERS.find((o) => o.id === id)
@@ -211,4 +213,4 @@ export function toListOrder(order: SalesOrder) {
   }
 }
 
-export const LIST_ORDERS = SALES_ORDERS.map(toListOrder)
+export const LIST_ORDERS = lazyArray(() => SALES_ORDERS.map(toListOrder))

@@ -1,18 +1,25 @@
+import { masterDataEnterpriseConfig } from '../master-data-port-access'
 import type { MasterDataDependency, MasterDataDependencyKind } from './types'
 import type { MasterDataEntityType } from '../types'
-import { MASTER_DATA_DEPENDENCIES } from './enterprise-seed'
+
+function configRepo() {
+  return masterDataEnterpriseConfig()
+}
 
 export function getDependencies(
   sourceEntityType: MasterDataEntityType,
   sourceEntityId: string,
   kind?: MasterDataDependencyKind,
 ): MasterDataDependency[] {
-  return MASTER_DATA_DEPENDENCIES.filter(
-    (d) =>
-      d.sourceEntityType === sourceEntityType &&
-      d.sourceEntityId === sourceEntityId &&
-      (!kind || d.kind === kind),
-  ).sort((a, b) => a.priority - b.priority)
+  return configRepo()
+    .getDependencies()
+    .filter(
+      (d) =>
+        d.sourceEntityType === sourceEntityType &&
+        d.sourceEntityId === sourceEntityId &&
+        (!kind || d.kind === kind),
+    )
+    .sort((a, b) => a.priority - b.priority)
 }
 
 export function getDependencyChain(sourceEntityType: MasterDataEntityType, sourceEntityId: string): MasterDataDependency[] {
@@ -34,7 +41,8 @@ export function getDependencyChain(sourceEntityType: MasterDataEntityType, sourc
 }
 
 export function countDependencyCoverage(): { links: number; chains: number; kinds: number } {
-  const kinds = new Set(MASTER_DATA_DEPENDENCIES.map((d) => d.kind))
+  const deps = configRepo().getDependencies()
+  const kinds = new Set(deps.map((d) => d.kind))
   const chainSample = getDependencyChain('productGroup', 'pg-tshirt')
-  return { links: MASTER_DATA_DEPENDENCIES.length, chains: chainSample.length, kinds: kinds.size }
+  return { links: deps.length, chains: chainSample.length, kinds: kinds.size }
 }

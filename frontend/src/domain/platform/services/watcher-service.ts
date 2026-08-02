@@ -1,9 +1,9 @@
+import {
+  DEFAULT_TENANT_ID,
+  watcherNotificationsRepo,
+  watchersRepo,
+} from '../platform-persistence-access'
 import type { Watcher, WatcherNotification } from '../types'
-
-const watcherStore: Watcher[] = []
-const notificationStore: WatcherNotification[] = []
-let watcherCounter = 0
-let notifCounter = 0
 
 export type WatchEntityInput = {
   entityType: string
@@ -14,39 +14,42 @@ export type WatchEntityInput = {
 }
 
 export function watchEntity(input: WatchEntityInput): Watcher {
-  const existing = watcherStore.find(
+  const repo = watchersRepo()
+  const existing = repo.find(
+    DEFAULT_TENANT_ID,
     (w) =>
       w.entityId === input.entityId &&
       w.entityType === input.entityType &&
       w.userId === input.userId,
-  )
+  )[0]
   if (existing) return existing
 
-  watcherCounter += 1
+  const counter = repo.nextCounter(DEFAULT_TENANT_ID)
   const watcher: Watcher = {
-    id: `wch-${watcherCounter}`,
+    id: `wch-${counter}`,
     ...input,
     createdAt: new Date().toISOString(),
   }
-  watcherStore.push(watcher)
+  repo.save(DEFAULT_TENANT_ID, watcher)
   return watcher
 }
 
 export function unwatchEntity(entityType: string, entityId: string, userId: string): boolean {
-  const idx = watcherStore.findIndex(
+  const repo = watchersRepo()
+  const match = repo.find(
+    DEFAULT_TENANT_ID,
     (w) => w.entityType === entityType && w.entityId === entityId && w.userId === userId,
-  )
-  if (idx === -1) return false
-  watcherStore.splice(idx, 1)
-  return true
+  )[0]
+  if (!match) return false
+  return repo.remove(DEFAULT_TENANT_ID, match.id)
 }
 
 export function getWatchers(entityType: string, entityId: string): Watcher[] {
-  return watcherStore.filter((w) => w.entityType === entityType && w.entityId === entityId)
+  return watchersRepo().findByEntity(DEFAULT_TENANT_ID, entityType, entityId)
 }
 
 export function getWatchedEntities(userId: string): Watcher[] {
-  return watcherStore.filter((w) => w.userId === userId)
+  return watchersRepo().findByUser(DEFAULT_TENANT_ID, userId)
 }
 
 export function notifyWatchers(
@@ -56,12 +59,13 @@ export function notifyWatchers(
   message: string,
 ): WatcherNotification[] {
   const watchers = getWatchers(entityType, entityId)
+  const notifRepo = watcherNotificationsRepo()
   const notifications: WatcherNotification[] = []
 
   for (const watcher of watchers) {
-    notifCounter += 1
+    const counter = notifRepo.nextCounter(DEFAULT_TENANT_ID)
     const notification: WatcherNotification = {
-      id: `wn-${notifCounter}`,
+      id: `wn-${counter}`,
       watcherId: watcher.id,
       entityType,
       entityId,
@@ -71,32 +75,33 @@ export function notifyWatchers(
       createdAt: new Date().toISOString(),
       read: false,
     }
-    notificationStore.push(notification)
+    notifRepo.save(DEFAULT_TENANT_ID, notification)
     notifications.push(notification)
   }
   return notifications
 }
 
 export function getUserNotifications(userId: string, unreadOnly = false): WatcherNotification[] {
-  return notificationStore
-    .filter((n) => n.userId === userId && (!unreadOnly || !n.read))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return watcherNotificationsRepo().findByUser(DEFAULT_TENANT_ID, userId, unreadOnly)
 }
 
 export function markNotificationRead(id: string): void {
-  const n = notificationStore.find((x) => x.id === id)
-  if (n) n.read = true
+  const repo = watcherNotificationsRepo()
+  const notification = repo.findById(DEFAULT_TENANT_ID, id)
+  if (notification) {
+    repo.save(DEFAULT_TENANT_ID, { ...notification, read: true })
+  }
 }
 
 export function seedWatchers(watchers: Watcher[], notifications: WatcherNotification[]): void {
-  watcherStore.length = 0
-  notificationStore.length = 0
-  watcherStore.push(...watchers)
-  notificationStore.push(...notifications)
-  watcherCounter = watchers.length
-  notifCounter = notifications.length
+  const watcherRepo = watchersRepo()
+  const notifRepo = watcherNotificationsRepo()
+  watcherRepo.seedFromLegacy(DEFAULT_TENANT_ID, watchers)
+  notifRepo.seedFromLegacy(DEFAULT_TENANT_ID, notifications)
+  watcherRepo.setCounter(DEFAULT_TENANT_ID, watchers.length)
+  notifRepo.setCounter(DEFAULT_TENANT_ID, notifications.length)
 }
 
 export function getAllWatcherNotifications(): WatcherNotification[] {
-  return [...notificationStore]
+  return watcherNotificationsRepo().findAll(DEFAULT_TENANT_ID)
 }

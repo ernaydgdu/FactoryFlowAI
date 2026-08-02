@@ -112,6 +112,59 @@ const CreateProductionOrderFromSalesPage = lazyPage(
   () => import('@/modules/production-order-lifecycle/pages/CreateProductionOrderFromSalesPage'),
   'CreateProductionOrderFromSalesPage',
 )
+const ExecutionDemoDevPage = lazyPage(
+  () => import('@/modules/dev/pages/ExecutionDemoDevPage'),
+  'ExecutionDemoDevPage',
+)
+
+const ExecutionPlatformLayout = lazyPage(
+  () => import('@/modules/execution-platform/layout/ExecutionPlatformLayout'),
+  'ExecutionPlatformLayout',
+)
+const ExecutionDashboardPage = lazyPage(
+  () => import('@/modules/execution-platform/pages/ExecutionDashboardPage'),
+  'ExecutionDashboardPage',
+)
+const BundleBoardPage = lazyPage(
+  () => import('@/modules/execution-platform/pages/BundleBoardPage'),
+  'BundleBoardPage',
+)
+const OperationBoardPage = lazyPage(
+  () => import('@/modules/execution-platform/pages/OperationBoardPage'),
+  'OperationBoardPage',
+)
+const WorkSessionMonitorPage = lazyPage(
+  () => import('@/modules/execution-platform/pages/WorkSessionMonitorPage'),
+  'WorkSessionMonitorPage',
+)
+const ExecutionDailyEntryPage = lazyPage(
+  () => import('@/modules/execution-platform/pages/ExecutionDailyEntryPage'),
+  'ExecutionDailyEntryPage',
+)
+const WipMonitorPage = lazyPage(
+  () => import('@/modules/execution-platform/pages/WipMonitorPage'),
+  'WipMonitorPage',
+)
+const QualityGateConsolePage = lazyPage(
+  () => import('@/modules/execution-platform/pages/QualityGateConsolePage'),
+  'QualityGateConsolePage',
+)
+const ExecutionTimelinePage = lazyPage(
+  () => import('@/modules/execution-platform/pages/ExecutionTimelinePage'),
+  'ExecutionTimelinePage',
+)
+const SplitProductionConsolePage = lazyPage(
+  () => import('@/modules/execution-platform/pages/SplitProductionConsolePage'),
+  'SplitProductionConsolePage',
+)
+const ExecutionProductionCalendarPage = lazyPage(
+  () => import('@/modules/execution-platform/pages/ExecutionProductionCalendarPage'),
+  'ExecutionProductionCalendarPage',
+)
+const BrainConsolePage = lazyPage(
+  () => import('@/modules/execution-platform/pages/BrainConsolePage'),
+  'BrainConsolePage',
+)
 
 function L({ children }: { children: ReactNode }) {
   return <LazyRoute>{children}</LazyRoute>
@@ -184,6 +237,21 @@ export function AppRouter() {
           <Route path="daily-entry" element={<L><ProductionOrderLifecycleDailyEntryPage /></L>} />
         </Route>
 
+        <Route path="/execution-platform" element={<L><ExecutionPlatformLayout /></L>}>
+          <Route index element={<Navigate to="/execution-platform/dashboard" replace />} />
+          <Route path="dashboard" element={<L><ExecutionDashboardPage /></L>} />
+          <Route path="bundles" element={<L><BundleBoardPage /></L>} />
+          <Route path="operations" element={<L><OperationBoardPage /></L>} />
+          <Route path="work-sessions" element={<L><WorkSessionMonitorPage /></L>} />
+          <Route path="daily-entry" element={<L><ExecutionDailyEntryPage /></L>} />
+          <Route path="wip" element={<L><WipMonitorPage /></L>} />
+          <Route path="quality" element={<L><QualityGateConsolePage /></L>} />
+          <Route path="timeline" element={<L><ExecutionTimelinePage /></L>} />
+          <Route path="split" element={<L><SplitProductionConsolePage /></L>} />
+          <Route path="calendar" element={<L><ExecutionProductionCalendarPage /></L>} />
+          <Route path="brain" element={<L><BrainConsolePage /></L>} />
+        </Route>
+
         <Route path="/quality" element={<L><QualityHubPage /></L>} />
         <Route path="/quality/inline" element={<L><InlineQualityPage /></L>} />
         <Route path="/quality/midline" element={<L><MidlineQualityPage /></L>} />
@@ -201,6 +269,7 @@ export function AppRouter() {
         <Route path="/reports" element={<L><ReportsPage /></L>} />
         <Route path="/ai" element={<L><KeplerAiPage /></L>} />
         <Route path="/settings" element={<L><SettingsPage /></L>} />
+        <Route path="/dev/execution-demo" element={<L><ExecutionDemoDevPage /></L>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

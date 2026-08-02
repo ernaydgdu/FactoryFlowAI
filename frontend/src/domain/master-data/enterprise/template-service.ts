@@ -1,17 +1,21 @@
+import { masterDataEnterpriseConfig } from '../master-data-port-access'
 import type { ProductTemplate } from './types'
-import { PRODUCT_TEMPLATES } from './enterprise-seed'
 import { resolveDefaultsForProductGroup } from './default-resolver-service'
 
+function configRepo() {
+  return masterDataEnterpriseConfig()
+}
+
 export function getProductTemplate(code: string): ProductTemplate | undefined {
-  return PRODUCT_TEMPLATES.find((t) => t.code === code)
+  return configRepo().getProductTemplates().find((t) => t.code === code)
 }
 
 export function getProductTemplateById(id: string): ProductTemplate | undefined {
-  return PRODUCT_TEMPLATES.find((t) => t.id === id)
+  return configRepo().getProductTemplates().find((t) => t.id === id)
 }
 
 export function getActiveProductTemplates(): ProductTemplate[] {
-  return PRODUCT_TEMPLATES.filter((t) => t.status === 'Active')
+  return configRepo().getProductTemplates().filter((t) => t.status === 'Active')
 }
 
 export function deriveProductFromTemplate(templateCode: string) {
@@ -31,8 +35,9 @@ export function deriveProductFromTemplate(templateCode: string) {
 }
 
 export function countTemplateCoverage(): { templates: number; active: number } {
+  const templates = configRepo().getProductTemplates()
   return {
-    templates: PRODUCT_TEMPLATES.length,
-    active: PRODUCT_TEMPLATES.filter((t) => t.status === 'Active').length,
+    templates: templates.length,
+    active: templates.filter((t) => t.status === 'Active').length,
   }
 }

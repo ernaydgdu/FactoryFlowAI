@@ -1,7 +1,5 @@
+import { commentsRepo, DEFAULT_TENANT_ID } from '../platform-persistence-access'
 import type { Comment, CommentEntityType } from '../types'
-
-const commentStore: Comment[] = []
-let counter = 0
 
 export type AddCommentInput = {
   entityType: CommentEntityType
@@ -13,40 +11,46 @@ export type AddCommentInput = {
 }
 
 export function addComment(input: AddCommentInput): Comment {
-  counter += 1
+  const repo = commentsRepo()
+  const counter = repo.nextCounter(DEFAULT_TENANT_ID)
   const comment: Comment = {
     id: `cmt-${counter}`,
     ...input,
     createdAt: new Date().toISOString(),
   }
-  commentStore.push(comment)
+  repo.save(DEFAULT_TENANT_ID, comment)
   return comment
 }
 
 export function getComments(entityType: CommentEntityType, entityId: string): Comment[] {
-  return commentStore
-    .filter((c) => c.entityType === entityType && c.entityId === entityId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return commentsRepo().findByEntity(DEFAULT_TENANT_ID, entityType, entityId)
 }
 
 export function editComment(id: string, body: string): Comment | null {
-  const comment = commentStore.find((c) => c.id === id)
+  const repo = commentsRepo()
+  const comment = repo.findById(DEFAULT_TENANT_ID, id)
   if (!comment) return null
-  comment.body = body
-  comment.editedAt = new Date().toISOString()
-  return comment
+  const updated: Comment = {
+    ...comment,
+    body,
+    editedAt: new Date().toISOString(),
+  }
+  repo.save(DEFAULT_TENANT_ID, updated)
+  return updated
 }
 
 export function seedComments(comments: Comment[]): void {
-  commentStore.length = 0
-  commentStore.push(...comments)
-  counter = comments.length
+  const repo = commentsRepo()
+  repo.seedFromLegacy(DEFAULT_TENANT_ID, comments)
+  repo.setCounter(DEFAULT_TENANT_ID, comments.length)
 }
 
 export function getAllComments(): Comment[] {
-  return [...commentStore]
+  return commentsRepo().findAll(DEFAULT_TENANT_ID)
 }
 
 export function getRecentComments(limit = 10): Comment[] {
-  return [...commentStore].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit)
+  return [...commentsRepo().findAll(DEFAULT_TENANT_ID)]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit)
 }

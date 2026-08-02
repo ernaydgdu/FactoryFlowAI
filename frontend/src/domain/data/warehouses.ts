@@ -1,5 +1,6 @@
 import type { Warehouse as LegacyWarehouse, WarehouseType } from '../types'
 import { warehouseRepository, warehouseTypeRepository } from '../master-data'
+import { lazyArray } from './lazy-cache'
 
 function resolveWarehouseType(w: { type?: WarehouseType; warehouseTypeId: string }): WarehouseType {
   if (w.type) return w.type
@@ -8,13 +9,15 @@ function resolveWarehouseType(w: { type?: WarehouseType; warehouseTypeId: string
 }
 
 /** Geriye dönük uyumluluk — master data warehouse → legacy format */
-export const WAREHOUSES: LegacyWarehouse[] = warehouseRepository.getActive().map((w) => ({
-  id: w.id,
-  code: w.code,
-  name: w.name,
-  type: resolveWarehouseType(w),
-  location: w.location,
-}))
+export const WAREHOUSES = lazyArray((): LegacyWarehouse[] =>
+  warehouseRepository.getActive().map((w) => ({
+    id: w.id,
+    code: w.code,
+    name: w.name,
+    type: resolveWarehouseType(w),
+    location: w.location,
+  })),
+)
 
 export { getWarehouseByCode, getWarehouseName } from '../master-data'
 

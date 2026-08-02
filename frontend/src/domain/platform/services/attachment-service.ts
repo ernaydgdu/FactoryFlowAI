@@ -1,7 +1,5 @@
+import { attachmentsRepo, DEFAULT_TENANT_ID } from '../platform-persistence-access'
 import type { Attachment, AttachmentEntityType, AttachmentFileType } from '../types'
-
-const attachmentStore: Attachment[] = []
-let counter = 0
 
 export type AddAttachmentInput = {
   entityType: AttachmentEntityType
@@ -15,20 +13,19 @@ export type AddAttachmentInput = {
 }
 
 export function addAttachment(input: AddAttachmentInput): Attachment {
-  counter += 1
+  const repo = attachmentsRepo()
+  const counter = repo.nextCounter(DEFAULT_TENANT_ID)
   const attachment: Attachment = {
     id: `att-${counter}`,
     ...input,
     uploadedAt: new Date().toISOString(),
   }
-  attachmentStore.push(attachment)
+  repo.save(DEFAULT_TENANT_ID, attachment)
   return attachment
 }
 
 export function getAttachments(entityType: AttachmentEntityType, entityId: string): Attachment[] {
-  return attachmentStore.filter(
-    (a) => a.entityType === entityType && a.entityId === entityId,
-  )
+  return attachmentsRepo().findByEntity(DEFAULT_TENANT_ID, entityType, entityId)
 }
 
 export function getAttachmentsByType(
@@ -40,20 +37,17 @@ export function getAttachmentsByType(
 }
 
 export function removeAttachment(id: string): boolean {
-  const idx = attachmentStore.findIndex((a) => a.id === id)
-  if (idx === -1) return false
-  attachmentStore.splice(idx, 1)
-  return true
+  return attachmentsRepo().remove(DEFAULT_TENANT_ID, id)
 }
 
 export function seedAttachments(attachments: Attachment[]): void {
-  attachmentStore.length = 0
-  attachmentStore.push(...attachments)
-  counter = attachments.length
+  const repo = attachmentsRepo()
+  repo.seedFromLegacy(DEFAULT_TENANT_ID, attachments)
+  repo.setCounter(DEFAULT_TENANT_ID, attachments.length)
 }
 
 export function getAllAttachments(): Attachment[] {
-  return [...attachmentStore]
+  return attachmentsRepo().findAll(DEFAULT_TENANT_ID)
 }
 
 export const PRODUCT_ATTACHMENT_TYPES: AttachmentFileType[] = [

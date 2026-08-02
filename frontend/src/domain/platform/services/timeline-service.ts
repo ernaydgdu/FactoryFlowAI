@@ -1,7 +1,10 @@
 import type { DomainEventType, TimelineEntry, TimelineEventType } from '../types'
-
-const timelineStore: TimelineEntry[] = []
-let counter = 0
+import {
+  DEFAULT_TENANT_ID,
+  requireUnitOfWork,
+} from '../../ports/persistence/persistence-registry'
+import type { PersistedOrderTimelineEntry } from '../../ports/persistence/persistence-aggregates'
+import { PERSISTENCE_CURSOR_MAX_LIMIT } from '../../ports/persistence/persistence.types'
 
 const EVENT_TITLES: Record<TimelineEventType, string> = {
   OrderOpened: 'Sipariş Açıldı',
@@ -31,6 +34,19 @@ const DOMAIN_TO_TIMELINE: Partial<Record<DomainEventType, TimelineEventType>> = 
   CommentAdded: 'CommentAdded',
 }
 
+function timelineRepo() {
+  return requireUnitOfWork().orderTimeline
+}
+
+function timelineStreamKey(orderId: string) {
+  return { streamType: 'order_timeline', streamId: orderId }
+}
+
+function stripTimelineMeta(row: PersistedOrderTimelineEntry): TimelineEntry {
+  const { tenantId: _t, streamType: _st, streamId: _si, sequence: _s, ...rest } = row
+  return rest
+}
+
 export type AddTimelineEntryInput = {
   orderId: string
   orderNo: string
@@ -41,9 +57,8 @@ export type AddTimelineEntryInput = {
 }
 
 export function addTimelineEntry(input: AddTimelineEntryInput): TimelineEntry {
-  counter += 1
   const entry: TimelineEntry = {
-    id: `tl-${counter}`,
+    id: timelineRepo().nextTimelineId(),
     orderId: input.orderId,
     orderNo: input.orderNo,
     eventType: input.eventType,
@@ -53,7 +68,14 @@ export function addTimelineEntry(input: AddTimelineEntryInput): TimelineEntry {
     actor: input.actor,
     metadata: input.metadata,
   }
-  timelineStore.push(entry)
+  const persisted: PersistedOrderTimelineEntry = {
+    ...entry,
+    tenantId: DEFAULT_TENANT_ID,
+    streamType: 'order_timeline',
+    streamId: input.orderId,
+    sequence: 0,
+  }
+  timelineRepo().append(DEFAULT_TENANT_ID, timelineStreamKey(input.orderId), [persisted])
   return entry
 }
 
@@ -78,9 +100,8 @@ export function buildTimelineFromDomainEvent(
 }
 
 export function getOrderTimeline(orderId: string): TimelineEntry[] {
-  return timelineStore
-    .filter((e) => e.orderId === orderId)
-    .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt))
+  const page = timelineRepo().cursorByOrderId(DEFAULT_TENANT_ID, orderId, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return page.items.map(stripTimelineMeta).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt))
 }
 
 export function getOrderTimelineDesc(orderId: string): TimelineEntry[] {
@@ -88,13 +109,12 @@ export function getOrderTimelineDesc(orderId: string): TimelineEntry[] {
 }
 
 export function seedTimeline(entries: TimelineEntry[]): void {
-  timelineStore.length = 0
-  timelineStore.push(...entries)
-  counter = entries.length
+  timelineRepo().seedFromLegacyEntries(entries)
 }
 
 export function getAllTimelineEntries(): TimelineEntry[] {
-  return [...timelineStore]
+  const page = timelineRepo().cursor(DEFAULT_TENANT_ID, {}, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return page.items.map(stripTimelineMeta)
 }
 
 export function generateStandardOrderTimeline(
@@ -119,12 +139,11 @@ export function generateStandardOrderTimeline(
   let offset = 0
   for (const eventType of sequence) {
     if (stages[eventType] === undefined && eventType !== 'OrderOpened') continue
-    counter += 1
     offset += 1
     const date = new Date('2026-02-18')
     date.setDate(date.getDate() + offset * 2)
     entries.push({
-      id: `tl-${counter}`,
+      id: timelineRepo().nextTimelineId(),
       orderId,
       orderNo,
       eventType,
@@ -134,6 +153,15 @@ export function generateStandardOrderTimeline(
       actor,
     })
   }
-  timelineStore.push(...entries)
+  for (const entry of entries) {
+    const persisted: PersistedOrderTimelineEntry = {
+      ...entry,
+      tenantId: DEFAULT_TENANT_ID,
+      streamType: 'order_timeline',
+      streamId: orderId,
+      sequence: 0,
+    }
+    timelineRepo().append(DEFAULT_TENANT_ID, timelineStreamKey(orderId), [persisted])
+  }
   return entries
 }

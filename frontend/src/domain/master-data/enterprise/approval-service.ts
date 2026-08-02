@@ -1,15 +1,14 @@
+import { DEFAULT_TENANT_ID } from '@/domain/ports/persistence/persistence-registry'
+import { runDomainCommandInTransaction } from '@/domain/ports/persistence/command-transaction.port'
+import { masterDataApprovals } from '../master-data-port-access'
 import type { MasterDataApprovalRequest, MasterDataLifecycleStatus } from './types'
 import type { MasterDataEntityType } from '../types'
 import { recordMasterDataCreate } from './audit-service'
 import type { AuditContext } from '../../platform/services/audit-service'
 import { publishMasterDataBrainEvent } from './brain-change-feed'
 
-const approvalStore: MasterDataApprovalRequest[] = []
-let approvalCounter = 0
-
-function nextApprovalId(): string {
-  approvalCounter += 1
-  return `mda-${String(approvalCounter).padStart(6, '0')}`
+function approvalsRepo() {
+  return masterDataApprovals()
 }
 
 export function submitMasterDataForApproval(
@@ -18,8 +17,19 @@ export function submitMasterDataForApproval(
   entityCode: string,
   submittedBy: string,
 ): MasterDataApprovalRequest {
+  return runDomainCommandInTransaction(() =>
+    submitMasterDataForApprovalInternal(entityType, entityId, entityCode, submittedBy),
+  )
+}
+
+function submitMasterDataForApprovalInternal(
+  entityType: MasterDataEntityType,
+  entityId: string,
+  entityCode: string,
+  submittedBy: string,
+): MasterDataApprovalRequest {
   const request: MasterDataApprovalRequest = {
-    id: nextApprovalId(),
+    id: approvalsRepo().nextApprovalId(DEFAULT_TENANT_ID),
     entityType,
     entityId,
     entityCode,
@@ -27,7 +37,7 @@ export function submitMasterDataForApproval(
     submittedBy,
     submittedAt: new Date().toISOString(),
   }
-  approvalStore.push(request)
+  approvalsRepo().save(DEFAULT_TENANT_ID, request)
   publishMasterDataBrainEvent({
     entityType,
     entityId,
@@ -45,12 +55,25 @@ export function approveMasterDataChange(
   context: AuditContext,
   entityPayload: Record<string, unknown>,
 ): MasterDataApprovalRequest | undefined {
-  const request = approvalStore.find((a) => a.id === approvalId)
+  return runDomainCommandInTransaction(() =>
+    approveMasterDataChangeInternal(approvalId, approvedBy, context, entityPayload),
+  )
+}
+
+function approveMasterDataChangeInternal(
+  approvalId: string,
+  approvedBy: string,
+  context: AuditContext,
+  entityPayload: Record<string, unknown>,
+): MasterDataApprovalRequest | undefined {
+  const request = approvalsRepo().findById(DEFAULT_TENANT_ID, approvalId)
   if (!request) return undefined
 
   request.lifecycleStatus = 'Active'
   request.approvedBy = approvedBy
   request.approvedAt = new Date().toISOString()
+
+  approvalsRepo().save(DEFAULT_TENANT_ID, request)
 
   recordMasterDataCreate(request.entityType, { ...entityPayload, lifecycleStatus: 'Active' }, context)
   publishMasterDataBrainEvent({
@@ -66,19 +89,18 @@ export function approveMasterDataChange(
 }
 
 export function getMasterDataLifecycleStatus(entityId: string): MasterDataLifecycleStatus {
-  const pending = approvalStore.find((a) => a.entityId === entityId && a.lifecycleStatus === 'PendingApproval')
-  if (pending) return 'PendingApproval'
-  return 'Active'
+  return approvalsRepo().getLifecycleStatus(DEFAULT_TENANT_ID, entityId)
 }
 
 export function getPendingMasterDataApprovals(): MasterDataApprovalRequest[] {
-  return approvalStore.filter((a) => a.lifecycleStatus === 'PendingApproval')
+  return approvalsRepo().findPending(DEFAULT_TENANT_ID)
 }
 
 export function countApprovalCoverage(): { requests: number; pending: number; approved: number } {
+  const all = approvalsRepo().findAll(DEFAULT_TENANT_ID)
   return {
-    requests: approvalStore.length,
-    pending: approvalStore.filter((a) => a.lifecycleStatus === 'PendingApproval').length,
-    approved: approvalStore.filter((a) => a.approvedAt).length,
+    requests: all.length,
+    pending: all.filter((a) => a.lifecycleStatus === 'PendingApproval').length,
+    approved: all.filter((a) => a.approvedAt).length,
   }
 }

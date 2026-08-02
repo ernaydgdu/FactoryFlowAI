@@ -227,19 +227,8 @@ export function getDefaultWorkshopCode(): string {
   return workshopRepository.getActive()[0]?.code ?? 'FSN-A'
 }
 
+// UI options (CUSTOMERS, BRANDS, …) — import from './ui-options' or './ui-options.exports'.
 export {
-  CUSTOMERS,
-  BRANDS,
-  BUYERS,
-  MERCHANDISERS,
-  SEASONS,
-  COLLECTIONS,
-  CURRENCIES,
-  DELIVERY_TERMS,
-  PAYMENT_TERMS,
-  PRODUCT_GROUPS,
-  OPERATIONS,
-  SIZE_PRESETS,
   getDefaultIncotermCode,
   getDefaultPaymentTermName,
   getDefaultCurrencyCode,
@@ -248,4 +237,4 @@ export {
   getDefaultWorkshopName,
   getWarehouseNameByOperationCode,
   getDefaultColorCardOptions,
-} from './ui-options'
+} from './ui-options-defaults'

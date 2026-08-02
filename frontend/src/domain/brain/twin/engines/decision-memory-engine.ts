@@ -1,68 +1,42 @@
 /**
  * Decision Memory — yalnızca aynı şirket geçmişi. Cross-tenant yasak.
  */
+import {
+  brainDecisionMemoryRepo,
+  DEFAULT_TENANT_ID,
+} from '@/domain/platform/platform-persistence-access'
+import { PERSISTENCE_CURSOR_MAX_LIMIT } from '@/domain/ports/persistence/persistence.types'
+
 import type { DecisionMemoryEntry, DecisionOutcome } from '../types'
 
-const decisionStore: DecisionMemoryEntry[] = []
-let decisionCounter = 0
-
-const SEED_DECISIONS: Omit<DecisionMemoryEntry, 'id' | 'recordedAt'>[] = [
-  {
-    companyId: 'company-kepler-001',
-    userId: 'user-planner-001',
-    decisionType: 'TERMIN_MITIGATION',
-    context: 'SIP-2026-0138 termin riski',
-    actionTaken: 'Ek vardiya açıldı',
-    outcome: 'SUCCESS',
-    outcomeNotes: 'Termin kurtuldu — EXF tarihine yetişildi',
-    relatedOrderId: '2',
-    tenantScoped: true,
-  },
-  {
-    companyId: 'company-kepler-001',
-    userId: 'user-ceo-001',
-    decisionType: 'CAPACITY_REALLOCATION',
-    context: 'Kapasite darboğazı — Hat 4',
-    actionTaken: 'Fason Atölye B\'ye yük kaydırıldı',
-    outcome: 'PARTIAL',
-    outcomeNotes: 'Termin kurtuldu ancak maliyet %8 arttı',
-    tenantScoped: true,
-  },
-]
-
-for (const seed of SEED_DECISIONS) {
-  decisionCounter += 1
-  decisionStore.push({ ...seed, id: `dmem-${decisionCounter}`, recordedAt: '2026-07-15T10:00:00Z' })
+function nextDecisionId(): string {
+  const repo = brainDecisionMemoryRepo()
+  const page = repo.cursor(DEFAULT_TENANT_ID, {}, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return `dmem-${page.items.length + 1}`
 }
 
 export function recordDecision(
   entry: Omit<DecisionMemoryEntry, 'id' | 'recordedAt' | 'tenantScoped'>,
 ): DecisionMemoryEntry {
-  decisionCounter += 1
+  const repo = brainDecisionMemoryRepo()
   const full: DecisionMemoryEntry = {
     ...entry,
-    id: `dmem-${decisionCounter}`,
+    id: nextDecisionId(),
     recordedAt: new Date().toISOString(),
     tenantScoped: true,
   }
-  decisionStore.push(full)
-  return full
+  return repo.saveEntry(DEFAULT_TENANT_ID, full)
 }
 
 export function getDecisionHistory(companyId: string, limit = 20): DecisionMemoryEntry[] {
-  return decisionStore
-    .filter((d) => d.companyId === companyId)
-    .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
-    .slice(0, limit)
+  return brainDecisionMemoryRepo().findByCompany(DEFAULT_TENANT_ID, companyId).slice(0, limit)
 }
 
 export function findSimilarDecisions(
   companyId: string,
   decisionType: string,
 ): DecisionMemoryEntry[] {
-  return decisionStore.filter(
-    (d) => d.companyId === companyId && d.decisionType === decisionType && d.outcome === 'SUCCESS',
-  )
+  return brainDecisionMemoryRepo().findSimilar(DEFAULT_TENANT_ID, companyId, decisionType)
 }
 
 export function suggestFromDecisionMemory(
@@ -82,9 +56,5 @@ export function assertNoCrossTenantAccess(requestCompanyId: string, entryCompany
 }
 
 export function updateDecisionOutcome(id: string, outcome: DecisionOutcome, notes: string): void {
-  const entry = decisionStore.find((d) => d.id === id)
-  if (entry) {
-    entry.outcome = outcome
-    entry.outcomeNotes = notes
-  }
+  brainDecisionMemoryRepo().updateEntry(DEFAULT_TENANT_ID, id, { outcome, outcomeNotes: notes })
 }

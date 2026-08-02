@@ -1,14 +1,12 @@
 /**
  * Platform Orchestrator — bağımsız servisleri birbirine bağlayan ince katman.
- * UI bu servisi veya alt servisleri doğrudan çağırır.
+ * Side-effect consumers (Brain, Notification, AI Memory) outbox worker üzerinden çalışır.
  */
+import { runDomainCommandInTransaction } from '@/domain/ports/persistence/command-transaction.port'
 import { logApprove, logCreate } from './audit-service'
-import { recordFromDomainEvent } from './ai-memory-service'
 import { approveStep, submitForApproval } from './approval-service'
-import { subscribe, publishEvent, type PublishEventInput } from './event-bus'
-import { buildTimelineFromDomainEvent } from './timeline-service'
+import { publishEvent, type PublishEventInput } from './event-bus'
 import { activateRevision, createRevision } from './versioning-service'
-import { notifyWatchers } from './watcher-service'
 import type { AuditContext } from './audit-service'
 import type { DomainEvent } from '../types'
 
@@ -17,28 +15,6 @@ let wired = false
 export function wirePlatformServices(): void {
   if (wired) return
   wired = true
-
-  subscribe('*', (event: DomainEvent) => {
-    recordFromDomainEvent(event)
-
-    if (event.aggregateType === 'SalesOrder' && event.aggregateNo) {
-      buildTimelineFromDomainEvent(
-        event.aggregateId,
-        event.aggregateNo,
-        event.type,
-        event.payload.description as string ?? event.type,
-        event.causedBy,
-        event.payload,
-      )
-
-      notifyWatchers(
-        'SalesOrder',
-        event.aggregateId,
-        event.aggregateNo,
-        `${event.type}: ${event.payload.description ?? ''}`,
-      )
-    }
-  })
 }
 
 export function platformPublish(input: PublishEventInput, audit?: AuditContext): DomainEvent {
@@ -54,6 +30,17 @@ export function platformPublish(input: PublishEventInput, audit?: AuditContext):
 }
 
 export function platformSubmitBomApproval(
+  entityId: string,
+  entityKey: string,
+  submittedBy: string,
+  audit: AuditContext,
+) {
+  return runDomainCommandInTransaction(() =>
+    platformSubmitBomApprovalInternal(entityId, entityKey, submittedBy, audit),
+  )
+}
+
+function platformSubmitBomApprovalInternal(
   entityId: string,
   entityKey: string,
   submittedBy: string,
@@ -79,6 +66,17 @@ export function platformSubmitBomApproval(
 }
 
 export function platformApproveBomStep(
+  workflowId: string,
+  actedBy: string,
+  audit: AuditContext,
+  comment?: string,
+) {
+  return runDomainCommandInTransaction(() =>
+    platformApproveBomStepInternal(workflowId, actedBy, audit, comment),
+  )
+}
+
+function platformApproveBomStepInternal(
   workflowId: string,
   actedBy: string,
   audit: AuditContext,
@@ -114,6 +112,16 @@ export function platformActivateRevision(
   approvedBy: string,
   audit: AuditContext,
 ) {
+  return runDomainCommandInTransaction(() =>
+    platformActivateRevisionInternal(recordId, approvedBy, audit),
+  )
+}
+
+function platformActivateRevisionInternal(
+  recordId: string,
+  approvedBy: string,
+  audit: AuditContext,
+) {
   wirePlatformServices()
   const record = activateRevision({ recordId, approvedBy })
   if (!record) return null
@@ -138,6 +146,13 @@ export function platformActivateRevision(
 }
 
 export function platformCreateRevision<T extends Record<string, unknown>>(
+  input: Parameters<typeof createRevision<T>>[0],
+  audit: AuditContext,
+) {
+  return runDomainCommandInTransaction(() => platformCreateRevisionInternal(input, audit))
+}
+
+function platformCreateRevisionInternal<T extends Record<string, unknown>>(
   input: Parameters<typeof createRevision<T>>[0],
   audit: AuditContext,
 ) {

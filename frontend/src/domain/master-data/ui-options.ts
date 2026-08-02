@@ -6,11 +6,10 @@ import {
   accessoryCategoryRepository,
   ageGroupRepository,
   brandRepository,
+  customerRepository,
   buyerRepository,
   collectionRepository,
-  colorCardRepository,
   currencyRepository,
-  customerRepository,
   embroideryTypeRepository,
   fabricTypeRepository,
   fitRepository,
@@ -38,109 +37,74 @@ function codes<T extends { code: string }>(items: T[]): string[] {
   return items.map((i) => i.code)
 }
 
-export const CUSTOMERS = names(customerRepository.getActive())
-export const BRANDS = names(brandRepository.getActive())
-export const BUYERS = names(buyerRepository.getActive())
-export const MERCHANDISERS = names(merchandiserRepository.getActive())
-export const SEASONS = names(seasonRepository.getActive())
-export const SEASON_TYPES = names(seasonTypeRepository.getActive())
-export const COLLECTIONS = names(collectionRepository.getActive())
-export const CURRENCIES = codes(currencyRepository.getActive())
-export const DELIVERY_TERMS = codes(incotermRepository.getActive())
-export const PAYMENT_TERMS = names(paymentTermRepository.getActive())
-export const PRODUCT_GROUPS = names(productGroupRepository.getActive())
-export const PRODUCT_SUBGROUPS = names(subProductGroupRepository.getActive())
-export const FABRIC_TYPES = names(fabricTypeRepository.getActive())
-export const UNITS = names(unitRepository.getActive())
-export const GENDERS = names(genderRepository.getActive())
-export const AGE_GROUPS = names(ageGroupRepository.getActive())
-export const FITS = names(fitRepository.getActive())
-export const WASH_TYPES = names(washTypeRepository.getActive())
-export const PRINT_TYPES = names(printTypeRepository.getActive())
-export const EMBROIDERY_TYPES = names(embroideryTypeRepository.getActive())
-export const PRODUCT_TYPES = [
+function lazyArray<T>(compute: () => T[]): T[] {
+  let cache: T[] | undefined
+  return new Proxy([] as T[], {
+    get(_target, prop) {
+      if (cache === undefined) cache = compute()
+      const value = Reflect.get(cache, prop, cache)
+      return typeof value === 'function' ? value.bind(cache) : value
+    },
+  })
+}
+
+function lazyObject<T extends object>(compute: () => T): T {
+  let cache: T | undefined
+  return new Proxy({} as T, {
+    get(_target, prop) {
+      if (cache === undefined) cache = compute()
+      return Reflect.get(cache, prop, cache)
+    },
+  })
+}
+
+export const CUSTOMERS = lazyArray(() => names(customerRepository.getActive()))
+export const BRANDS = lazyArray(() => names(brandRepository.getActive()))
+export const BUYERS = lazyArray(() => names(buyerRepository.getActive()))
+export const MERCHANDISERS = lazyArray(() => names(merchandiserRepository.getActive()))
+export const SEASONS = lazyArray(() => names(seasonRepository.getActive()))
+export const SEASON_TYPES = lazyArray(() => names(seasonTypeRepository.getActive()))
+export const COLLECTIONS = lazyArray(() => names(collectionRepository.getActive()))
+export const CURRENCIES = lazyArray(() => codes(currencyRepository.getActive()))
+export const DELIVERY_TERMS = lazyArray(() => codes(incotermRepository.getActive()))
+export const PAYMENT_TERMS = lazyArray(() => names(paymentTermRepository.getActive()))
+export const PRODUCT_GROUPS = lazyArray(() => names(productGroupRepository.getActive()))
+export const PRODUCT_SUBGROUPS = lazyArray(() => names(subProductGroupRepository.getActive()))
+export const FABRIC_TYPES = lazyArray(() => names(fabricTypeRepository.getActive()))
+export const UNITS = lazyArray(() => names(unitRepository.getActive()))
+export const GENDERS = lazyArray(() => names(genderRepository.getActive()))
+export const AGE_GROUPS = lazyArray(() => names(ageGroupRepository.getActive()))
+export const FITS = lazyArray(() => names(fitRepository.getActive()))
+export const WASH_TYPES = lazyArray(() => names(washTypeRepository.getActive()))
+export const PRINT_TYPES = lazyArray(() => names(printTypeRepository.getActive()))
+export const EMBROIDERY_TYPES = lazyArray(() => names(embroideryTypeRepository.getActive()))
+export const PRODUCT_TYPES = lazyArray(() => [
   ...new Set(sizeSetRepository.getActive().map((s) => s.productType)),
-]
-export const FACTORIES = names(workshopRepository.getActive().map((w) => ({ name: w.location })))
+])
+export const FACTORIES = lazyArray(() =>
+  names(workshopRepository.getActive().map((w) => ({ name: w.location }))),
+)
 export const MANUFACTURERS = ['Kepler Tekstil A.Ş.'] as const
 
-export const OPERATIONS = operationRepository.getActive().map((op) => ({
-  code: op.code,
-  name: op.name,
-  sequence: op.sequence,
-  department: op.department,
-}))
+export const OPERATIONS = lazyArray(() =>
+  operationRepository.getActive().map((op) => ({
+    code: op.code,
+    name: op.name,
+    sequence: op.sequence,
+    department: op.department,
+  })),
+)
 
-export const SIZE_PRESETS = {
+export const SIZE_PRESETS = lazyObject(() => ({
   letter: sizeSetRepository.getByCode('SS-TSHIRT')?.sizes ?? ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   numeric: sizeSetRepository.getByCode('SS-PANT')?.sizes ?? ['28', '29', '30', '31', '32'],
   baby: sizeSetRepository.getByCode('SS-BABY')?.sizes ?? ['0-3 Ay', '3-6 Ay', '6-9 Ay'],
-} as const
+}))
 
-export const ALL_SIZE_OPTIONS = [
+export const ALL_SIZE_OPTIONS = lazyArray(() => [
   ...SIZE_PRESETS.letter,
   ...SIZE_PRESETS.numeric,
   ...SIZE_PRESETS.baby,
-] as const
+])
 
-export const ACCESSORY_CATEGORIES = names(accessoryCategoryRepository.getActive())
-
-/** Form varsayılanları — master data kodlarından */
-export function getDefaultIncotermCode(): string {
-  return incotermRepository.getByCode('FOB')?.code ?? incotermRepository.getActive()[0]?.code ?? ''
-}
-
-export function getDefaultPaymentTermName(): string {
-  return paymentTermRepository.getByCode('NET60')?.name ?? paymentTermRepository.getActive()[0]?.name ?? ''
-}
-
-export function getDefaultCurrencyCode(): string {
-  return currencyRepository.getByCode('USD')?.code ?? currencyRepository.getActive()[0]?.code ?? ''
-}
-
-export function getDefaultSeasonName(): string {
-  return seasonRepository.getByCode('SS26')?.name ?? seasonRepository.getActive()[0]?.name ?? ''
-}
-
-export function getDefaultCollectionName(): string {
-  return collectionRepository.getByCode('CORE')?.name ?? collectionRepository.getActive()[0]?.name ?? ''
-}
-
-export function getDefaultWorkshopName(): string {
-  return workshopRepository.getActive()[0]?.name ?? ''
-}
-
-export function getWorkshopNameByDepartment(department: string): string {
-  const wh = workshopRepository.find((w) => w.location.includes(department))[0]
-  return wh?.name ?? workshopRepository.getActive()[0]?.name ?? ''
-}
-
-export function getWarehouseNameByOperationCode(opCode: string): string {
-  const op = operationRepository.getByCode(opCode)
-  if (!op) return getDefaultWorkshopName()
-  if (op.department === 'Kesimhane') return 'Kesimhane'
-  if (op.department === 'Dikim') return getDefaultWorkshopName()
-  if (op.department === 'Ütü Paket') return 'Ütü Paket'
-  if (op.department === 'Kalite') return 'Kalite'
-  return op.department
-}
-
-export function getDefaultProductGroupName(): string {
-  return productGroupRepository.getActive()[0]?.name ?? ''
-}
-
-export function getDefaultSubGroupName(): string {
-  return subProductGroupRepository.getActive()[0]?.name ?? ''
-}
-
-export function getDefaultProductType(): string {
-  return sizeSetRepository.getActive()[0]?.productType ?? ''
-}
-
-export function getDefaultColorCardOptions(count = 2) {
-  return colorCardRepository.getActive().slice(0, count).map((c) => ({
-    code: c.code,
-    pantone: c.pantone,
-    description: c.name,
-  }))
-}
+export const ACCESSORY_CATEGORIES = lazyArray(() => names(accessoryCategoryRepository.getActive()))

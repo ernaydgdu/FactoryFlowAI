@@ -1,46 +1,43 @@
 /**
  * Human Feedback Engine — öneri sonuç öğrenme (company-scoped).
  */
+import { DEFAULT_TENANT_ID, humanFeedbackRepo } from '@/domain/platform/platform-persistence-access'
+
 import type {
   DecisionOutcome,
   FeedbackRejectReason,
   HumanFeedbackEntry,
 } from '../types'
 
-const feedbackStore: HumanFeedbackEntry[] = []
-let feedbackCounter = 0
-
 export function recordFeedback(
   entry: Omit<HumanFeedbackEntry, 'id' | 'recordedAt' | 'tenantScoped'>,
 ): HumanFeedbackEntry {
-  feedbackCounter += 1
+  const repo = humanFeedbackRepo()
+  const counter = repo.nextCounter(DEFAULT_TENANT_ID)
   const full: HumanFeedbackEntry = {
     ...entry,
-    id: `fb-${feedbackCounter}`,
+    id: `fb-${counter}`,
     recordedAt: new Date().toISOString(),
     tenantScoped: true,
   }
-  feedbackStore.push(full)
+  repo.save(DEFAULT_TENANT_ID, full)
   return full
 }
 
 export function getFeedbackHistory(companyId: string, limit = 50): HumanFeedbackEntry[] {
-  return feedbackStore
-    .filter((f) => f.companyId === companyId)
-    .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
-    .slice(0, limit)
+  return humanFeedbackRepo().findByCompany(DEFAULT_TENANT_ID, companyId).slice(0, limit)
 }
 
 export function getAcceptanceRate(companyId: string): number {
-  const entries = feedbackStore.filter((f) => f.companyId === companyId)
+  const entries = humanFeedbackRepo().findByCompany(DEFAULT_TENANT_ID, companyId)
   if (entries.length === 0) return 0
   const accepted = entries.filter((f) => f.decision === 'ACCEPTED').length
   return Math.round((accepted / entries.length) * 100)
 }
 
 export function getTopRejectReasons(companyId: string): FeedbackRejectReason[] {
-  const rejected = feedbackStore.filter(
-    (f) => f.companyId === companyId && f.decision === 'REJECTED' && f.rejectReason,
+  const rejected = humanFeedbackRepo().findByCompany(DEFAULT_TENANT_ID, companyId).filter(
+    (f) => f.decision === 'REJECTED' && f.rejectReason,
   )
   const counts = new Map<FeedbackRejectReason, number>()
   for (const r of rejected) {
@@ -53,8 +50,11 @@ export function updateFeedbackOutcome(
   feedbackId: string,
   outcome: DecisionOutcome,
 ): void {
-  const entry = feedbackStore.find((f) => f.id === feedbackId)
-  if (entry) entry.outcome = outcome
+  const repo = humanFeedbackRepo()
+  const entry = repo.findById(DEFAULT_TENANT_ID, feedbackId)
+  if (entry) {
+    repo.save(DEFAULT_TENANT_ID, { ...entry, outcome })
+  }
 }
 
 export function learnFromFeedback(companyId: string): string[] {

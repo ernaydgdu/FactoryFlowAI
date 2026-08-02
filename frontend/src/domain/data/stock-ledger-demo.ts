@@ -1,15 +1,14 @@
 import { executeFullProductionScenario } from '../services/business-rule-engine'
 import { createEmptyLedger } from '../services/stock-ledger'
 import type { StockLedger, StockMovement } from '../types/stock-ledger'
+import { lazyObject, lazyValue } from './lazy-cache'
 
 /** BR-01..BR-10 senaryolarının uçtan uca mock çalıştırması */
-const scenario = executeFullProductionScenario(createEmptyLedger())
+const getScenario = lazyValue(() => executeFullProductionScenario(createEmptyLedger()))
 
-export const DEMO_STOCK_LEDGER: StockLedger = scenario.ledger
-
-export const DEMO_SCENARIO_SUMMARY = scenario.scenarioSummary
-
-export const DEMO_RULE_RESULTS = scenario.results
+export const DEMO_STOCK_LEDGER = lazyObject((): StockLedger => getScenario().ledger)
+export const DEMO_SCENARIO_SUMMARY = lazyObject(() => getScenario().scenarioSummary)
+export const DEMO_RULE_RESULTS = lazyObject(() => getScenario().results)
 
 /** Senaryo doğrulama sabitleri */
 export const DEMO_EXPECTED = {
@@ -45,5 +44,3 @@ export function assertDemoScenarioIntegrity(): boolean {
     s.totalMovements > 0
   )
 }
-
-assertDemoScenarioIntegrity()

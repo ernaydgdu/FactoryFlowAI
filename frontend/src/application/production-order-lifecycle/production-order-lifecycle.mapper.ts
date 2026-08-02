@@ -1,3 +1,8 @@
+import { runCommandInTransaction } from '@/application/core/command-transaction'
+import {
+  buildCreateProductionOrderContext,
+  buildProductionOrderReservationContext,
+} from '@/application/catalog/catalog-command.bridge'
 import { SALES_ORDERS } from '@/domain/data/orders'
 import { getProductById } from '@/domain/data/products'
 import { getOrderTimeline } from '@/domain/platform/services/timeline-service'
@@ -164,29 +169,42 @@ export function mapLifecycleDashboard(): ProductionOrderLifecycleDashboardDto {
 }
 
 export function executeCreateProductionOrder(input: CreateProductionOrderInputDto) {
-  const record = createProductionOrderFromSalesOrder(input.salesOrderId, input.actor ?? 'planner', input.priority)
-  return mapListItem(record)
+  return runCommandInTransaction(() => {
+    const context = buildCreateProductionOrderContext(input.salesOrderId)
+    const record = createProductionOrderFromSalesOrder(context, input.actor ?? 'planner', input.priority)
+    return mapListItem(record)
+  })
 }
 
 export function executeTransitionProductionOrder(input: TransitionProductionOrderInputDto) {
-  const record = transitionProductionOrderStatus(
-    input.productionOrderNo,
-    input.toStatus,
-    input.actor ?? 'planner',
-  )
-  return mapListItem(record)
+  return runCommandInTransaction(() => {
+    const record = getProductionOrderLifecycle(input.productionOrderNo)
+    const reservationContext =
+      input.toStatus === 'Released' && record
+        ? buildProductionOrderReservationContext(record.salesOrderId, record.productCardId)
+        : undefined
+    const updated = transitionProductionOrderStatus(
+      input.productionOrderNo,
+      input.toStatus,
+      input.actor ?? 'planner',
+      reservationContext,
+    )
+    return mapListItem(updated)
+  })
 }
 
 export function executeAddDailyEntry(input: AddDailyEntryInputDto) {
-  addDailyProductionEntry(input.productionOrderNo, {
-    entryDate: input.entryDate,
-    planned: input.planned,
-    produced: input.produced,
-    reject: input.reject,
-    rework: input.rework,
-    secondQuality: input.secondQuality,
-    fire: input.fire,
-    recordedBy: input.recordedBy,
+  return runCommandInTransaction(() => {
+    addDailyProductionEntry(input.productionOrderNo, {
+      entryDate: input.entryDate,
+      planned: input.planned,
+      produced: input.produced,
+      reject: input.reject,
+      rework: input.rework,
+      secondQuality: input.secondQuality,
+      fire: input.fire,
+      recordedBy: input.recordedBy,
+    })
+    return mapProductionOrderLifecycleDetail(input.productionOrderNo)
   })
-  return mapProductionOrderLifecycleDetail(input.productionOrderNo)
 }

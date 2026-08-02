@@ -1,7 +1,5 @@
+import { aiMemoryRepo, DEFAULT_TENANT_ID } from '../platform-persistence-access'
 import type { AiMemoryEntry, AiTimeline, DomainEvent } from '../types'
-
-const memoryStore: AiMemoryEntry[] = []
-let counter = 0
 
 const EVENT_IMPORTANCE: Partial<Record<string, AiMemoryEntry['importance']>> = {
   OrderCreated: 'medium',
@@ -27,7 +25,8 @@ const EVENT_CATEGORY: Partial<Record<string, AiMemoryEntry['category']>> = {
 }
 
 export function recordFromDomainEvent(event: DomainEvent): AiMemoryEntry {
-  counter += 1
+  const repo = aiMemoryRepo()
+  const counter = repo.nextCounter(DEFAULT_TENANT_ID)
   const entry: AiMemoryEntry = {
     id: `aim-${counter}`,
     timestamp: event.occurredAt,
@@ -41,7 +40,7 @@ export function recordFromDomainEvent(event: DomainEvent): AiMemoryEntry {
     importance: EVENT_IMPORTANCE[event.type] ?? 'low',
     tags: extractTags(event),
   }
-  memoryStore.push(entry)
+  repo.save(DEFAULT_TENANT_ID, entry)
   return entry
 }
 
@@ -82,9 +81,7 @@ function extractTags(event: DomainEvent): string[] {
 }
 
 export function getAiTimeline(entityId: string): AiTimeline {
-  const entries = memoryStore
-    .filter((e) => e.entityId === entityId)
-    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+  const entries = aiMemoryRepo().findByEntityId(DEFAULT_TENANT_ID, entityId)
 
   return {
     entityId,
@@ -95,12 +92,15 @@ export function getAiTimeline(entityId: string): AiTimeline {
 }
 
 export function getRecentAiMemory(limit = 20): AiMemoryEntry[] {
-  return [...memoryStore].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, limit)
+  return [...aiMemoryRepo().findAll(DEFAULT_TENANT_ID)]
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, limit)
 }
 
 export function searchAiMemory(query: string): AiMemoryEntry[] {
   const q = query.toLowerCase()
-  return memoryStore.filter(
+  return aiMemoryRepo().find(
+    DEFAULT_TENANT_ID,
     (e) =>
       e.summary.toLowerCase().includes(q) ||
       e.detail.toLowerCase().includes(q) ||
@@ -110,13 +110,13 @@ export function searchAiMemory(query: string): AiMemoryEntry[] {
 }
 
 export function seedAiMemory(entries: AiMemoryEntry[]): void {
-  memoryStore.length = 0
-  memoryStore.push(...entries)
-  counter = entries.length
+  const repo = aiMemoryRepo()
+  repo.seedFromLegacy(DEFAULT_TENANT_ID, entries)
+  repo.setCounter(DEFAULT_TENANT_ID, entries.length)
 }
 
 export function getAllAiMemory(): AiMemoryEntry[] {
-  return [...memoryStore]
+  return aiMemoryRepo().findAll(DEFAULT_TENANT_ID)
 }
 
 export function formatAiTimelineForPrompt(timeline: AiTimeline): string {

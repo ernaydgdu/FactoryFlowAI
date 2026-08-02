@@ -1,7 +1,5 @@
+import { DEFAULT_TENANT_ID, entityTagsRepo } from '../platform-persistence-access'
 import type { EntityTag, SystemTag } from '../types'
-
-const tagStore: EntityTag[] = []
-let counter = 0
 
 export const SYSTEM_TAGS: SystemTag[] = [
   'VIP',
@@ -21,50 +19,54 @@ export type ApplyTagInput = {
 }
 
 export function applyTag(input: ApplyTagInput): EntityTag {
-  const existing = tagStore.find(
+  const repo = entityTagsRepo()
+  const existing = repo.find(
+    DEFAULT_TENANT_ID,
     (t) => t.entityType === input.entityType && t.entityId === input.entityId && t.tag === input.tag,
-  )
+  )[0]
   if (existing) return existing
 
-  counter += 1
+  const counter = repo.nextCounter(DEFAULT_TENANT_ID)
   const entityTag: EntityTag = {
     id: `tag-${counter}`,
     ...input,
     appliedAt: new Date().toISOString(),
   }
-  tagStore.push(entityTag)
+  repo.save(DEFAULT_TENANT_ID, entityTag)
   return entityTag
 }
 
 export function removeTag(entityType: string, entityId: string, tag: SystemTag): boolean {
-  const idx = tagStore.findIndex(
+  const repo = entityTagsRepo()
+  const match = repo.find(
+    DEFAULT_TENANT_ID,
     (t) => t.entityType === entityType && t.entityId === entityId && t.tag === tag,
-  )
-  if (idx === -1) return false
-  tagStore.splice(idx, 1)
-  return true
+  )[0]
+  if (!match) return false
+  return repo.remove(DEFAULT_TENANT_ID, match.id)
 }
 
 export function getTags(entityType: string, entityId: string): EntityTag[] {
-  return tagStore.filter((t) => t.entityType === entityType && t.entityId === entityId)
+  return entityTagsRepo().findByEntity(DEFAULT_TENANT_ID, entityType, entityId)
 }
 
 export function getEntitiesByTag(tag: SystemTag): EntityTag[] {
-  return tagStore.filter((t) => t.tag === tag)
+  return entityTagsRepo().find(DEFAULT_TENANT_ID, (t) => t.tag === tag)
 }
 
 export function seedTags(tags: EntityTag[]): void {
-  tagStore.length = 0
-  tagStore.push(...tags)
-  counter = tags.length
+  const repo = entityTagsRepo()
+  repo.seedFromLegacy(DEFAULT_TENANT_ID, tags)
+  repo.setCounter(DEFAULT_TENANT_ID, tags.length)
 }
 
 export function getAllTags(): EntityTag[] {
-  return [...tagStore]
+  return entityTagsRepo().findAll(DEFAULT_TENANT_ID)
 }
 
 export function hasTag(entityType: string, entityId: string, tag: SystemTag): boolean {
-  return tagStore.some(
+  return entityTagsRepo().find(
+    DEFAULT_TENANT_ID,
     (t) => t.entityType === entityType && t.entityId === entityId && t.tag === tag,
-  )
+  ).length > 0
 }

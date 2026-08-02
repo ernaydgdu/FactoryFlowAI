@@ -4,17 +4,15 @@
 import { getOrderTimeline, getAllTimelineEntries } from '../platform/services/timeline-service'
 import { getAuditTrail } from '../platform/services/audit-service'
 import { BUSINESS_RULES } from '../services/business-rule-engine'
+import { DEFAULT_TENANT_ID, enterpriseTimelineRepo } from '../platform/platform-persistence-access'
 import type { EnterpriseEntityType, EnterpriseTimelineEntry } from './types'
-import { ENTERPRISE_TIMELINE_SEED } from './enterprise-seed'
 import { buildEnterpriseRelationGraphForOrder } from './relation-graph-service'
-
-const timelineStore: EnterpriseTimelineEntry[] = [...ENTERPRISE_TIMELINE_SEED]
 
 export function getEnterpriseTimeline(
   entityType: EnterpriseEntityType,
   entityId: string,
 ): EnterpriseTimelineEntry[] {
-  const seeded = timelineStore.filter((e) => e.entityType === entityType && e.entityId === entityId)
+  const seeded = enterpriseTimelineRepo().findByEntity(DEFAULT_TENANT_ID, entityType, entityId)
 
   if (entityType === 'SALES_ORDER') {
     const platform = getOrderTimeline(entityId).map((t) => ({
@@ -48,7 +46,7 @@ export function getEnterpriseTimeline(
 }
 
 export function appendEnterpriseTimelineEntry(entry: EnterpriseTimelineEntry): void {
-  timelineStore.unshift(entry)
+  enterpriseTimelineRepo().prepend(DEFAULT_TENANT_ID, entry)
 }
 
 export function enrichTimelineWithBusinessRules(orderId: string): EnterpriseTimelineEntry[] {
@@ -77,7 +75,7 @@ export function enrichTimelineWithBusinessRules(orderId: string): EnterpriseTime
 }
 
 export function countTimelineCoverage(): { entries: number; withBusinessRule: number; withApproval: number; withBrain: number } {
-  const all = [...timelineStore, ...getAllTimelineEntries().map((t) => ({
+  const all = [...enterpriseTimelineRepo().findAll(DEFAULT_TENANT_ID), ...getAllTimelineEntries().map((t) => ({
     id: t.id,
     entityType: 'SALES_ORDER' as const,
     entityId: t.orderId,

@@ -63,3 +63,5 @@ export {
 export * from './validation/textile-factory-validation'
 export * from './enterprise'
 export * from './performance'
+export * from './production-order'
+export * from './execution-platform'

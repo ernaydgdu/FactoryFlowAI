@@ -26,6 +26,9 @@ export {
   SIZE_PRESETS,
   WASH_TYPES,
   CUSTOMERS,
+} from '@/domain/master-data/ui-options'
+
+export {
   getDefaultCollectionName,
   getDefaultColorCardOptions,
   getDefaultCurrencyCode,
@@ -37,4 +40,4 @@ export {
   getDefaultSubGroupName,
   getDefaultWorkshopName,
   getWarehouseNameByOperationCode,
-} from '@/domain/master-data/ui-options'
+} from '@/domain/master-data/ui-options-defaults'

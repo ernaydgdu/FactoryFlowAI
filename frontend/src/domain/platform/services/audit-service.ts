@@ -1,4 +1,10 @@
 import type { AuditAction, AuditLogEntry } from '../types'
+import {
+  DEFAULT_TENANT_ID,
+  requireUnitOfWork,
+} from '../../ports/persistence/persistence-registry'
+import type { PersistedAuditLogEntry } from '../../ports/persistence/persistence-aggregates'
+import { PERSISTENCE_CURSOR_MAX_LIMIT } from '../../ports/persistence/persistence.types'
 
 export type AuditContext = {
   changedBy: string
@@ -7,12 +13,17 @@ export type AuditContext = {
   description?: string
 }
 
-const auditStore: AuditLogEntry[] = []
-let auditCounter = 0
+function auditRepo() {
+  return requireUnitOfWork().auditLog
+}
 
 function nextAuditId(): string {
-  auditCounter += 1
-  return `aud-${String(auditCounter).padStart(6, '0')}`
+  const all = auditRepo().cursor(DEFAULT_TENANT_ID, {}, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return `aud-${String(all.items.length + 1).padStart(6, '0')}`
+}
+
+function auditStreamKey(entityType: string, entityId: string) {
+  return { streamType: 'audit', streamId: `${entityType}:${entityId}` }
 }
 
 export function logAudit(
@@ -36,7 +47,14 @@ export function logAudit(
     machine: context.machine,
     description: context.description ?? `${action} — ${entityType} ${entityId}`,
   }
-  auditStore.push(entry)
+  const persisted: PersistedAuditLogEntry = {
+    ...entry,
+    tenantId: DEFAULT_TENANT_ID,
+    streamType: 'audit',
+    streamId: `${entityType}:${entityId}`,
+    sequence: 0,
+  }
+  auditRepo().append(DEFAULT_TENANT_ID, auditStreamKey(entityType, entityId), [persisted])
   return entry
 }
 
@@ -69,17 +87,20 @@ export function logApprove(
 }
 
 export function getAuditTrail(entityType: string, entityId: string): AuditLogEntry[] {
-  return auditStore
-    .filter((e) => e.entityType === entityType && e.entityId === entityId)
-    .sort((a, b) => b.changedAt.localeCompare(a.changedAt))
+  const page = auditRepo().cursorByEntity(DEFAULT_TENANT_ID, entityType, entityId, {
+    limit: PERSISTENCE_CURSOR_MAX_LIMIT,
+  })
+  return page.items.map(stripAuditStreamMeta)
 }
 
 export function getAuditByUser(changedBy: string): AuditLogEntry[] {
-  return auditStore.filter((e) => e.changedBy === changedBy)
+  const page = auditRepo().cursorByUser(DEFAULT_TENANT_ID, changedBy, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return page.items.map(stripAuditStreamMeta)
 }
 
 export function getAllAuditLogs(): AuditLogEntry[] {
-  return [...auditStore]
+  const page = auditRepo().cursor(DEFAULT_TENANT_ID, {}, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return page.items.map(stripAuditStreamMeta)
 }
 
 export function getChangedFields(
@@ -97,9 +118,7 @@ export function getChangedFields(
 }
 
 export function seedAuditLogs(entries: AuditLogEntry[]): void {
-  auditStore.length = 0
-  auditStore.push(...entries)
-  auditCounter = entries.length
+  auditRepo().seedFromLegacyEntries(entries)
 }
 
 export function formatAuditEntry(entry: AuditLogEntry): string {
@@ -112,4 +131,9 @@ export function formatAuditEntry(entry: AuditLogEntry): string {
         ? `Yeni kayıt oluşturuldu`
         : 'Kayıt silindi'
   return `[${entry.changedAt}] ${entry.changedBy} @ ${entry.ip} (${entry.machine}): ${changes}`
+}
+
+function stripAuditStreamMeta(row: PersistedAuditLogEntry): AuditLogEntry {
+  const { tenantId: _t, streamType: _st, streamId: _si, sequence: _s, ...rest } = row
+  return rest
 }

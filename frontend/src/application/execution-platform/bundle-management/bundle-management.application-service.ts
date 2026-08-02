@@ -1,0 +1,43 @@
+import {
+  commandCancelBundle,
+  commandCompleteBundle,
+  commandCreateBundles,
+  commandHoldBundle,
+  commandIssueBundle,
+  commandMergeBundles,
+  commandMoveBundle,
+  commandPrintBundleTicket,
+  commandReportBundleDamaged,
+  commandReportBundleLost,
+  commandReworkBundle,
+  commandRollbackBundle,
+  commandSplitBundle,
+  queryBundleByScan,
+  queryBundleDetail,
+  queryBundleList,
+  queryBundleManagement,
+} from './bundle-management.mapper'
+
+export const bundleManagementApplicationService = {
+  query: {
+    getManagementView: queryBundleManagement,
+    getList: queryBundleList,
+    getDetail: queryBundleDetail,
+    scan: queryBundleByScan,
+  },
+  command: {
+    createBundles: commandCreateBundles,
+    printTicket: commandPrintBundleTicket,
+    issue: commandIssueBundle,
+    move: commandMoveBundle,
+    hold: commandHoldBundle,
+    complete: commandCompleteBundle,
+    cancel: commandCancelBundle,
+    rework: commandReworkBundle,
+    split: commandSplitBundle,
+    merge: commandMergeBundles,
+    reportLost: commandReportBundleLost,
+    reportDamaged: commandReportBundleDamaged,
+    rollback: commandRollbackBundle,
+  },
+}

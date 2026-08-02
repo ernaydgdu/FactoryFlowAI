@@ -11,6 +11,7 @@ import type {
   PrintTypeRef,
   WashTypeRef,
 } from '../types/textile-erp'
+import { lazyArray } from '../data/lazy-cache'
 import {
   ageGroupRepository,
   embroideryTypeRepository,
@@ -25,19 +26,23 @@ function toRef<T extends { id: string; code: string; name: string }>(items: T[])
   return items.map((item) => ({ id: item.id, code: item.code, name: item.name }))
 }
 
-export const GENDERS: GenderRef[] = toRef(genderRepository.getActive())
-export const AGE_GROUPS: AgeGroupRef[] = toRef(ageGroupRepository.getActive())
-export const FITS: FitRef[] = toRef(fitRepository.getActive())
-export const WASH_TYPES: WashTypeRef[] = toRef(washTypeRepository.getActive())
-export const PRINT_TYPES: PrintTypeRef[] = toRef(printTypeRepository.getActive())
-export const EMBROIDERY_TYPES: EmbroideryTypeRef[] = toRef(embroideryTypeRepository.getActive())
+export const GENDERS = lazyArray((): GenderRef[] => toRef(genderRepository.getActive()))
+export const AGE_GROUPS = lazyArray((): AgeGroupRef[] => toRef(ageGroupRepository.getActive()))
+export const FITS = lazyArray((): FitRef[] => toRef(fitRepository.getActive()))
+export const WASH_TYPES = lazyArray((): WashTypeRef[] => toRef(washTypeRepository.getActive()))
+export const PRINT_TYPES = lazyArray((): PrintTypeRef[] => toRef(printTypeRepository.getActive()))
+export const EMBROIDERY_TYPES = lazyArray((): EmbroideryTypeRef[] =>
+  toRef(embroideryTypeRepository.getActive()),
+)
 
-export const GTIP_CODES: GtipRef[] = gtipCodeRepository.getActive().map((g) => ({
-  id: g.id,
-  code: g.hsCode,
-  name: g.name,
-  description: g.description,
-}))
+export const GTIP_CODES = lazyArray((): GtipRef[] =>
+  gtipCodeRepository.getActive().map((g) => ({
+    id: g.id,
+    code: g.hsCode,
+    name: g.name,
+    description: g.description,
+  })),
+)
 
 export function getGenderById(id: string) {
   return GENDERS.find((g) => g.id === id)

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "validate:routes": "node scripts/validate-routes.mjs",
+    "validate:persistence": "node scripts/persistence-validation.mjs",
     "build": "npm run validate:routes && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"

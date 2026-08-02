@@ -1,6 +1,8 @@
 /**
  * Master Data Bootstrap — uygulama açılışında yalnızca bir kez yüklenir.
  */
+import { ensurePersistenceBootstrapped } from '@/infrastructure/persistence/bootstrap'
+
 import { recordMetric } from './performance-monitor'
 import { keplerLogger } from './logger'
 
@@ -16,7 +18,7 @@ export function ensureMasterDataBootstrapped(): void {
   const start = performance.now()
   keplerLogger.info('Master Data bootstrap başlatılıyor')
 
-  void import('@/domain/master-data/repositories').then(() => {
+  void ensurePersistenceBootstrapped().then(() => {
     bootstrapped = true
     bootstrapAt = new Date().toISOString()
     recordMetric('master-data-bootstrap', performance.now() - start, 'domain', { hit: false })

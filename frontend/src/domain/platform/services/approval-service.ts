@@ -1,4 +1,10 @@
 import type { ApprovalStep, ApprovalWorkflow, ApprovalWorkflowType } from '../types'
+import {
+  DEFAULT_TENANT_ID,
+  requireUnitOfWork,
+} from '../../ports/persistence/persistence-registry'
+import type { PersistedApprovalWorkflow } from '../../ports/persistence/persistence-aggregates'
+import { PERSISTENCE_CURSOR_MAX_LIMIT } from '../../ports/persistence/persistence.types'
 
 const BOM_APPROVAL_STEPS: Omit<ApprovalStep, 'id' | 'status'>[] = [
   { role: 'Planlama Müdürü', order: 1 },
@@ -6,7 +12,22 @@ const BOM_APPROVAL_STEPS: Omit<ApprovalStep, 'id' | 'status'>[] = [
   { role: 'Üretim Müdürü', order: 3 },
 ]
 
-const workflowStore: ApprovalWorkflow[] = []
+function approvalRepo() {
+  return requireUnitOfWork().approvalWorkflows
+}
+
+function stripApprovalMeta(row: PersistedApprovalWorkflow): ApprovalWorkflow {
+  const {
+    tenantId: _t,
+    version: _v,
+    schemaVersion: _s,
+    createdAt: _c,
+    updatedAt: _u,
+    deletedAt: _d,
+    ...rest
+  } = row
+  return rest
+}
 
 function buildSteps(template: Omit<ApprovalStep, 'id' | 'status'>[]): ApprovalStep[] {
   return template.map((s) => ({
@@ -42,7 +63,18 @@ export function submitForApproval(input: SubmitApprovalInput): ApprovalWorkflow 
     submittedBy: input.submittedBy,
     submittedAt: new Date().toISOString(),
   }
-  workflowStore.push(workflow)
+
+  const now = workflow.submittedAt
+  const persisted: PersistedApprovalWorkflow = {
+    ...workflow,
+    tenantId: DEFAULT_TENANT_ID,
+    version: 1,
+    schemaVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+  }
+  approvalRepo().save(DEFAULT_TENANT_ID, persisted)
   return workflow
 }
 
@@ -51,9 +83,10 @@ export function approveStep(
   actedBy: string,
   comment?: string,
 ): ApprovalWorkflow | null {
-  const workflow = workflowStore.find((w) => w.id === workflowId)
-  if (!workflow || workflow.status !== 'Pending') return null
+  const row = approvalRepo().findById(DEFAULT_TENANT_ID, workflowId)
+  if (!row || row.status !== 'Pending') return null
 
+  const workflow = stripApprovalMeta(row)
   const step = workflow.steps[workflow.currentStepIndex]
   if (!step) return null
 
@@ -68,6 +101,8 @@ export function approveStep(
     workflow.status = 'Approved'
     workflow.completedAt = new Date().toISOString()
   }
+
+  approvalRepo().save(DEFAULT_TENANT_ID, { ...row, ...workflow, updatedAt: new Date().toISOString() })
   return workflow
 }
 
@@ -76,9 +111,10 @@ export function rejectStep(
   actedBy: string,
   comment: string,
 ): ApprovalWorkflow | null {
-  const workflow = workflowStore.find((w) => w.id === workflowId)
-  if (!workflow || workflow.status !== 'Pending') return null
+  const row = approvalRepo().findById(DEFAULT_TENANT_ID, workflowId)
+  if (!row || row.status !== 'Pending') return null
 
+  const workflow = stripApprovalMeta(row)
   const step = workflow.steps[workflow.currentStepIndex]
   if (!step) return null
 
@@ -88,32 +124,33 @@ export function rejectStep(
   step.comment = comment
   workflow.status = 'Rejected'
   workflow.completedAt = new Date().toISOString()
+
+  approvalRepo().save(DEFAULT_TENANT_ID, { ...row, ...workflow, updatedAt: new Date().toISOString() })
   return workflow
 }
 
 export function getWorkflow(id: string): ApprovalWorkflow | undefined {
-  return workflowStore.find((w) => w.id === id)
+  const row = approvalRepo().findById(DEFAULT_TENANT_ID, id)
+  return row ? stripApprovalMeta(row) : undefined
 }
 
 export function getWorkflowsForEntity(entityId: string): ApprovalWorkflow[] {
-  return workflowStore.filter((w) => w.entityId === entityId)
+  const page = approvalRepo().cursor(DEFAULT_TENANT_ID, {}, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return page.items.filter((w) => w.entityId === entityId).map(stripApprovalMeta)
 }
 
 export function getPendingApprovals(role: string): ApprovalWorkflow[] {
-  return workflowStore.filter((w) => {
-    if (w.status !== 'Pending') return false
-    const step = w.steps[w.currentStepIndex]
-    return step?.role === role && step.status === 'Pending'
-  })
+  const page = approvalRepo().cursorPending(DEFAULT_TENANT_ID, role, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return page.items.map(stripApprovalMeta)
 }
 
 export function seedApprovalWorkflows(workflows: ApprovalWorkflow[]): void {
-  workflowStore.length = 0
-  workflowStore.push(...workflows)
+  approvalRepo().seedFromLegacy(workflows)
 }
 
 export function getAllApprovalWorkflows(): ApprovalWorkflow[] {
-  return [...workflowStore]
+  const page = approvalRepo().cursor(DEFAULT_TENANT_ID, {}, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  return page.items.map(stripApprovalMeta)
 }
 
 export function isFullyApproved(workflow: ApprovalWorkflow): boolean {

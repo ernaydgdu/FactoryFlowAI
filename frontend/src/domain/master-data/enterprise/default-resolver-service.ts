@@ -1,14 +1,18 @@
+import { masterDataEnterpriseConfig } from '../master-data-port-access'
 import type { MasterDataDefaultProfile } from './types'
-import { MASTER_DATA_DEFAULT_PROFILES } from './enterprise-seed'
 import { getDependencies } from './dependency-service'
 import type { MasterDataEntityType } from '../types'
 
+function configRepo() {
+  return masterDataEnterpriseConfig()
+}
+
 export function getDefaultProfile(productGroupId: string): MasterDataDefaultProfile | undefined {
-  return MASTER_DATA_DEFAULT_PROFILES.find((p) => p.productGroupId === productGroupId)
+  return configRepo().getDefaultProfiles().find((p) => p.productGroupId === productGroupId)
 }
 
 export function getDefaultProfileByCode(code: string): MasterDataDefaultProfile | undefined {
-  return MASTER_DATA_DEFAULT_PROFILES.find((p) => p.code === code)
+  return configRepo().getDefaultProfiles().find((p) => p.code === code)
 }
 
 export function resolveDefaultsForProductGroup(productGroupId: string) {
@@ -38,8 +42,9 @@ export function resolveDefaultsForNewProduct(productGroupCode: string, productGr
 }
 
 export function countDefaultCoverage(): { profiles: number; productGroupsCovered: number } {
-  const groups = new Set(MASTER_DATA_DEFAULT_PROFILES.map((p) => p.productGroupId))
-  return { profiles: MASTER_DATA_DEFAULT_PROFILES.length, productGroupsCovered: groups.size }
+  const profiles = configRepo().getDefaultProfiles()
+  const groups = new Set(profiles.map((p) => p.productGroupId))
+  return { profiles: profiles.length, productGroupsCovered: groups.size }
 }
 
 export function resolveCommercialDefaults(countryId: string) {
