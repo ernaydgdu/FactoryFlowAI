@@ -1,30 +1,34 @@
-# Technical Debt Report — Phase 3 Module 4
+# TECHNICAL-DEBT-REPORT.md — Phase 5 Module 1
 
-**Date:** 2026-08-03
+## Performance Impact (expected)
 
-## Resolved (This Module)
+| Metric | Impact |
+|--------|--------|
+| Route count | +8 shop-floor routes (nested under `/shop-floor`) |
+| Bootstrap duration | Unchanged (no new seed) |
+| Build duration | +1 validation script (`validate:shop-floor`) + tsc of ~15 new TS files |
 
-| ID | Item | Resolution |
-|----|------|------------|
-| P1 | GR does not write stock ledger | **FIXED** — `persistPostGoodsReceipt` → `persistGoodsReceiptToLedger` |
-| P1 | StockMovement stream empty stub | **FIXED** — real `StockMovementInMemoryStreamRepository` |
-| P1 | StockLedger in-memory stub | **FIXED** — real `StockLedgerInMemoryRepository` |
-| P2 | Warehouse UI on mock STOCK_CARDS | **FIXED** — inventory mappers from repository |
+Exact gate timings recorded at delivery (build / bootstrap audit / startup regression).
 
-## Remaining (Non-Blocking)
+## Known debt / follow-ups
 
-| Priority | Item | Notes |
-|----------|------|-------|
-| P3 | PostgreSQL adapters | In-memory only; ports ready for Sprint 6 |
-| P3 | Production Order auto-issue | Manual issue via UI; hook for execution platform TBD |
-| P3 | Reservation from MRP release | MRP releases PR/PO; auto-reserve on PO approval optional |
-| P3 | `domain/data/stock-ledger-demo.ts` | Legacy demo ledger still used by brain adapter |
-| P3 | Negative ADJUSTMENT opening | Engine allows negative onHand via large negative adjustment — monitor in prod |
+1. Auto-link Operation Complete quantities from session rollups into declaration (today operator declares explicitly).
+2. Cancel/Close → auto `RESERVATION_RELEASE` (command exists from Phase 4 M3; not wired here).
+3. Full Quality module (Reject/Rework/Hold workflows) — entry points only.
+4. Machine Down status as master-data field still absent; runtime status is session-derived only.
+5. Legacy demo planning/sewing pages still use `SEWING_LINE_RECORDS` (out of MES scope).
 
-## Seed Notes
+## Go-Live Readiness Score (module coverage)
 
-- Opening balance from stock card `availableQty` may overlap with purchasing GR seed quantities — acceptable for demo; production seed should choose one source.
+| Phase area | Status | Weight |
+|------------|--------|--------|
+| IAM / Platform | Done | 10 |
+| Master Data / Product / BOM / Cost | Done | 15 |
+| Sales Order / MRP / Purchasing | Done | 15 |
+| Inventory / Warehouse / Stock Ledger | Done | 15 |
+| Production Planning (scheduling) | Done | 10 |
+| Production Order + Reservation | Done | 15 |
+| Shop Floor MES (this module) | Done | 10 |
+| Full Quality / Shipping / Costing close | Partial / pending | 10 |
 
-## Overall Module Verdict
-
-**YES** — core inventory chain operational with immutable ledger.
+**Score: ~85 / 100** — core order-to-warehouse + shop-floor path is repository-backed; Quality depth and shipping close remain for later phases.

@@ -52,6 +52,20 @@ export const applicationQueryKeys = {
     finishedGoodsWarehouses: () =>
       [...applicationQueryKeys.warehouseManagement.all, 'fg-warehouses'] as const,
   },
+  shopFloor: {
+    all: ['shop-floor'] as const,
+    contexts: () => [...applicationQueryKeys.shopFloor.all, 'contexts'] as const,
+    operations: (po: string) => [...applicationQueryKeys.shopFloor.all, 'operations', po] as const,
+    sessions: (po: string) => [...applicationQueryKeys.shopFloor.all, 'sessions', po] as const,
+    machines: () => [...applicationQueryKeys.shopFloor.all, 'machines'] as const,
+    labor: () => [...applicationQueryKeys.shopFloor.all, 'labor'] as const,
+    progress: () => [...applicationQueryKeys.shopFloor.all, 'progress'] as const,
+    workstation: (machineId: string) =>
+      [...applicationQueryKeys.shopFloor.all, 'workstation', machineId] as const,
+    options: () => [...applicationQueryKeys.shopFloor.all, 'options'] as const,
+    bundles: (po: string) => [...applicationQueryKeys.shopFloor.all, 'bundles', po] as const,
+    timeline: (po: string) => [...applicationQueryKeys.shopFloor.all, 'timeline', po] as const,
+  },
   productionPlanning: {
     all: ['production-planning-scheduling'] as const,
     scheduleBoard: (mode: string) =>

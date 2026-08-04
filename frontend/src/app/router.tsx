@@ -175,6 +175,43 @@ const ExecutionDemoDevPage = lazyPage(
   'ExecutionDemoDevPage',
 )
 
+const ShopFloorLayout = lazyPage(
+  () => import('@/modules/shop-floor/layout/ShopFloorLayout'),
+  'ShopFloorLayout',
+)
+const ShopFloorOperatorPage = lazyPage(
+  () => import('@/modules/shop-floor/pages/ShopFloorPages'),
+  'ShopFloorOperatorPage',
+)
+const ShopFloorWorkstationPage = lazyPage(
+  () => import('@/modules/shop-floor/pages/ShopFloorPages'),
+  'ShopFloorWorkstationPage',
+)
+const ShopFloorOperationPage = lazyPage(
+  () => import('@/modules/shop-floor/pages/ShopFloorPages'),
+  'ShopFloorOperationPage',
+)
+const ShopFloorBundlePage = lazyPage(
+  () => import('@/modules/shop-floor/pages/ShopFloorPages'),
+  'ShopFloorBundlePage',
+)
+const ShopFloorDeclarationPage = lazyPage(
+  () => import('@/modules/shop-floor/pages/ShopFloorPages'),
+  'ShopFloorDeclarationPage',
+)
+const ShopFloorMachineStatusPage = lazyPage(
+  () => import('@/modules/shop-floor/pages/ShopFloorPages'),
+  'ShopFloorMachineStatusPage',
+)
+const ShopFloorLaborPage = lazyPage(
+  () => import('@/modules/shop-floor/pages/ShopFloorPages'),
+  'ShopFloorLaborPage',
+)
+const ShopFloorTimelinePage = lazyPage(
+  () => import('@/modules/shop-floor/pages/ShopFloorPages'),
+  'ShopFloorTimelinePage',
+)
+
 const ExecutionPlatformLayout = lazyPage(
   () => import('@/modules/execution-platform/layout/ExecutionPlatformLayout'),
   'ExecutionPlatformLayout',
@@ -317,6 +354,18 @@ export function AppRouter() {
           <Route path="split" element={<L><SplitProductionConsolePage /></L>} />
           <Route path="calendar" element={<L><ExecutionProductionCalendarPage /></L>} />
           <Route path="brain" element={<L><BrainConsolePage /></L>} />
+        </Route>
+
+        <Route path="/shop-floor" element={<L><ShopFloorLayout /></L>}>
+          <Route index element={<Navigate to="/shop-floor/operator" replace />} />
+          <Route path="operator" element={<L><ShopFloorOperatorPage /></L>} />
+          <Route path="workstation" element={<L><ShopFloorWorkstationPage /></L>} />
+          <Route path="operations" element={<L><ShopFloorOperationPage /></L>} />
+          <Route path="bundles" element={<L><ShopFloorBundlePage /></L>} />
+          <Route path="declaration" element={<L><ShopFloorDeclarationPage /></L>} />
+          <Route path="machines" element={<L><ShopFloorMachineStatusPage /></L>} />
+          <Route path="labor" element={<L><ShopFloorLaborPage /></L>} />
+          <Route path="timeline" element={<L><ShopFloorTimelinePage /></L>} />
         </Route>
 
         <Route path="/quality" element={<L><QualityHubPage /></L>} />
