@@ -2,6 +2,7 @@ export * from './twin'
 export * from './types'
 export * from './types/knowledge-reasoning'
 export * from './constants'
+/** Manufacturing Knowledge Engine: import from `@/domain/brain/manufacturing-knowledge` (avoid export* name clash). */
 export * from './contracts'
 export * from './adapters'
 export * from './engines'

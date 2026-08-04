@@ -434,6 +434,47 @@ const EnterpriseAiFoundationPage = lazyPage(
   'EnterpriseAiFoundationPage',
 )
 
+const BrainKnowledgeLayout = lazyPage(
+  () => import('@/modules/brain-knowledge/layout/BrainKnowledgeLayout'),
+  'BrainKnowledgeLayout',
+)
+const BrainKnowledgeCoveragePage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeCoveragePage',
+)
+const BrainKnowledgeDictionaryPage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeDictionaryPage',
+)
+const BrainKnowledgeGraphPage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeGraphPage',
+)
+const BrainKnowledgeFormulaePage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeFormulaePage',
+)
+const BrainKnowledgeRulesPage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeRulesPage',
+)
+const BrainKnowledgeFlowsPage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeFlowsPage',
+)
+const BrainKnowledgeDecisionsPage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeDecisionsPage',
+)
+const BrainKnowledgeMachinesPage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeMachinesPage',
+)
+const BrainKnowledgeKpisPage = lazyPage(
+  () => import('@/modules/brain-knowledge/pages/BrainKnowledgePages'),
+  'BrainKnowledgeKpisPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -762,6 +803,19 @@ export function AppRouter() {
           <Route path="performance" element={<L><EnterprisePerformancePage /></L>} />
           <Route path="audit" element={<L><EnterpriseAuditPage /></L>} />
           <Route path="ai" element={<L><EnterpriseAiFoundationPage /></L>} />
+        </Route>
+
+        <Route path="/brain-knowledge" element={<L><BrainKnowledgeLayout /></L>}>
+          <Route index element={<Navigate to="/brain-knowledge/coverage" replace />} />
+          <Route path="coverage" element={<L><BrainKnowledgeCoveragePage /></L>} />
+          <Route path="dictionary" element={<L><BrainKnowledgeDictionaryPage /></L>} />
+          <Route path="graph" element={<L><BrainKnowledgeGraphPage /></L>} />
+          <Route path="formulae" element={<L><BrainKnowledgeFormulaePage /></L>} />
+          <Route path="rules" element={<L><BrainKnowledgeRulesPage /></L>} />
+          <Route path="flows" element={<L><BrainKnowledgeFlowsPage /></L>} />
+          <Route path="decisions" element={<L><BrainKnowledgeDecisionsPage /></L>} />
+          <Route path="machines" element={<L><BrainKnowledgeMachinesPage /></L>} />
+          <Route path="kpis" element={<L><BrainKnowledgeKpisPage /></L>} />
         </Route>
 
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />

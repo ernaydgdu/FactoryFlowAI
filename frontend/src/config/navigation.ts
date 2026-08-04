@@ -235,7 +235,13 @@ export const navGroups: NavGroup[] = [
   {
     title: 'Kepler AI',
     icon: Bot,
-    items: [{ title: 'AI Asistan', href: '/ai' }],
+    items: [
+      { title: 'Manufacturing Knowledge', href: '/brain-knowledge/coverage' },
+      { title: 'Dictionary', href: '/brain-knowledge/dictionary' },
+      { title: 'Knowledge Graph', href: '/brain-knowledge/graph' },
+      { title: 'Formula Library', href: '/brain-knowledge/formulae' },
+      { title: 'AI Asistan', href: '/ai' },
+    ],
   },
 ]
 
@@ -371,6 +377,16 @@ export const routeTitles: Record<string, string> = {
   '/enterprise/performance': 'Performance Dashboard',
   '/enterprise/audit': 'Audit Dashboard',
   '/enterprise/ai': 'AI Foundation',
+  '/brain-knowledge': 'Manufacturing Knowledge',
+  '/brain-knowledge/coverage': 'Knowledge Coverage',
+  '/brain-knowledge/dictionary': 'Textile Dictionary',
+  '/brain-knowledge/graph': 'Knowledge Graph',
+  '/brain-knowledge/formulae': 'Formula Library',
+  '/brain-knowledge/rules': 'Business Rules',
+  '/brain-knowledge/flows': 'Production Flows',
+  '/brain-knowledge/decisions': 'Decision Library',
+  '/brain-knowledge/machines': 'Machine Library',
+  '/brain-knowledge/kpis': 'KPI Knowledge',
   '/ai': 'Kepler AI',
   '/settings': 'Ayarlar',
   '/settings/users': 'Kullanıcılar & Roller',
