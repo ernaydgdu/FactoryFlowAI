@@ -1,29 +1,29 @@
 ---
-description: Per-module gates — build, bootstrap, new-route smoke only; full startup rare
+description: Per-module gates — build, bootstrap, new-route smoke, then commit
 alwaysApply: true
 ---
 
 # Module Gate Policy
 
-## Her modülde yalnızca
+## Her modülden sonra (zorunlu sıra)
 
 1. `npm run build`
-2. Bootstrap Integrity Audit
-3. **Yeni eklenen route'ların smoke testi**
+2. Bootstrap Integrity (`npx vite-node scripts/bootstrap-integrity-audit.mjs`)
+3. **Yalnızca yeni eklenen route'ların smoke testi**
+4. **Commit** (1–3 PASS olduktan sonra)
 
-## Full Startup Regression
+Smoke kriteri: yeni route'larda `#root` render, console error 0, unhandled rejection 0, error boundary 0.
+
+## Full Startup Regression Audit
 
 Yalnızca şu durumlarda çalıştır:
 
-- Gün sonunda, **veya**
-- 5 modülde bir
+- Sprint sonunda
+- Release öncesinde
+- Kullanıcı özellikle isterse
 
 ## Yasaklar
 
-- 10 dakikayı aşan audit'i tekrar etme
 - Her modülde full startup regression çalıştırma
-- Startup PASS olmadan (veya smoke PASS olmadan, ilgili gate politikasına göre) sonraki modüle geçme / commit kurallarını bozma
-
-## Smoke kriteri
-
-Yeni route'larda: `#root` render, console error 0, unhandled rejection 0, error boundary 0.
+- 10 dakikayı aşan audit'i tekrar etme
+- Gate PASS olmadan commit / sonraki modüle geçme
