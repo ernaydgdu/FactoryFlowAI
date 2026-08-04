@@ -45,6 +45,13 @@ export const applicationQueryKeys = {
     warehouses: () => [...applicationQueryKeys.inventory.all, 'warehouses'] as const,
     goodsReceipts: () => [...applicationQueryKeys.inventory.all, 'goods-receipts'] as const,
   },
+  warehouseManagement: {
+    all: ['warehouse-management'] as const,
+    summaryList: () => [...applicationQueryKeys.warehouseManagement.all, 'summary-list'] as const,
+    detail: (code: string) => [...applicationQueryKeys.warehouseManagement.all, 'detail', code] as const,
+    finishedGoodsWarehouses: () =>
+      [...applicationQueryKeys.warehouseManagement.all, 'fg-warehouses'] as const,
+  },
   productionOrder: {
     all: ['production-order'] as const,
     list: () => [...applicationQueryKeys.productionOrder.all, 'list'] as const,

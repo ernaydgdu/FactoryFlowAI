@@ -11,7 +11,7 @@
     {
       "route": "/accessories/cards",
       "ok": true,
-      "rootLen": 26317,
+      "rootLen": 26522,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -19,7 +19,7 @@
     {
       "route": "/accessories/stock",
       "ok": true,
-      "rootLen": 26317,
+      "rootLen": 26522,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -27,7 +27,7 @@
     {
       "route": "/ai",
       "ok": true,
-      "rootLen": 26309,
+      "rootLen": 26514,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -35,7 +35,7 @@
     {
       "route": "/cost",
       "ok": true,
-      "rootLen": 26315,
+      "rootLen": 26520,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -43,7 +43,7 @@
     {
       "route": "/cutting",
       "ok": true,
-      "rootLen": 26312,
+      "rootLen": 26517,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -51,7 +51,7 @@
     {
       "route": "/dashboard",
       "ok": true,
-      "rootLen": 26302,
+      "rootLen": 26507,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -59,7 +59,7 @@
     {
       "route": "/dev/execution-demo",
       "ok": true,
-      "rootLen": 26320,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -67,7 +67,7 @@
     {
       "route": "/execution-platform",
       "ok": true,
-      "rootLen": 26320,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -75,7 +75,7 @@
     {
       "route": "/execution-platform/brain",
       "ok": true,
-      "rootLen": 26313,
+      "rootLen": 26518,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -83,7 +83,7 @@
     {
       "route": "/execution-platform/bundles",
       "ok": true,
-      "rootLen": 26312,
+      "rootLen": 26517,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -91,7 +91,7 @@
     {
       "route": "/execution-platform/calendar",
       "ok": true,
-      "rootLen": 26319,
+      "rootLen": 26524,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -99,7 +99,7 @@
     {
       "route": "/execution-platform/daily-entry",
       "ok": true,
-      "rootLen": 26322,
+      "rootLen": 26527,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -107,7 +107,7 @@
     {
       "route": "/execution-platform/dashboard",
       "ok": true,
-      "rootLen": 26319,
+      "rootLen": 26524,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -115,7 +115,7 @@
     {
       "route": "/execution-platform/operations",
       "ok": true,
-      "rootLen": 26315,
+      "rootLen": 26520,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -123,7 +123,7 @@
     {
       "route": "/execution-platform/quality",
       "ok": true,
-      "rootLen": 26320,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -131,7 +131,7 @@
     {
       "route": "/execution-platform/split",
       "ok": true,
-      "rootLen": 26316,
+      "rootLen": 26521,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -139,7 +139,7 @@
     {
       "route": "/execution-platform/timeline",
       "ok": true,
-      "rootLen": 26318,
+      "rootLen": 26523,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -147,7 +147,7 @@
     {
       "route": "/execution-platform/wip",
       "ok": true,
-      "rootLen": 26311,
+      "rootLen": 26516,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -155,7 +155,7 @@
     {
       "route": "/execution-platform/work-sessions",
       "ok": true,
-      "rootLen": 26320,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -163,7 +163,7 @@
     {
       "route": "/fabric/cards",
       "ok": true,
-      "rootLen": 26314,
+      "rootLen": 26519,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -171,7 +171,7 @@
     {
       "route": "/fabric/movements",
       "ok": true,
-      "rootLen": 26317,
+      "rootLen": 26522,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -179,7 +179,7 @@
     {
       "route": "/fabric/receipt",
       "ok": true,
-      "rootLen": 26312,
+      "rootLen": 26517,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -187,7 +187,7 @@
     {
       "route": "/fabric/stock",
       "ok": true,
-      "rootLen": 26314,
+      "rootLen": 26519,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -195,7 +195,7 @@
     {
       "route": "/inventory",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -203,7 +203,7 @@
     {
       "route": "/inventory/dashboard",
       "ok": true,
-      "rootLen": 26320,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -211,7 +211,7 @@
     {
       "route": "/inventory/ledger",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -219,7 +219,7 @@
     {
       "route": "/inventory/stock-inquiry",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -235,7 +235,7 @@
     {
       "route": "/master-data",
       "ok": true,
-      "rootLen": 26299,
+      "rootLen": 26504,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -243,7 +243,7 @@
     {
       "route": "/master-data/suppliers",
       "ok": true,
-      "rootLen": 26300,
+      "rootLen": 26505,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -251,7 +251,7 @@
     {
       "route": "/merchandising",
       "ok": true,
-      "rootLen": 26313,
+      "rootLen": 26518,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -259,7 +259,7 @@
     {
       "route": "/merchandising/1",
       "ok": true,
-      "rootLen": 26329,
+      "rootLen": 26534,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -267,7 +267,7 @@
     {
       "route": "/orders",
       "ok": true,
-      "rootLen": 26315,
+      "rootLen": 26520,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -275,7 +275,7 @@
     {
       "route": "/orders/1",
       "ok": true,
-      "rootLen": 26323,
+      "rootLen": 26528,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -283,7 +283,7 @@
     {
       "route": "/orders/1/edit",
       "ok": true,
-      "rootLen": 26323,
+      "rootLen": 26528,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -291,7 +291,7 @@
     {
       "route": "/orders/new",
       "ok": true,
-      "rootLen": 26312,
+      "rootLen": 26517,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -299,7 +299,7 @@
     {
       "route": "/packaging",
       "ok": true,
-      "rootLen": 26319,
+      "rootLen": 26524,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -307,7 +307,7 @@
     {
       "route": "/planning/mrp",
       "ok": true,
-      "rootLen": 26303,
+      "rootLen": 26508,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -315,7 +315,7 @@
     {
       "route": "/planning/size-sets",
       "ok": true,
-      "rootLen": 26313,
+      "rootLen": 26518,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -323,7 +323,7 @@
     {
       "route": "/production-order-lifecycle",
       "ok": true,
-      "rootLen": 26320,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -331,7 +331,7 @@
     {
       "route": "/production-order-lifecycle/create",
       "ok": true,
-      "rootLen": 26321,
+      "rootLen": 26526,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -339,7 +339,7 @@
     {
       "route": "/production-order-lifecycle/daily-entry",
       "ok": true,
-      "rootLen": 26316,
+      "rootLen": 26521,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -347,7 +347,7 @@
     {
       "route": "/production-order-lifecycle/orders",
       "ok": true,
-      "rootLen": 26325,
+      "rootLen": 26530,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -355,7 +355,7 @@
     {
       "route": "/production-order-lifecycle/orders/UE-2026-0100",
       "ok": true,
-      "rootLen": 26327,
+      "rootLen": 26532,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -363,7 +363,7 @@
     {
       "route": "/production-planning",
       "ok": true,
-      "rootLen": 26320,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -371,7 +371,7 @@
     {
       "route": "/production-planning/calendar",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -379,7 +379,7 @@
     {
       "route": "/production-planning/capacity",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -387,7 +387,7 @@
     {
       "route": "/production-planning/daily-entry",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -395,7 +395,7 @@
     {
       "route": "/production-planning/dashboard",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -403,7 +403,7 @@
     {
       "route": "/production-planning/lines",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -411,7 +411,7 @@
     {
       "route": "/production-planning/operations",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -419,7 +419,7 @@
     {
       "route": "/production-planning/orders",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -427,7 +427,7 @@
     {
       "route": "/production-planning/schedule",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -435,7 +435,7 @@
     {
       "route": "/production-planning/timeline",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -443,7 +443,7 @@
     {
       "route": "/production-planning/workshops",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -451,7 +451,7 @@
     {
       "route": "/production/lines",
       "ok": true,
-      "rootLen": 26322,
+      "rootLen": 26527,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -459,7 +459,7 @@
     {
       "route": "/production/operations",
       "ok": true,
-      "rootLen": 26326,
+      "rootLen": 26531,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -467,7 +467,7 @@
     {
       "route": "/production/orders",
       "ok": true,
-      "rootLen": 26325,
+      "rootLen": 26530,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -475,7 +475,7 @@
     {
       "route": "/production/sewing",
       "ok": true,
-      "rootLen": 26322,
+      "rootLen": 26527,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -483,7 +483,7 @@
     {
       "route": "/production/washing",
       "ok": true,
-      "rootLen": 26323,
+      "rootLen": 26528,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -491,7 +491,7 @@
     {
       "route": "/products",
       "ok": true,
-      "rootLen": 26313,
+      "rootLen": 26518,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -499,7 +499,7 @@
     {
       "route": "/products/1",
       "ok": true,
-      "rootLen": 26326,
+      "rootLen": 26531,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -507,7 +507,7 @@
     {
       "route": "/products/1/bom",
       "ok": true,
-      "rootLen": 26326,
+      "rootLen": 26531,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -515,7 +515,7 @@
     {
       "route": "/products/1/cost-sheet",
       "ok": true,
-      "rootLen": 26326,
+      "rootLen": 26531,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -523,7 +523,7 @@
     {
       "route": "/products/1/edit",
       "ok": true,
-      "rootLen": 26326,
+      "rootLen": 26531,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -531,7 +531,7 @@
     {
       "route": "/products/new",
       "ok": true,
-      "rootLen": 26326,
+      "rootLen": 26531,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -539,7 +539,7 @@
     {
       "route": "/purchasing",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -547,7 +547,7 @@
     {
       "route": "/purchasing/orders",
       "ok": true,
-      "rootLen": 26320,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -555,7 +555,7 @@
     {
       "route": "/purchasing/orders/1",
       "ok": true,
-      "rootLen": 26329,
+      "rootLen": 26534,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -563,7 +563,7 @@
     {
       "route": "/quality",
       "ok": true,
-      "rootLen": 26324,
+      "rootLen": 26529,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -571,7 +571,7 @@
     {
       "route": "/quality/final",
       "ok": true,
-      "rootLen": 26326,
+      "rootLen": 26531,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -579,7 +579,7 @@
     {
       "route": "/quality/inline",
       "ok": true,
-      "rootLen": 26327,
+      "rootLen": 26532,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -587,7 +587,7 @@
     {
       "route": "/quality/midline",
       "ok": true,
-      "rootLen": 26328,
+      "rootLen": 26533,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -595,7 +595,7 @@
     {
       "route": "/reports",
       "ok": true,
-      "rootLen": 26308,
+      "rootLen": 26513,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -603,7 +603,7 @@
     {
       "route": "/settings",
       "ok": true,
-      "rootLen": 26295,
+      "rootLen": 26500,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -611,7 +611,7 @@
     {
       "route": "/settings/users",
       "ok": true,
-      "rootLen": 26313,
+      "rootLen": 26518,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -619,7 +619,7 @@
     {
       "route": "/shipping",
       "ok": true,
-      "rootLen": 26308,
+      "rootLen": 26513,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -627,7 +627,7 @@
     {
       "route": "/shipping/containers",
       "ok": true,
-      "rootLen": 26315,
+      "rootLen": 26520,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -635,7 +635,15 @@
     {
       "route": "/warehouse",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/warehouse/HMD-01",
+      "ok": true,
+      "rootLen": 26525,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -643,7 +651,15 @@
     {
       "route": "/warehouse/count",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/warehouse/fg-receipt",
+      "ok": true,
+      "rootLen": 26516,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -651,7 +667,7 @@
     {
       "route": "/warehouse/inbound",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -659,7 +675,7 @@
     {
       "route": "/warehouse/outbound",
       "ok": true,
-      "rootLen": 26309,
+      "rootLen": 26514,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -667,7 +683,7 @@
     {
       "route": "/warehouse/reservation",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -675,7 +691,7 @@
     {
       "route": "/warehouse/transfer",
       "ok": true,
-      "rootLen": 26310,
+      "rootLen": 26515,
       "pageErrors": [],
       "consoleErrors": [],
       "boundaryTriggered": false
@@ -687,7 +703,7 @@
   "errorBoundaryHits": [],
   "critFails": [],
   "summary": {
-    "pass": 85,
+    "pass": 87,
     "fail": 0
   }
 }

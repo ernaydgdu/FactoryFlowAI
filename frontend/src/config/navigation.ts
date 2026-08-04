@@ -132,6 +132,7 @@ export const navGroups: NavGroup[] = [
       { title: 'Transfer', href: '/warehouse/transfer' },
       { title: 'Rezervasyon', href: '/warehouse/reservation' },
       { title: 'Sayım', href: '/warehouse/count' },
+      { title: 'Mamül Kabul', href: '/warehouse/fg-receipt' },
     ],
   },
   {
@@ -220,6 +221,7 @@ export const routeTitles: Record<string, string> = {
   '/execution-platform/brain': 'Brain Console',
   '/warehouse/outbound': 'Mal Çıkış',
   '/warehouse/count': 'Depo Sayım',
+  '/warehouse/fg-receipt': 'Mamül Kabul',
   '/shipping': 'Sevkiyat',
   '/shipping/containers': 'Konteyner Planı',
   '/cost': 'Maliyet Analizi',
@@ -255,6 +257,14 @@ export function getRouteTitle(pathname: string): string {
   }
   if (pathname.startsWith('/purchasing/orders/')) {
     return 'Satın Alma Siparişi'
+  }
+  if (
+    pathname.startsWith('/warehouse/') &&
+    !['/warehouse/inbound', '/warehouse/outbound', '/warehouse/transfer', '/warehouse/reservation', '/warehouse/count', '/warehouse/fg-receipt'].includes(
+      pathname,
+    )
+  ) {
+    return 'Depo Detay'
   }
   return routeTitles[pathname] ?? 'KEPLER ERP'
 }

@@ -168,12 +168,13 @@ export function WarehouseDashboardPage() {
           <Button size="sm" variant="outline" asChild><Link to="/warehouse/transfer">Transfer</Link></Button>
           <Button size="sm" variant="outline" asChild><Link to="/warehouse/reservation">Rezervasyon</Link></Button>
           <Button size="sm" variant="outline" asChild><Link to="/warehouse/count">Sayım</Link></Button>
+          <Button size="sm" variant="outline" asChild><Link to="/warehouse/fg-receipt">Mamül Kabul</Link></Button>
         </div>
         <DataTable
           rowKey={(r) => r.id}
           data={warehouses ?? []}
           columns={[
-            { key: 'code', header: 'Kod', render: (r) => r.code },
+            { key: 'code', header: 'Kod', render: (r) => <Link className="underline" to={`/warehouse/${r.code}`}>{r.code}</Link> },
             { key: 'name', header: 'Depo', render: (r) => '  '.repeat(r.depth) + r.name },
             { key: 'type', header: 'Tip', render: (r) => r.type },
             { key: 'whType', header: 'Depo Türü', render: (r) => r.warehouseType },

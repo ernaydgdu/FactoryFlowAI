@@ -40,6 +40,14 @@ const InlineQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'),
 const MidlineQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'), 'MidlineQualityPage')
 const FinalQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'), 'FinalQualityPage')
 const PackagingPage = lazyPage(() => import('@/pages/packaging/PackagingPages'), 'PackagingPage')
+const WarehouseDetailPage = lazyPage(
+  () => import('@/pages/warehouse-management/WarehouseManagementPages'),
+  'WarehouseDetailPage',
+)
+const FinishedGoodsReceiptPage = lazyPage(
+  () => import('@/pages/warehouse-management/WarehouseManagementPages'),
+  'FinishedGoodsReceiptPage',
+)
 const WarehouseInboundPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'GoodsReceiptPage')
 const WarehouseOutboundPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'GoodsIssuePage')
 const WarehouseCountPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'CycleCountPage')
@@ -299,6 +307,8 @@ export function AppRouter() {
         <Route path="/warehouse/transfer" element={<L><TransferPage /></L>} />
         <Route path="/warehouse/reservation" element={<L><ReservationPage /></L>} />
         <Route path="/warehouse/count" element={<L><WarehouseCountPage /></L>} />
+        <Route path="/warehouse/fg-receipt" element={<L><FinishedGoodsReceiptPage /></L>} />
+        <Route path="/warehouse/:code" element={<L><WarehouseDetailPage /></L>} />
 
         <Route path="/shipping" element={<L><ShippingPage /></L>} />
         <Route path="/shipping/containers" element={<L><ContainerPlanningPage /></L>} />

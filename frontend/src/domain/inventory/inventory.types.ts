@@ -65,6 +65,23 @@ export type CycleCountInput = {
   reason?: string
 }
 
+export type FinishedGoodsReceiptInput = {
+  productionOrderId: string
+  productionOrderNo: string
+  warehouseCode: string
+  quantity: number
+  reason?: string
+}
+
+export type WarehouseStockSummary = {
+  warehouseCode: string
+  itemCount: number
+  totalOnHand: number
+  totalReserved: number
+  totalAvailable: number
+  lastMovementAt: string | null
+}
+
 export type InventoryMovementResult = {
   movement: StockMovement
   linkedMovement?: StockMovement

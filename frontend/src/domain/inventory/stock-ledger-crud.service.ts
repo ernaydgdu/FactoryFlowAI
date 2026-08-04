@@ -14,6 +14,7 @@ import type { StockMovement } from '@/domain/types/stock-ledger'
 
 import type {
   CycleCountInput,
+  FinishedGoodsReceiptInput,
   GoodsIssueInput,
   GoodsReceiptLedgerInput,
   InventoryMovementResult,
@@ -316,6 +317,38 @@ export function persistCycleCount(input: CycleCountInput, actorUserId: string): 
       reason: input.reason ?? `Sayım düzeltmesi — ${input.countNo}`,
     },
     actorUserId,
+  )
+}
+
+/**
+ * Mamül depo tanımı — Production Order çıktısını gerçek, denetlenebilir
+ * (audit + timeline + outbox) bir PRODUCTION_OUTPUT hareketi olarak Mamül
+ * deposuna kaydeder. Stok kartı olmayan mamüller `fg-<UE No>` sentetik
+ * kimliği ile temsil edilir (resolveStockCard'daki mevcut kural).
+ */
+export function persistFinishedGoodsReceipt(
+  input: FinishedGoodsReceiptInput,
+  actorUserId: string,
+): InventoryMovementResult {
+  if (input.quantity <= 0) throw new InventoryDomainError('Mamül miktarı sıfırdan büyük olmalı.')
+  const wh = warehouseRepository.getByCode(input.warehouseCode)
+  if (!wh) throw new InventoryDomainError(`Depo bulunamadı: ${input.warehouseCode}`)
+  if (wh.type !== 'Mamül') {
+    throw new InventoryDomainError(`${input.warehouseCode} bir mamül deposu değil.`)
+  }
+  return postSingleMovement(
+    input.warehouseCode,
+    {
+      type: 'PRODUCTION_OUTPUT',
+      stockCardId: `fg-${input.productionOrderNo}`,
+      quantity: input.quantity,
+      referenceType: 'PRODUCTION',
+      referenceId: input.productionOrderId,
+      referenceNo: input.productionOrderNo,
+      reason: input.reason ?? `Mamül kabul — ${input.productionOrderNo}`,
+    },
+    actorUserId,
+    'FinishedGoodsReceipt',
   )
 }
 
