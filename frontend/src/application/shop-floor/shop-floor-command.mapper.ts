@@ -1,4 +1,4 @@
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { runShopFloorWriteCommand } from './shop-floor-permission.guard'
 import { moveBundleToOperation } from '@/domain/execution-platform/bundle-tracking-service'
 import { getExecutionContext } from '@/domain/execution-platform/execution-platform-service'
 import {
@@ -38,7 +38,7 @@ export type ProductionDeclarationCommand = ProductionDeclarationInput & { actorU
 export function executeDeclareProduction(
   command: ProductionDeclarationCommand,
 ): ProductionDeclarationResult {
-  return runCommandInTransaction(() => {
+  return runShopFloorWriteCommand(() => {
     const { actorUserId, ...input } = command
     return persistProductionDeclaration(input, actorUserId)
   })
@@ -50,7 +50,7 @@ export function executeCompletionConfirmation(command: {
   productionOrderNo: string
   actorUserId: string
 }): CompletionConfirmationResult {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     confirmProductionCompletion(command.productionOrderNo, command.actorUserId),
   )
 }
@@ -90,7 +90,7 @@ export type OperationCommand = {
 }
 
 export function executeStartOperation(command: OperationCommand) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     startOperation({
       productionOrderNo: command.productionOrderNo,
       operationCode: command.operationCode,
@@ -107,7 +107,7 @@ export function executeStartOperation(command: OperationCommand) {
 }
 
 export function executePauseOperation(command: OperationCommand) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     pauseOperation({
       productionOrderNo: command.productionOrderNo,
       operationCode: command.operationCode,
@@ -119,7 +119,7 @@ export function executePauseOperation(command: OperationCommand) {
 }
 
 export function executeResumeOperation(command: OperationCommand) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     resumeOperation({
       productionOrderNo: command.productionOrderNo,
       operationCode: command.operationCode,
@@ -130,7 +130,7 @@ export function executeResumeOperation(command: OperationCommand) {
 }
 
 export function executeCompleteOperation(command: OperationCommand & { completedQty?: number }) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     completeOperation({
       productionOrderNo: command.productionOrderNo,
       operationCode: command.operationCode,
@@ -152,7 +152,7 @@ export function executeMoveBundle(command: {
   lineId?: string | null
   actorUserId: string
 }) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     moveBundleToOperation({
       bundleId: command.bundleId,
       toOperationCode: command.toOperationCode,
@@ -164,7 +164,7 @@ export function executeMoveBundle(command: {
 }
 
 export function executeStartWorkSession(command: StartSessionCommand) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     startWorkSession({
       executionContextId: requireContextId(command.productionOrderNo),
       productionOrderNo: command.productionOrderNo,
@@ -181,7 +181,7 @@ export function executeStartWorkSession(command: StartSessionCommand) {
 }
 
 export function executePauseWorkSession(command: SessionActionCommand) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     pauseWorkSession({
       productionOrderNo: command.productionOrderNo,
       operationCode: command.operationCode,
@@ -194,7 +194,7 @@ export function executePauseWorkSession(command: SessionActionCommand) {
 }
 
 export function executeResumeWorkSession(command: SessionActionCommand) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     resumeWorkSession({
       productionOrderNo: command.productionOrderNo,
       operationCode: command.operationCode,
@@ -207,7 +207,7 @@ export function executeResumeWorkSession(command: SessionActionCommand) {
 
 /** Alias: executeFinishWorkSession */
 export function executeFinishWorkSession(command: SessionActionCommand) {
-  return runCommandInTransaction(() =>
+  return runShopFloorWriteCommand(() =>
     completeWorkSession({
       productionOrderNo: command.productionOrderNo,
       operationCode: command.operationCode,

@@ -76,7 +76,10 @@ check(cmd.includes('executeAccept'), 'App: executeAccept')
 check(cmd.includes('executeReject'), 'App: executeReject')
 check(cmd.includes('executeRework'), 'App: executeRework')
 check(cmd.includes('executeHold'), 'App: executeHold')
-check(cmd.includes('runCommandInTransaction'), 'App: transaction wrapper')
+check(
+  cmd.includes('runCommandInTransaction') || cmd.includes('runQualityWriteCommand'),
+  'App: transaction wrapper',
+)
 check(hooks.includes('useAcceptMutation'), 'Hook: accept')
 check(hooks.includes('useRejectMutation'), 'Hook: reject')
 check(hooks.includes('useReworkMutation'), 'Hook: rework')

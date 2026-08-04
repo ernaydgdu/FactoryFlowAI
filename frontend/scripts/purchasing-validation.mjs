@@ -88,7 +88,11 @@ check(cmdMapper.includes('executeApprovePurchaseOrder'), 'App: executeApprovePur
 check(cmdMapper.includes('executeClosePurchaseOrder'), 'App: executeClosePurchaseOrder')
 check(cmdMapper.includes('executeCancelPurchaseOrder'), 'App: executeCancelPurchaseOrder')
 check(cmdMapper.includes('executeArchivePurchaseOrder'), 'App: executeArchivePurchaseOrder')
-check(cmdMapper.includes('runCommandInTransaction'), 'App: transaction wrapper')
+check(
+  cmdMapper.includes('runCommandInTransaction') ||
+    cmdMapper.includes('runPurchasingWriteCommand'),
+  'App: transaction wrapper',
+)
 check(useHooks.includes('useCreatePurchaseRequestMutation'), 'Hook: create PR mutation')
 check(useHooks.includes('useCreateRfqMutation'), 'Hook: create RFQ mutation')
 check(useHooks.includes('useCreatePurchaseOrderMutation'), 'Hook: create PO mutation')

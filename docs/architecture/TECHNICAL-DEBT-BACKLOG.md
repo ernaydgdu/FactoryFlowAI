@@ -1,7 +1,7 @@
 # Technical Debt Backlog
 
 **Source:** Enterprise Architecture Review Sprint (2026-08-04)  
-**Last updated:** 2026-08-04 — P0 Remediation Sprint 1  
+**Last updated:** 2026-08-04 — P0 Remediation Sprint 2  
 **Classification:** P0 (must before production claim) · P1 (high) · P2 (material) · P3 (hygiene)  
 **Effort:** S ≤1d · M 2–5d · L 1–2w · XL >2w (one senior engineer, frontend-centric)
 
@@ -11,9 +11,14 @@
 
 | ID | Item | Evidence | Effort | Module(s) |
 |----|------|----------|--------|-----------|
-| TD-P0-03 | Command-path write guards missing on Inventory / Sales / Purchasing / Shop Floor / Quality / Barcode / IAM admin / PO board | Respective `*-command.mapper.ts`; IAM mapper | L | Multiple |
 | TD-P0-05 | Multi-tenant hardwired to `kepler-default` | `DEFAULT_TENANT_ID` + auth always sets default | XL | Platform / All |
 | TD-P0-07 | Postgres cutover blocked (`readyCount: 0`, factory throws) | `postgres-cutover-readiness.ts`, `postgres-unit-of-work-factory.ts` | XL | Persistence |
+
+### Closed in P0 Remediation Sprint 2
+
+| ID | Resolution |
+|----|------------|
+| TD-P0-03 | Command-path guards via `runPermittedWriteCommand`: inventory (`inventory.write`), sales (`orders.write`), purchasing (`purchasing.write`), shop-floor (`execution.write`), quality (`quality.write`), barcode workflows (`execution.write`), IAM admin (`platform.users.manage`), PO board (`production.write`). New Permission union members + role grants. |
 
 ### Closed in P0 Remediation Sprint 1
 
@@ -35,7 +40,7 @@
 | TD-P1-02 | Circular dependency production-order ↔ execution-platform | Mutual imports lifecycle ↔ provisioning | M | PO / Execution |
 | TD-P1-03 | Constitution 18 AR vs 32 aggregate ports — Freeze contract stale | PERSISTENCE-CONSTITUTION vs UoW | S (docs) / M (reconcile) | Architecture |
 | TD-P1-04 | Idempotency absent on sales/PO/stock/MD/MRP core commands | No idempotencyKey in those DTOs/paths | L | Core domains |
-| TD-P1-05 | Missing permission types + route/write asymmetry | No `quality.write`, `inventory.write`, `purchasing.write`, … | M | IAM |
+| TD-P1-05 | Route/write asymmetry residual | Write permissions exist (Sprint 2); some routes still read-only prefixes (e.g. purchasing→`orders.read`) | S | IAM |
 | TD-P1-06 | Dual permission systems unbridged (Kepler vs Execution) | Two policy files — **partially mitigated** by Kepler→Execution map in Sprint 1; full SoD still open | M | IAM / Execution |
 | TD-P1-07 | `getAllAuditLogs` / audit ID gen capped at 100 | `audit-service.ts` | M | Platform |
 | TD-P1-08 | `queryAll*` silent truncation (cursor not walked) | `PERSISTENCE_CURSOR_MAX_LIMIT=100` | L | Cross-cutting |
@@ -87,17 +92,16 @@
 ## Suggested sequencing (remaining P0)
 
 ```
-Sprint 2 (authz breadth)     Program tracks
-TD-P0-03 (L)                 TD-P0-05 multi-tenant (XL)
-                             TD-P0-07 Postgres cutover (XL) → POSTGRES-CUTOVER-PLAN
+Program tracks only (no partial slices)
+TD-P0-05 multi-tenant (XL) — requires end-to-end tenantId plumbing
+TD-P0-07 Postgres cutover (XL) → POSTGRES-CUTOVER-PLAN
 ```
 
 ---
 
 ## Effort rollup (remaining P0)
 
-| ID | Why not closed in Sprint 1 |
+| ID | Why not closed in Sprint 2 |
 |----|----------------------------|
-| TD-P0-03 | Touches ≥8 command mappers + IAM + new Permission union members — exceeds remaining file budget / one-issue completeness without expanding feature surface |
-| TD-P0-05 | Program-level tenancy redesign across all CRUD services |
-| TD-P0-07 | Full adapter implementation program (see POSTGRES-CUTOVER-PLAN) |
+| TD-P0-05 | No production-safe vertical slice without redesigning all CRUD tenant keys — deferred (no partial multi-tenancy) |
+| TD-P0-07 | Explicitly out of scope this sprint; see POSTGRES-CUTOVER-PLAN |

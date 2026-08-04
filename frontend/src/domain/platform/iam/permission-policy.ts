@@ -29,6 +29,9 @@ export type Permission =
   | 'reports.read'
   | 'ai.read'
   | 'quality.read'
+  | 'quality.write'
+  | 'inventory.write'
+  | 'purchasing.write'
 
 const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
   ADMIN: [
@@ -60,6 +63,9 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'reports.read',
     'ai.read',
     'quality.read',
+    'quality.write',
+    'inventory.write',
+    'purchasing.write',
   ],
   MANAGER: [
     'platform.settings',
@@ -89,6 +95,9 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'reports.read',
     'ai.read',
     'quality.read',
+    'quality.write',
+    'inventory.write',
+    'purchasing.write',
   ],
   PLANNER: [
     'dashboard.view',
@@ -109,6 +118,8 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'shipping.write',
     'reports.read',
     'ai.read',
+    'inventory.write',
+    'purchasing.write',
   ],
   SHOP_FLOOR_OPERATOR: [
     'dashboard.view',
@@ -116,6 +127,7 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'execution.write',
     'production.read',
     'quality.read',
+    'quality.write',
   ],
   VIEWER: ['dashboard.view', 'reports.read'],
 }

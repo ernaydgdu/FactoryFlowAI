@@ -1,4 +1,4 @@
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { runQualityWriteCommand } from './quality-permission.guard'
 import { getExecutionContext } from '@/domain/execution-platform/execution-platform-service'
 import { completeRework } from '@/domain/execution-platform/quality-gate-service'
 import type { QualityGateType } from '@/domain/execution-platform/execution-types'
@@ -26,25 +26,25 @@ function toBase(command: InspectionCommand): Omit<InspectionInput, 'disposition'
 
 /** executeInspection — genel muayene (disposition zorunlu) */
 export function executeInspection(command: InspectionCommand & { disposition: InspectionInput['disposition'] }): InspectionResult {
-  return runCommandInTransaction(() =>
+  return runQualityWriteCommand(() =>
     persistInspection({ ...toBase(command), disposition: command.disposition }, command.actorUserId),
   )
 }
 
 export function executeAccept(command: InspectionCommand): InspectionResult {
-  return runCommandInTransaction(() => executeAcceptInspection(toBase(command), command.actorUserId))
+  return runQualityWriteCommand(() => executeAcceptInspection(toBase(command), command.actorUserId))
 }
 
 export function executeReject(command: InspectionCommand): InspectionResult {
-  return runCommandInTransaction(() => executeRejectInspection(toBase(command), command.actorUserId))
+  return runQualityWriteCommand(() => executeRejectInspection(toBase(command), command.actorUserId))
 }
 
 export function executeRework(command: InspectionCommand): InspectionResult {
-  return runCommandInTransaction(() => executeReworkInspection(toBase(command), command.actorUserId))
+  return runQualityWriteCommand(() => executeReworkInspection(toBase(command), command.actorUserId))
 }
 
 export function executeHold(command: InspectionCommand): InspectionResult {
-  return runCommandInTransaction(() => executeHoldInspection(toBase(command), command.actorUserId))
+  return runQualityWriteCommand(() => executeHoldInspection(toBase(command), command.actorUserId))
 }
 
 export function executeCompleteRework(command: {
@@ -53,7 +53,7 @@ export function executeCompleteRework(command: {
   bundleId?: string
   actorUserId: string
 }) {
-  return runCommandInTransaction(() => {
+  return runQualityWriteCommand(() => {
     const ctx = getExecutionContext(command.productionOrderNo)
     if (!ctx) throw new QualityDomainError(`Execution context bulunamadı: ${command.productionOrderNo}`)
     completeRework({

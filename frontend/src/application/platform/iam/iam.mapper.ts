@@ -1,5 +1,6 @@
 import { resolveIamRepository } from '@/infrastructure/api/iam-repository.factory'
 import { UserAccountDomainError } from '@/domain/platform/iam/user-account.service'
+import { runIamAdminWriteCommand } from './iam-permission.guard'
 import type { CreateUserDto, LoginDto, LoginResultDto, UpdateUserDto } from './iam.dto'
 
 export { UserAccountDomainError }
@@ -21,9 +22,9 @@ export function queryUserList(factoryId?: string) {
 }
 
 export function commandCreateUser(input: CreateUserDto, actorUserId: string) {
-  return iamRepo().createUser(input, actorUserId)
+  return runIamAdminWriteCommand(() => iamRepo().createUser(input, actorUserId))
 }
 
 export function commandUpdateUser(userId: string, input: UpdateUserDto, actorUserId: string) {
-  return iamRepo().updateUser(userId, input, actorUserId)
+  return runIamAdminWriteCommand(() => iamRepo().updateUser(userId, input, actorUserId))
 }

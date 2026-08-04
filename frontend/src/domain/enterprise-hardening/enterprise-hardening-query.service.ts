@@ -48,7 +48,7 @@ export function queryReliabilityAudit(): ReliabilityAuditReport {
     notes: [
       'Closed Cost/Style aggregates immutable',
       'Postgres factory throws NotReady — memory default preserved',
-      'Command-path write guards: product-card, production-order lifecycle, packaging, shipment, commercial, export, finance, cost/style closing — not all modules',
+      'Command-path write guards: product-card, PO lifecycle+board, inventory, sales, purchasing, shop-floor, quality, barcode, IAM admin, packaging, shipment, commercial, export, finance, cost/style closing',
       'Domain layer must not import infrastructure (observability composed in application)',
     ],
   }

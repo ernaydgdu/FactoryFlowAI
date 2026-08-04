@@ -1,4 +1,4 @@
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { runPurchasingWriteCommand } from './purchasing-permission.guard'
 import {
   persistApprovePurchaseOrder,
   persistArchivePurchaseOrder,
@@ -57,7 +57,7 @@ function poResult(id: string, poNo: string, status: PurchaseOrderLifecycleStatus
 }
 
 export function executeCreatePurchaseRequest(command: CreatePurchaseRequestCommand): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const { actorUserId, ...input } = command
     const pr = persistCreatePurchaseRequest(input, actorUserId)
     return { entityId: pr.id, entityNo: pr.prNo, status: pr.status, version: 1 }
@@ -65,7 +65,7 @@ export function executeCreatePurchaseRequest(command: CreatePurchaseRequestComma
 }
 
 export function executeCreateRFQ(command: CreateRfqCommand): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const { actorUserId, ...input } = command
     const rfq = persistCreateRfq(input, actorUserId)
     return { entityId: rfq.id, entityNo: rfq.rfqNo, status: rfq.status, version: 1 }
@@ -73,7 +73,7 @@ export function executeCreateRFQ(command: CreateRfqCommand): PurchasingCommandRe
 }
 
 export function executeCreatePurchaseOrder(command: CreatePurchaseOrderCommand): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const { actorUserId, ...input } = command
     const po = persistCreatePurchaseOrder(input, actorUserId)
     return poResult(po.id, po.poNo, po.status)
@@ -81,7 +81,7 @@ export function executeCreatePurchaseOrder(command: CreatePurchaseOrderCommand):
 }
 
 export function executeApprovePurchaseOrder(command: PurchaseOrderLifecycleCommand): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const po = persistApprovePurchaseOrder(
       command.purchaseOrderId,
       command.expectedVersion,
@@ -93,7 +93,7 @@ export function executeApprovePurchaseOrder(command: PurchaseOrderLifecycleComma
 }
 
 export function executeClosePurchaseOrder(command: PurchaseOrderLifecycleCommand): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const po = persistClosePurchaseOrder(
       command.purchaseOrderId,
       command.expectedVersion,
@@ -104,7 +104,7 @@ export function executeClosePurchaseOrder(command: PurchaseOrderLifecycleCommand
 }
 
 export function executeCancelPurchaseOrder(command: PurchaseOrderLifecycleCommand): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const po = persistCancelPurchaseOrder(
       command.purchaseOrderId,
       command.expectedVersion,
@@ -116,7 +116,7 @@ export function executeCancelPurchaseOrder(command: PurchaseOrderLifecycleComman
 }
 
 export function executeArchivePurchaseOrder(command: PurchaseOrderLifecycleCommand): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const po = persistArchivePurchaseOrder(
       command.purchaseOrderId,
       command.expectedVersion,
@@ -129,7 +129,7 @@ export function executeArchivePurchaseOrder(command: PurchaseOrderLifecycleComma
 export function executeCreatePurchaseOrderRevision(
   command: CreatePurchaseOrderRevisionCommand,
 ): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const po = persistCreatePurchaseOrderRevision(
       command.purchaseOrderId,
       command.reason,
@@ -141,7 +141,7 @@ export function executeCreatePurchaseOrderRevision(
 }
 
 export function executeSelectQuotation(command: SelectQuotationCommand): PurchasingCommandResult {
-  return runCommandInTransaction(() => {
+  return runPurchasingWriteCommand(() => {
     const q = persistSelectQuotation(command.quotationId, command.actorUserId)
     return { entityId: q.id, entityNo: q.quotationNo, status: q.status, version: 1 }
   })

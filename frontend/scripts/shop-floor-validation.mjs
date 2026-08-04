@@ -70,7 +70,10 @@ check(cmd.includes('executeCompleteOperation'), 'App: executeCompleteOperation')
 check(cmd.includes('executeDeclareProduction'), 'App: executeDeclareProduction')
 check(cmd.includes('executeMoveBundle'), 'App: executeMoveBundle')
 check(cmd.includes('executeFinishWorkSession'), 'App: executeFinishWorkSession')
-check(cmd.includes('runCommandInTransaction'), 'App: transaction wrapper')
+check(
+  cmd.includes('runCommandInTransaction') || cmd.includes('runShopFloorWriteCommand'),
+  'App: transaction wrapper',
+)
 check(hooks.includes('useDeclareProductionMutation'), 'Hook: declare production')
 check(hooks.includes('useStartOperationMutation'), 'Hook: start operation')
 check(hooks.includes('useMoveBundleMutation'), 'Hook: move bundle')

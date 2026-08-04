@@ -78,7 +78,11 @@ check(cmdMapper.includes('executeTransfer'), 'App: executeTransfer')
 check(cmdMapper.includes('executeReservation'), 'App: executeReservation')
 check(cmdMapper.includes('executeAdjustment'), 'App: executeAdjustment')
 check(cmdMapper.includes('executeCycleCount'), 'App: executeCycleCount')
-check(cmdMapper.includes('runCommandInTransaction'), 'App: transaction wrapper')
+check(
+  cmdMapper.includes('runCommandInTransaction') ||
+    cmdMapper.includes('runInventoryWriteCommand'),
+  'App: transaction wrapper',
+)
 check(useHooks.includes('useGoodsReceiptMutation'), 'Hook: goods receipt mutation')
 check(useHooks.includes('useGoodsIssueMutation'), 'Hook: goods issue mutation')
 check(useHooks.includes('useTransferMutation'), 'Hook: transfer mutation')

@@ -125,6 +125,53 @@ check(execGuard.includes('resolveTrustedExecutionRole'), 'Sec: execution guard u
 check(execGuard.includes("assertCommandPermission('execution.write')"), 'Sec: execution writes require execution.write')
 check(execGuard.includes('_ctx') || execGuard.includes('ignored'), 'Sec: client ExecutionRole not authoritative')
 
+check(iam.includes("'quality.write'"), 'IAM: quality.write permission')
+check(iam.includes("'inventory.write'"), 'IAM: inventory.write permission')
+check(iam.includes("'purchasing.write'"), 'IAM: purchasing.write permission')
+check(
+  exists('src/application/inventory/inventory-permission.guard.ts') &&
+    read('src/application/inventory/inventory-command.mapper.ts').includes('runInventoryWriteCommand'),
+  'P0-03: inventory write guard',
+)
+check(
+  exists('src/application/sales-order/sales-order-permission.guard.ts') &&
+    read('src/application/sales-order/sales-order-command.mapper.ts').includes('runSalesOrderWriteCommand'),
+  'P0-03: sales-order write guard',
+)
+check(
+  exists('src/application/purchasing/purchasing-permission.guard.ts') &&
+    read('src/application/purchasing/purchasing-command.mapper.ts').includes('runPurchasingWriteCommand'),
+  'P0-03: purchasing write guard',
+)
+check(
+  exists('src/application/shop-floor/shop-floor-permission.guard.ts') &&
+    read('src/application/shop-floor/shop-floor-command.mapper.ts').includes('runShopFloorWriteCommand'),
+  'P0-03: shop-floor write guard',
+)
+check(
+  exists('src/application/quality/quality-permission.guard.ts') &&
+    read('src/application/quality/quality-command.mapper.ts').includes('runQualityWriteCommand'),
+  'P0-03: quality write guard',
+)
+check(
+  exists('src/application/barcode-mobile/barcode-mobile-permission.guard.ts') &&
+    read('src/application/barcode-mobile/barcode-mobile-command.mapper.ts').includes(
+      'runBarcodeMobileWriteCommand',
+    ),
+  'P0-03: barcode-mobile write guard',
+)
+check(
+  exists('src/application/platform/iam/iam-permission.guard.ts') &&
+    read('src/application/platform/iam/iam.mapper.ts').includes('runIamAdminWriteCommand'),
+  'P0-03: IAM admin write guard',
+)
+check(
+  read('src/application/production-order-lifecycle/production-order-board-command.mapper.ts').includes(
+    'runProductionOrderWriteCommand',
+  ),
+  'P0-03: PO board write guard',
+)
+
 check(router.includes('/enterprise'), 'Router: /enterprise')
 check(router.includes('EnterpriseHealthPage'), 'Router: health page')
 check(router.includes('EnterpriseBootstrapPage'), 'Router: bootstrap page')

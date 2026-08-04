@@ -78,7 +78,10 @@ check(ledger.includes('export function persistShipment'), 'Ledger: persistShipme
 check(ledger.includes('queryStockMovementByReferenceNo'), 'Ledger: idempotent issue lookup')
 check(gr.includes('idempotencyKey'), 'GR: idempotencyKey')
 check(invCmd.includes('executeShipment'), 'App inventory: executeShipment')
-check(cmd.includes('runCommandInTransaction'), 'App barcode: TX wrapper')
+check(
+  cmd.includes('runCommandInTransaction') || cmd.includes('runBarcodeMobileWriteCommand'),
+  'App barcode: TX wrapper',
+)
 check(cmd.includes('executeReceivingScan'), 'App: executeReceivingScan')
 check(cmd.includes('executeMaterialIssueScan'), 'App: executeMaterialIssueScan')
 check(cmd.includes('executeProductionScan'), 'App: executeProductionScan')

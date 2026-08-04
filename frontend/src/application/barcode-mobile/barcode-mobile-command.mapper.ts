@@ -1,8 +1,8 @@
 /**
  * Application scan / workflow commands.
- * Mutations run inside runCommandInTransaction → existing audit/timeline/outbox paths.
+ * Mutations require execution.write (TD-P0-03); decode-only scans remain read-side.
  */
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { assertCommandPermission } from '@/application/core/command-permission'
 import {
   enqueueOfflineWorkflow,
   listOfflineQueue,
@@ -26,6 +26,7 @@ import {
 } from '@/domain/barcode-mobile/label.service'
 import type { ScanResult } from '@/domain/barcode-mobile/barcode.types'
 
+import { runBarcodeMobileWriteCommand } from './barcode-mobile-permission.guard'
 import type { ScanCommand, SyncResultDto, WorkflowScanCommand } from './barcode-mobile.dto'
 
 export { BarcodeMobileDomainError }
@@ -68,6 +69,7 @@ function payloadFromCommand(command: WorkflowScanCommand): Record<string, unknow
 
 export function executeWorkflowScan(command: WorkflowScanCommand): ScanResult {
   if (command.offline) {
+    assertCommandPermission('execution.write')
     enqueueOfflineWorkflow({
       workflow: command.workflow,
       payload: payloadFromCommand(command),
@@ -82,7 +84,7 @@ export function executeWorkflowScan(command: WorkflowScanCommand): ScanResult {
       message: `Offline kuyruğa alındı (${command.workflow})`,
     }
   }
-  return runCommandInTransaction(() =>
+  return runBarcodeMobileWriteCommand(() =>
     runWorkflow(command.workflow, payloadFromCommand(command), command.actorUserId, command.idempotencyKey),
   )
 }
@@ -108,8 +110,9 @@ export function executeShipmentScan(command: WorkflowScanCommand): ScanResult {
 }
 
 export function executeSyncOfflineQueue(): SyncResultDto {
+  assertCommandPermission('execution.write')
   return syncOfflineQueue((item) =>
-    runCommandInTransaction(() =>
+    runBarcodeMobileWriteCommand(() =>
       runWorkflow(item.workflow, item.payload, item.actorUserId, item.idempotencyKey),
     ),
   )

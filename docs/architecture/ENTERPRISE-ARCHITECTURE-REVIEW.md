@@ -1,7 +1,7 @@
 # Enterprise Architecture Review
 
 **Date:** 2026-08-04  
-**Updated:** 2026-08-04 — P0 Remediation Sprint 1  
+**Updated:** 2026-08-04 — P0 Remediation Sprint 2  
 **Scope:** Completed ERP modules (Platform → Enterprise Hardening)  
 **Method:** Evidence-only (code + existing architecture reports). No new features. No speculative refactors.  
 **Runtime truth:** Frontend in-memory `IUnitOfWork` is the system of record. NestJS backend is auth/platform stub only.
@@ -13,12 +13,18 @@
 | Dimension | Score | Summary |
 |-----------|-------|---------|
 | Architecture | **PARTIAL** | UoW/port model coherent; **domain→infra break closed (P0-06)**; Freeze ADR-expanded beyond 18-AR constitution; legacy UI bypasses application |
-| Reliability | **PARTIAL** | Bootstrap resilient; TX/outbox solid; **PO + stock-ledger now pass expectedVersion (P0-01/02)**; idempotency still uneven elsewhere |
-| Security | **PARTIAL** | Logistics/finance + product-card + PO lifecycle guarded; **ExecutionRole spoof closed (P0-04)**; Inventory/Sales/Purchasing/Shop Floor/Quality/Barcode/IAM still incomplete (P0-03) |
+| Reliability | **PARTIAL** | Bootstrap resilient; TX/outbox solid; **PO + stock-ledger expectedVersion (P0-01/02)**; idempotency still uneven elsewhere |
+| Security | **PARTIAL** | **Command-path write guards on all TD-P0-03 modules (Sprint 2)** + prior logistics/finance/execution hardening; multi-tenant still single-tenant (P0-05) |
 | Performance | **PARTIAL** | Bounded monitors/queues; many `queryAll*` silent 100-cap; broad RQ `.all` invalidations remain |
 | PostgreSQL readiness | **NO** | `readyCount: 0`; factory throws; cutover blocked (P0-07 open) |
 | AI readiness | **PARTIAL** | Deterministic foundation; **event catalog ⊆ DomainEventType (P0-08)**; LLM disabled; RM coverage still partial |
-| Enterprise maturity (overall) | **PARTIAL** | P0 Remediation Sprint 1 closed 5/8 P0s; multi-tenant + Postgres + write-guard breadth remain |
+| Enterprise maturity (overall) | **PARTIAL** | 6/8 P0s closed; remaining = multi-tenant + Postgres programs |
+
+### P0 Remediation Sprint 2 — changes
+
+| ID | What changed |
+|----|----------------|
+| TD-P0-03 | Added `quality.write`, `inventory.write`, `purchasing.write`; guards + mapper wraps for Inventory, Sales, Purchasing, Shop Floor, Quality, Barcode workflows, IAM admin, PO board |
 
 ### P0 Remediation Sprint 1 — changes
 
@@ -102,18 +108,18 @@ UI (modules/pages)
 
 ### 3.1 Command-path write guards
 
-| Guarded | Unguarded (TX only / route-only) |
+| Guarded | Still unguarded (out of TD-P0-03 scope) |
 |---------|----------------------------------|
-| Product Card, Production Order lifecycle, Packaging, Shipment, Commercial Docs, Export Logistics, Finance, Cost Closing, Style Closing | Platform BOM, IAM user CRUD, Master Data, BOM, Cost Sheet, Sales, MRP, Purchasing, Inventory, Warehouse FG, Production Planning, PO board reserve, Shop Floor, Quality, Barcode commands |
+| Product Card, Production Order lifecycle **+ board**, Inventory, Sales, Purchasing, Shop Floor, Quality, Barcode workflows, IAM admin, Packaging, Shipment, Commercial Docs, Export Logistics, Finance, Cost Closing, Style Closing, Execution Platform (`execution.write`) | Platform BOM, Master Data, BOM designer, Cost Sheet, MRP, Warehouse FG mapper, Production Planning |
 
 ### 3.2 Critical findings
 
 | Sev | Finding | Evidence |
 |-----|---------|----------|
 | ~~P0~~ **Closed** | Client-selectable ExecutionRole trusted on commands | Authz uses `resolveTrustedExecutionRole()` (TD-P0-04); UI picker no longer authoritative |
-| **P0** | Shop Floor / Quality / Inventory / Sales / Purchasing / Barcode / IAM / PO board writes without complete Kepler write assert | TD-P0-03 remaining (execution platform now requires `execution.write`) |
+| ~~P0~~ **Closed** | Shop Floor / Quality / Inventory / Sales / Purchasing / Barcode / IAM / PO board writes without Kepler write assert | TD-P0-03 — command-path guards + new write permissions |
 | **P0** | Multi-tenant not real — `DEFAULT_TENANT_ID = 'kepler-default'` hardwired | TD-P0-05 open |
-| **P1** | Missing permission types (`quality.write`, `inventory.write`, `purchasing.write`, …) | `permission-policy.ts` |
+| **P1** | Route vs write permission asymmetry on some prefixes | e.g. purchasing route still `orders.read` |
 | **P1** | Dual IAM residual (matrix still separate; now session-bridged for execution writes) | TD-P1-06 partially mitigated |
 | **P1** | Audit tenant always DEFAULT; ID generation from capped cursor | `audit-service.ts` |
 
@@ -168,21 +174,21 @@ See `AI-ROADMAP.md`.
 | Module | Arch | Rel | Sec | Perf | Notes |
 |--------|------|-----|-----|------|-------|
 | Platform | P | P | N | P | API scaffold; BOM cmds unguarded |
-| IAM | P | P | N | P | Route-only admin; no command assert |
+| IAM | P | P | Y | P | **Admin writes command-guarded** (`platform.users.manage`) |
 | Master Data | Y | P | N | P | TX/audit OK; writes unguarded; RQ `.all` |
 | Product Card | Y | Y | Y | P | Command guard + OL; RQ `.all` |
 | BOM | Y | Y | N | P | Child of Product Card; writes unguarded |
 | Cost Sheet | Y | Y | N | P | Child of Product Card; writes unguarded |
-| Sales | Y | P | N | P | OL present; no idempotency/write guard |
+| Sales | Y | P | Y | P | OL + **orders.write guard**; idempotency still weak |
 | MRP | Y | P | N | P | TX OK; writes unguarded |
-| Purchasing | Y | P | N | P | Route `orders.read`; writes unguarded |
-| Inventory | P | P | N | P | UI→domain; **OL on ledger save (P0-01)**; writes still unguarded (P0-03) |
+| Purchasing | Y | P | Y | P | **purchasing.write guard**; route still `orders.read` |
+| Inventory | P | P | Y | P | UI→domain; OL + **inventory.write guard** |
 | Warehouse | P | P | N | P | FG path; writes unguarded |
 | Production Planning | Y | P | N | P | Reschedule unguarded |
-| Production Order | P | P | P | P | Lifecycle guarded + **OL (P0-02)**; board unguarded (P0-03); cycle w/ execution |
-| Shop Floor | P | P | N | P | Critical writes unguarded |
-| Quality | P | P | N | P | No `quality.write`; N+1 queries |
-| Barcode & Mobile | Y | Y | N | P | Offline queue bounded; command unguarded |
+| Production Order | P | P | Y | P | Lifecycle + **board** guarded + OL; cycle w/ execution |
+| Shop Floor | P | P | Y | P | **execution.write** on commands; N+1 residual elsewhere |
+| Quality | P | P | Y | P | **quality.write** on commands; N+1 queries remain |
+| Barcode & Mobile | Y | Y | Y | P | Offline queue bounded; **workflow writes guarded** |
 | Packaging | Y | Y | Y | Y | Guard + idempotency + OL; narrowed RQ |
 | Shipment | Y | Y | Y | Y | Same pattern |
 | Commercial Documents | Y | Y | Y | Y | Guard + idempotency |

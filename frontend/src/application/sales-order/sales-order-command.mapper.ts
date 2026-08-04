@@ -1,4 +1,4 @@
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { runSalesOrderWriteCommand } from './sales-order-permission.guard'
 import {
   persistApproveSalesOrder,
   persistArchiveSalesOrder,
@@ -54,7 +54,7 @@ function toResult(order: SalesOrder): SalesOrderCommandResult {
 }
 
 export function executeCreateSalesOrder(command: CreateSalesOrderCommand): SalesOrderCommandResult {
-  return runCommandInTransaction(() => {
+  return runSalesOrderWriteCommand(() => {
     const { actorUserId, ...input } = command
     const order = persistCreateSalesOrder(input, actorUserId)
     return toResult(order)
@@ -62,7 +62,7 @@ export function executeCreateSalesOrder(command: CreateSalesOrderCommand): Sales
 }
 
 export function executeUpdateSalesOrder(command: UpdateSalesOrderCommand): SalesOrderCommandResult {
-  return runCommandInTransaction(() => {
+  return runSalesOrderWriteCommand(() => {
     const { salesOrderId, expectedVersion, actorUserId, ...input } = command
     const order = persistUpdateSalesOrder(salesOrderId, input, expectedVersion, actorUserId)
     return toResult(order)
@@ -70,7 +70,7 @@ export function executeUpdateSalesOrder(command: UpdateSalesOrderCommand): Sales
 }
 
 export function executeApproveSalesOrder(command: SalesOrderLifecycleCommand): SalesOrderCommandResult {
-  return runCommandInTransaction(() => {
+  return runSalesOrderWriteCommand(() => {
     const order = persistApproveSalesOrder(
       command.salesOrderId,
       command.expectedVersion,
@@ -82,7 +82,7 @@ export function executeApproveSalesOrder(command: SalesOrderLifecycleCommand): S
 }
 
 export function executeCancelSalesOrder(command: SalesOrderLifecycleCommand): SalesOrderCommandResult {
-  return runCommandInTransaction(() => {
+  return runSalesOrderWriteCommand(() => {
     const order = persistCancelSalesOrder(
       command.salesOrderId,
       command.expectedVersion,
@@ -94,7 +94,7 @@ export function executeCancelSalesOrder(command: SalesOrderLifecycleCommand): Sa
 }
 
 export function executeCloseSalesOrder(command: SalesOrderLifecycleCommand): SalesOrderCommandResult {
-  return runCommandInTransaction(() => {
+  return runSalesOrderWriteCommand(() => {
     const order = persistCloseSalesOrder(
       command.salesOrderId,
       command.expectedVersion,
@@ -105,7 +105,7 @@ export function executeCloseSalesOrder(command: SalesOrderLifecycleCommand): Sal
 }
 
 export function executeArchiveSalesOrder(command: SalesOrderLifecycleCommand): SalesOrderCommandResult {
-  return runCommandInTransaction(() => {
+  return runSalesOrderWriteCommand(() => {
     const order = persistArchiveSalesOrder(
       command.salesOrderId,
       command.expectedVersion,
@@ -116,7 +116,7 @@ export function executeArchiveSalesOrder(command: SalesOrderLifecycleCommand): S
 }
 
 export function executeCreateRevision(command: CreateSalesOrderRevisionCommand): SalesOrderCommandResult {
-  return runCommandInTransaction(() => {
+  return runSalesOrderWriteCommand(() => {
     const order = persistCreateSalesOrderRevision(
       command.salesOrderId,
       command.reason,

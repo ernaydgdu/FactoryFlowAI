@@ -1,4 +1,4 @@
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { runInventoryWriteCommand } from './inventory-permission.guard'
 import {
   InventoryDomainError,
   persistCycleCount,
@@ -41,7 +41,7 @@ export type AdjustmentCommand = StockAdjustmentInput & { actorUserId: string }
 export type CycleCountCommand = CycleCountInput & { actorUserId: string }
 
 export function executeGoodsReceipt(command: GoodsReceiptCommand): InventoryCommandResult {
-  return runCommandInTransaction(() => {
+  return runInventoryWriteCommand(() => {
     const { actorUserId, ...input } = command
     const gr = persistPostGoodsReceipt(input, actorUserId)
     return { entityId: gr.id, entityNo: gr.grNo, status: gr.status, version: 1 }
@@ -49,7 +49,7 @@ export function executeGoodsReceipt(command: GoodsReceiptCommand): InventoryComm
 }
 
 export function executeGoodsIssue(command: GoodsIssueCommand): InventoryCommandResult {
-  return runCommandInTransaction(() => {
+  return runInventoryWriteCommand(() => {
     const { actorUserId, ...input } = command
     const result = persistGoodsIssue(input, actorUserId)
     return {
@@ -62,7 +62,7 @@ export function executeGoodsIssue(command: GoodsIssueCommand): InventoryCommandR
 }
 
 export function executeShipment(command: ShipmentCommand): InventoryCommandResult {
-  return runCommandInTransaction(() => {
+  return runInventoryWriteCommand(() => {
     const { actorUserId, ...input } = command
     const result = persistShipment(input, actorUserId)
     return {
@@ -75,7 +75,7 @@ export function executeShipment(command: ShipmentCommand): InventoryCommandResul
 }
 
 export function executeTransfer(command: TransferCommand): InventoryCommandResult {
-  return runCommandInTransaction(() => {
+  return runInventoryWriteCommand(() => {
     const { actorUserId, ...input } = command
     const result = persistStockTransfer(input, actorUserId)
     return {
@@ -88,7 +88,7 @@ export function executeTransfer(command: TransferCommand): InventoryCommandResul
 }
 
 export function executeReservation(command: ReservationCommand): InventoryCommandResult {
-  return runCommandInTransaction(() => {
+  return runInventoryWriteCommand(() => {
     const { actorUserId, ...input } = command
     const result = persistReservation(input, actorUserId)
     return {
@@ -101,7 +101,7 @@ export function executeReservation(command: ReservationCommand): InventoryComman
 }
 
 export function executeReservationRelease(command: ReservationCommand): InventoryCommandResult {
-  return runCommandInTransaction(() => {
+  return runInventoryWriteCommand(() => {
     const { actorUserId, ...input } = command
     const result = persistReservationRelease(input, actorUserId)
     return {
@@ -114,7 +114,7 @@ export function executeReservationRelease(command: ReservationCommand): Inventor
 }
 
 export function executeAdjustment(command: AdjustmentCommand): InventoryCommandResult {
-  return runCommandInTransaction(() => {
+  return runInventoryWriteCommand(() => {
     const { actorUserId, ...input } = command
     const result = persistStockAdjustment(input, actorUserId)
     return {
@@ -127,7 +127,7 @@ export function executeAdjustment(command: AdjustmentCommand): InventoryCommandR
 }
 
 export function executeCycleCount(command: CycleCountCommand): InventoryCommandResult {
-  return runCommandInTransaction(() => {
+  return runInventoryWriteCommand(() => {
     const { actorUserId, ...input } = command
     const result = persistCycleCount(input, actorUserId)
     return {

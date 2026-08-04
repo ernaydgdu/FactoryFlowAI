@@ -91,7 +91,11 @@ check(cmdMapper.includes('executeCancelSalesOrder'), 'App: executeCancelSalesOrd
 check(cmdMapper.includes('executeCloseSalesOrder'), 'App: executeCloseSalesOrder')
 check(cmdMapper.includes('executeArchiveSalesOrder'), 'App: executeArchiveSalesOrder')
 check(cmdMapper.includes('executeCreateRevision'), 'App: executeCreateRevision')
-check(cmdMapper.includes('runCommandInTransaction'), 'App: transaction wrapper')
+check(
+  cmdMapper.includes('runCommandInTransaction') ||
+    cmdMapper.includes('runSalesOrderWriteCommand'),
+  'App: transaction wrapper',
+)
 check(useHooks.includes('useCreateSalesOrderMutation'), 'Hook: create mutation')
 check(useHooks.includes('useUpdateSalesOrderMutation'), 'Hook: update mutation')
 check(useHooks.includes('useApproveSalesOrderMutation'), 'Hook: approve mutation')

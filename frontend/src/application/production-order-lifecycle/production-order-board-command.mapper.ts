@@ -1,4 +1,4 @@
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { runProductionOrderWriteCommand } from './production-order-permission.guard'
 import {
   MaterialReservationError,
   persistMaterialReservationForOrder,
@@ -15,7 +15,7 @@ export type ReserveMaterialsCommand = {
 }
 
 export function executeReserveMaterials(command: ReserveMaterialsCommand): ReserveMaterialsResultDto {
-  return runCommandInTransaction(() => {
+  return runProductionOrderWriteCommand(() => {
     const result = persistMaterialReservationForOrder(command.productionOrderNo, command.actorUserId)
     return {
       productionOrderNo: result.productionOrderNo,
@@ -28,7 +28,7 @@ export function executeReserveMaterials(command: ReserveMaterialsCommand): Reser
 export function executeReleaseMaterialReservation(
   command: ReserveMaterialsCommand,
 ): ReserveMaterialsResultDto {
-  return runCommandInTransaction(() => {
+  return runProductionOrderWriteCommand(() => {
     const result = releaseMaterialReservationForOrder(command.productionOrderNo, command.actorUserId)
     return {
       productionOrderNo: result.productionOrderNo,
