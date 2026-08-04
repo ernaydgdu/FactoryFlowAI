@@ -82,6 +82,9 @@ export const navGroups: NavGroup[] = [
     icon: Factory,
     items: [
       { title: 'Dashboard', href: '/production-planning/dashboard' },
+      { title: 'Planlama Board', href: '/production-planning/board' },
+      { title: 'Kapasite Görünümü', href: '/production-planning/capacity-view' },
+      { title: 'Hat Yükü', href: '/production-planning/line-load' },
       { title: 'Üretim Takvimi', href: '/production-planning/calendar' },
       { title: 'Üretim Emirleri', href: '/production-planning/orders' },
       { title: 'Üretim Programı', href: '/production-planning/schedule' },

@@ -4,6 +4,9 @@ import { cn } from '@/lib/utils'
 
 const SUB_NAV = [
   { label: 'Dashboard', href: '/production-planning/dashboard' },
+  { label: 'Board', href: '/production-planning/board' },
+  { label: 'Kapasite Görünümü', href: '/production-planning/capacity-view' },
+  { label: 'Hat Yükü', href: '/production-planning/line-load' },
   { label: 'Takvim', href: '/production-planning/calendar' },
   { label: 'Üretim Emirleri', href: '/production-planning/orders' },
   { label: 'Program', href: '/production-planning/schedule' },

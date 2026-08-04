@@ -125,6 +125,18 @@ const ProductionTimelinePage = lazyPage(
   () => import('@/modules/production-planning/pages/ProductionTimelinePage'),
   'ProductionTimelinePage',
 )
+const PlanningBoardPage = lazyPage(
+  () => import('@/modules/production-planning/pages/PlanningSchedulingPages'),
+  'PlanningBoardPage',
+)
+const CapacityViewPage = lazyPage(
+  () => import('@/modules/production-planning/pages/PlanningSchedulingPages'),
+  'CapacityViewPage',
+)
+const LineLoadPage = lazyPage(
+  () => import('@/modules/production-planning/pages/PlanningSchedulingPages'),
+  'LineLoadPage',
+)
 
 const ProductionOrderLifecycleLayout = lazyPage(
   () => import('@/modules/production-order-lifecycle/layout/ProductionOrderLifecycleLayout'),
@@ -264,6 +276,9 @@ export function AppRouter() {
           <Route path="daily-entry" element={<L><DailyProductionEntryPage /></L>} />
           <Route path="operations" element={<L><OperationTrackingPage /></L>} />
           <Route path="timeline" element={<L><ProductionTimelinePage /></L>} />
+          <Route path="board" element={<L><PlanningBoardPage /></L>} />
+          <Route path="capacity-view" element={<L><CapacityViewPage /></L>} />
+          <Route path="line-load" element={<L><LineLoadPage /></L>} />
         </Route>
 
         <Route path="/production-order-lifecycle" element={<L><ProductionOrderLifecycleLayout /></L>}>

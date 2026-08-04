@@ -52,6 +52,15 @@ export const applicationQueryKeys = {
     finishedGoodsWarehouses: () =>
       [...applicationQueryKeys.warehouseManagement.all, 'fg-warehouses'] as const,
   },
+  productionPlanning: {
+    all: ['production-planning-scheduling'] as const,
+    scheduleBoard: (mode: string) =>
+      [...applicationQueryKeys.productionPlanning.all, 'schedule-board', mode] as const,
+    capacityView: (mode: string) =>
+      [...applicationQueryKeys.productionPlanning.all, 'capacity-view', mode] as const,
+    lineLoad: (mode: string) =>
+      [...applicationQueryKeys.productionPlanning.all, 'line-load', mode] as const,
+  },
   productionOrder: {
     all: ['production-order'] as const,
     list: () => [...applicationQueryKeys.productionOrder.all, 'list'] as const,
