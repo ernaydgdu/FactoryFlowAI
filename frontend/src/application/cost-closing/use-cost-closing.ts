@@ -13,7 +13,10 @@ import { CostClosingDomainError } from './cost-closing-command.mapper'
 export { CostClosingDomainError }
 
 function invalidate(qc: ReturnType<typeof useQueryClient>, id?: string) {
-  void qc.invalidateQueries({ queryKey: applicationQueryKeys.costClosing.all })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.costClosing.dashboard() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.costClosing.lists() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.costClosing.history() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.costClosing.brain() })
   if (id) {
     void qc.invalidateQueries({ queryKey: applicationQueryKeys.costClosing.detail(id) })
   }

@@ -86,7 +86,11 @@ check(cmdMapper.includes('executeCreateRevision'), 'App: executeCreateRevision')
 check(cmdMapper.includes('executeApproveProductCard'), 'App: executeApprove')
 check(cmdMapper.includes('executeDeactivateProductCard'), 'App: executeDeactivate')
 check(cmdMapper.includes('executeArchiveProductCard'), 'App: executeArchive')
-check(cmdMapper.includes('runCommandInTransaction'), 'App: transaction wrapper')
+check(
+  cmdMapper.includes('runCommandInTransaction') ||
+    cmdMapper.includes('runProductCardWriteCommand'),
+  'App: transaction wrapper',
+)
 check(useHooks.includes('useCreateProductCardMutation'), 'Hook: create mutation')
 check(useHooks.includes('useUpdateProductCardMutation'), 'Hook: update mutation')
 check(useHooks.includes('useApproveProductCardMutation'), 'Hook: approve mutation')

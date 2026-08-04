@@ -1,4 +1,4 @@
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { runProductionOrderWriteCommand } from './production-order-permission.guard'
 import {
   buildCreateProductionOrderContext,
   buildProductionOrderReservationContext,
@@ -170,7 +170,7 @@ export function mapLifecycleDashboard(): ProductionOrderLifecycleDashboardDto {
 }
 
 export function executeCreateProductionOrder(input: CreateProductionOrderInputDto) {
-  return runCommandInTransaction(() => {
+  return runProductionOrderWriteCommand(() => {
     const context = buildCreateProductionOrderContext(input.salesOrderId)
     const record = createProductionOrderFromSalesOrder(context, input.actor ?? 'planner', input.priority)
     return mapListItem(record)
@@ -178,7 +178,7 @@ export function executeCreateProductionOrder(input: CreateProductionOrderInputDt
 }
 
 export function executeTransitionProductionOrder(input: TransitionProductionOrderInputDto) {
-  return runCommandInTransaction(() => {
+  return runProductionOrderWriteCommand(() => {
     const record = getProductionOrderLifecycle(input.productionOrderNo)
     const reservationContext =
       input.toStatus === 'Released' && record
@@ -201,7 +201,7 @@ export function executeTransitionProductionOrder(input: TransitionProductionOrde
 }
 
 export function executeAddDailyEntry(input: AddDailyEntryInputDto) {
-  return runCommandInTransaction(() => {
+  return runProductionOrderWriteCommand(() => {
     addDailyProductionEntry(input.productionOrderNo, {
       entryDate: input.entryDate,
       planned: input.planned,

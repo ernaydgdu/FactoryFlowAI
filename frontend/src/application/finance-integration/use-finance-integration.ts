@@ -15,7 +15,14 @@ import { FinanceIntegrationDomainError } from './finance-integration-command.map
 export { FinanceIntegrationDomainError }
 
 function invalidate(qc: ReturnType<typeof useQueryClient>, id?: string) {
-  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.all })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.dashboard() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.batches() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.queue() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.failed() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.results() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.mappings() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.periods() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.brain() })
   if (id) {
     void qc.invalidateQueries({ queryKey: applicationQueryKeys.financeIntegration.detail(id) })
   }

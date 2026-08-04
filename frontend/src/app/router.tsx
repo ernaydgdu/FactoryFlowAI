@@ -409,6 +409,31 @@ const StyleClosingHistoryPage = lazyPage(
   'StyleClosingHistoryPage',
 )
 
+const EnterpriseHardeningLayout = lazyPage(
+  () => import('@/modules/enterprise-hardening/layout/EnterpriseHardeningLayout'),
+  'EnterpriseHardeningLayout',
+)
+const EnterpriseHealthPage = lazyPage(
+  () => import('@/modules/enterprise-hardening/pages/EnterpriseHardeningPages'),
+  'EnterpriseHealthPage',
+)
+const EnterpriseBootstrapPage = lazyPage(
+  () => import('@/modules/enterprise-hardening/pages/EnterpriseHardeningPages'),
+  'EnterpriseBootstrapPage',
+)
+const EnterprisePerformancePage = lazyPage(
+  () => import('@/modules/enterprise-hardening/pages/EnterpriseHardeningPages'),
+  'EnterprisePerformancePage',
+)
+const EnterpriseAuditPage = lazyPage(
+  () => import('@/modules/enterprise-hardening/pages/EnterpriseHardeningPages'),
+  'EnterpriseAuditPage',
+)
+const EnterpriseAiFoundationPage = lazyPage(
+  () => import('@/modules/enterprise-hardening/pages/EnterpriseHardeningPages'),
+  'EnterpriseAiFoundationPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -729,6 +754,16 @@ export function AppRouter() {
           <Route path="kpi" element={<L><StyleClosingKpiPage /></L>} />
           <Route path="history" element={<L><StyleClosingHistoryPage /></L>} />
         </Route>
+
+        <Route path="/enterprise" element={<L><EnterpriseHardeningLayout /></L>}>
+          <Route index element={<Navigate to="/enterprise/health" replace />} />
+          <Route path="health" element={<L><EnterpriseHealthPage /></L>} />
+          <Route path="bootstrap" element={<L><EnterpriseBootstrapPage /></L>} />
+          <Route path="performance" element={<L><EnterprisePerformancePage /></L>} />
+          <Route path="audit" element={<L><EnterpriseAuditPage /></L>} />
+          <Route path="ai" element={<L><EnterpriseAiFoundationPage /></L>} />
+        </Route>
+
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
         <Route path="/reports" element={<L><ReportsPage /></L>} />
         <Route path="/ai" element={<L><KeplerAiPage /></L>} />

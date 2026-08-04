@@ -13,7 +13,10 @@ import { StyleClosingDomainError } from './style-closing-command.mapper'
 export { StyleClosingDomainError }
 
 function invalidate(qc: ReturnType<typeof useQueryClient>, id?: string) {
-  void qc.invalidateQueries({ queryKey: applicationQueryKeys.styleClosing.all })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.styleClosing.dashboard() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.styleClosing.lists() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.styleClosing.history() })
+  void qc.invalidateQueries({ queryKey: applicationQueryKeys.styleClosing.brain() })
   if (id) {
     void qc.invalidateQueries({ queryKey: applicationQueryKeys.styleClosing.detail(id) })
   }

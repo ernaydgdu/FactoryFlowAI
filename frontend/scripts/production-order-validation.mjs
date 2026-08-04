@@ -116,7 +116,11 @@ check(boardMapper.includes('mapOperationList'), 'App: mapOperationList')
 check(boardMapper.includes('mapMaterialReservation'), 'App: mapMaterialReservation')
 check(boardMapper.includes('mapSplitPlan') && boardMapper.includes('mapMergePlan'), 'App: split/merge plan mappers')
 check(cmdMapper.includes('executeReserveMaterials'), 'App: executeReserveMaterials command')
-check(cmdMapper.includes('runCommandInTransaction'), 'App: transaction wrapper used')
+check(
+  cmdMapper.includes('runCommandInTransaction') ||
+    cmdMapper.includes('runProductionOrderWriteCommand'),
+  'App: transaction wrapper used',
+)
 check(hooks.includes('useProductionOrderStatusBoard'), 'Hook: useProductionOrderStatusBoard')
 check(hooks.includes('useProductionOrderOperationList'), 'Hook: useProductionOrderOperationList')
 check(hooks.includes('useMaterialReservationView'), 'Hook: useMaterialReservationView')

@@ -117,6 +117,15 @@ export const applicationQueryKeys = {
     history: () => [...applicationQueryKeys.styleClosing.all, 'history'] as const,
     brain: () => [...applicationQueryKeys.styleClosing.all, 'brain'] as const,
   },
+  enterpriseHardening: {
+    all: ['enterprise-hardening'] as const,
+    dashboard: () => [...applicationQueryKeys.enterpriseHardening.all, 'dashboard'] as const,
+    health: () => [...applicationQueryKeys.enterpriseHardening.all, 'health'] as const,
+    bootstrap: () => [...applicationQueryKeys.enterpriseHardening.all, 'bootstrap'] as const,
+    performance: () => [...applicationQueryKeys.enterpriseHardening.all, 'performance'] as const,
+    audit: () => [...applicationQueryKeys.enterpriseHardening.all, 'audit'] as const,
+    ai: () => [...applicationQueryKeys.enterpriseHardening.all, 'ai'] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,

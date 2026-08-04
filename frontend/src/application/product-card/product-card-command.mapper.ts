@@ -1,4 +1,4 @@
-import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { runProductCardWriteCommand } from './product-card-permission.guard'
 import {
   persistApproveProductCard,
   persistArchiveProductCard,
@@ -35,14 +35,14 @@ function toCommandResult(card: TextileProductCard, version: number): ProductCard
 }
 
 export function executeCreateProductCard(command: CreateProductCardCommand): ProductCardCommandResult {
-  return runCommandInTransaction(() => {
+  return runProductCardWriteCommand(() => {
     const saved = persistCreateProductCard(command, command.actorUserId)
     return toCommandResult(saved, 1)
   })
 }
 
 export function executeUpdateProductCard(command: UpdateProductCardCommand): ProductCardCommandResult {
-  return runCommandInTransaction(() => {
+  return runProductCardWriteCommand(() => {
     const saved = persistUpdateProductCard(
       command.id,
       command,
@@ -54,7 +54,7 @@ export function executeUpdateProductCard(command: UpdateProductCardCommand): Pro
 }
 
 export function executeCreateRevision(command: CreateRevisionCommand): ProductCardCommandResult {
-  return runCommandInTransaction(() => {
+  return runProductCardWriteCommand(() => {
     const saved = persistCreateProductCardRevision(
       command.id,
       command.reason,
@@ -66,7 +66,7 @@ export function executeCreateRevision(command: CreateRevisionCommand): ProductCa
 }
 
 export function executeApproveProductCard(command: ProductCardLifecycleCommand): ProductCardCommandResult {
-  return runCommandInTransaction(() => {
+  return runProductCardWriteCommand(() => {
     const saved = persistApproveProductCard(
       command.id,
       command.expectedVersion,
@@ -80,7 +80,7 @@ export function executeApproveProductCard(command: ProductCardLifecycleCommand):
 export function executeSubmitProductCardForReview(
   command: ProductCardLifecycleCommand,
 ): ProductCardCommandResult {
-  return runCommandInTransaction(() => {
+  return runProductCardWriteCommand(() => {
     const saved = persistSubmitProductCardForReview(
       command.id,
       command.expectedVersion,
@@ -91,7 +91,7 @@ export function executeSubmitProductCardForReview(
 }
 
 export function executeActivateProductCard(command: ProductCardLifecycleCommand): ProductCardCommandResult {
-  return runCommandInTransaction(() => {
+  return runProductCardWriteCommand(() => {
     const saved = persistActivateProductCard(
       command.id,
       command.expectedVersion,
@@ -102,7 +102,7 @@ export function executeActivateProductCard(command: ProductCardLifecycleCommand)
 }
 
 export function executeDeactivateProductCard(command: ProductCardLifecycleCommand): ProductCardCommandResult {
-  return runCommandInTransaction(() => {
+  return runProductCardWriteCommand(() => {
     const saved = persistDeactivateProductCard(
       command.id,
       command.expectedVersion,
@@ -114,7 +114,7 @@ export function executeDeactivateProductCard(command: ProductCardLifecycleComman
 }
 
 export function executeArchiveProductCard(command: ProductCardLifecycleCommand): ProductCardCommandResult {
-  return runCommandInTransaction(() => {
+  return runProductCardWriteCommand(() => {
     const saved = persistArchiveProductCard(
       command.id,
       command.expectedVersion,
