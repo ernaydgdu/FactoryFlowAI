@@ -24,6 +24,7 @@ import type { IExportDocumentSetRepository } from './aggregates/export-document-
 import type { IExportShipmentRepository } from './aggregates/export-shipment.repository'
 import type { IAccountingIntegrationRepository } from './aggregates/accounting-integration.repository'
 import type { ICostClosingRepository } from './aggregates/cost-closing.repository'
+import type { IStyleClosingRepository } from './aggregates/style-closing.repository'
 import type { IRequestForQuotationRepository } from './aggregates/rfq.repository'
 import type { ISupplierQuotationRepository } from './aggregates/supplier-quotation.repository'
 import type { ISalesOrderRepository } from './aggregates/sales-order.repository'
@@ -89,6 +90,7 @@ export interface IUnitOfWork {
   exportShipments: IExportShipmentRepository
   accountingIntegrations: IAccountingIntegrationRepository
   costClosings: ICostClosingRepository
+  styleClosings: IStyleClosingRepository
   mrpRuns: IMrpRunRepository
   fabricCards: IFabricCardRepository
   accessoryCards: IAccessoryCardRepository

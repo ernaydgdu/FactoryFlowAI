@@ -1,126 +1,79 @@
-# Style Closing Report — GAP Analysis
+# STYLE-CLOSING-REPORT.md — Phase 7 Module 3
 
-**Generated:** 2026-08-03  
-**Scope:** Product/Style lifecycle termination vs Tier-1 textile ERP  
-**Baseline:** Kepler frontend + domain + locked PRD Modules 1–7
+**Updated:** 2026-08-04
 
----
+## Status
 
-## Executive Summary
-
-Kepler'de style/product kapanışı **tasarım seviyesinde parçalı**, **operasyonel closing modülü yok**. `ProductCard.status = 'Kapalı'` ve sipariş `productionStatus = 'Sevk Edildi'` demo alanları var; bunlar **Production Completed ile biten bir yaşam döngüsü değil**. Tier-1 ERP'lerde style close, çok aşamalı **pre-close checklist + hard block + archive + read-only** pattern'i kullanır.
-
-| Alan | Kepler | Tier-1 beklentisi |
-|------|--------|-------------------|
-| Style Close aggregate | ❌ Yok | ✅ StyleClose / OrderClose entity |
-| Pre-close kontroller | ❌ Yok | ✅ 10+ blocking rule |
-| Archive + Read Only | ⚠️ Constitution'da status | ❌ Runtime yok |
-| Closing Dashboard | ❌ Yok | ✅ Standart |
+**Implemented (In-Memory Runtime)** — `StyleClosing` final business completion of a textile style (Product Card), gated across sales, MRP, purchasing, inventory, warehouse, production, quality, shipment, commercial docs, finance, and cost closing.
 
 ---
 
-## Mevcut Durum
+## Architecture Decision Record (ADR)
 
-| Bileşen | Konum | Gerçeklik |
-|---------|-------|-----------|
-| Product Card `Kapalı` status | `domain/types/textile-erp.ts` | Demo seed only |
-| Order production stages | `orders.ts` packingStatus, shippingStatus | UI stage badge |
-| `ShipmentCompleted` event | `event-bus.ts` | Event tanımlı; close workflow yok |
-| EXF / TNA gates | PRD Module 2 | Locked design; Kepler UI kısmen mock |
-| Product Card relation → Invoice | `sales-order-relations.ts` | Stub when `Sevk Edildi` |
+**Decision:** Introduce `StyleClosing` aggregate with `IStyleClosingRepository`, scoped by `productCardId`. Completion checklist is evaluated via **read-only queries** only. Approval reuses platform `ApprovalWorkflow` with additive type `StyleClosing`. Write permission is dedicated `style.close`.
 
-**Kritik gap:** Üretim tamamlandı ≠ Style Closed. Kepler'de bu ayrım yok.
+**Why:** Fashion ERP maturity (Infor Fashion / BlueCherry / SAP Fashion / D365 Apparel) requires a single style-level close after all operational and financial processes complete — without rewriting completed modules.
+
+**PostgreSQL-ready:** coded aggregate port + counter; cutover `TD-PG-01`.
 
 ---
 
-## Hedef Lifecycle (Tier-1 Model)
+## Delivered
 
-```
-Production Complete
-  → Final QC Complete
-  → Packing Complete
-  → Shipment Complete
-  → Commercial Invoice Complete
-  → Cost Calculation Complete
-  → Margin Finalized
-  → [Pre-close checks PASS]
-  → Style Close
-  → Archive
-  → Read Only Mode
-```
+| Capability | Implementation |
+|------------|----------------|
+| Aggregate | StyleClosing + checklist + missing + KPI + finals + approval |
+| Lifecycle | Open → Checking → Ready → Approved → Closed (immutable) |
+| Gates | 14 auditable checklist items including Cost Closing Approved |
+| IAM | `style.close` commands; route `products.read` |
+| Approval | Platform workflow `StyleClosing` |
+| Brain / Twin | Style summary, profitability, anomaly; `STYLE_CLOSING` |
+| UI | Dashboard, Checklist, Missing, Detail (timeline), KPI, History |
+| Validate | `validate:style-closing` in build |
 
----
+## Technical Debt
 
-## Style Kapanmadan Önce Zorunlu Kontroller
+| ID | Item |
+|----|------|
+| TD-PG-01 | Postgres cutover |
+| TD-STYLE-01 | Style season/collection hierarchy master |
+| TD-STYLE-02 | Auto-archive product card on close |
 
-### A. Operasyonel kapanışlar (soft gate → hard gate)
+## Performance Review
 
-| # | Kontrol | Veri kaynağı (hedef) | Kepler today | Block seviyesi |
-|---|---------|---------------------|--------------|----------------|
-| 1 | **Production Complete** | Tüm PO'lar `Completed/Cancelled`; açık UE yok | ⚠️ `productionStatus` mock | P0 Hard |
-| 2 | **Final Quality Complete** | Final inspection AQL Pass veya waived | ⚠️ Demo QC list | P0 Hard |
-| 3 | **Packing Complete** | Planlanan adet = paketlenen adet; açık koli yok | ❌ Demo kartlar | P0 Hard |
-| 4 | **Shipment Complete** | EXF + sevkiyat kaydı `Delivered/Closed` | ⚠️ Mock shipping | P0 Hard |
-| 5 | **Commercial Invoice Complete** | CI issued + matched PO qty | ❌ Stub only | P0 Hard |
-| 6 | **Cost Calculation Complete** | Actual cost posted | ⚠️ Formula demo | P1 Hard |
-| 7 | **Margin Calculation** | Final margin locked vs plan | ⚠️ Static margin % | P1 Soft→Hard |
+- Checklist: filtered by productCardId / SO ids
+- Dashboard cursor limit 500
+- Twin: max 3 style closings per order
+- RQ scoped to `styleClosing.*`
 
-### B. Açık kayıt kontrolleri (hard block)
+## Security Review
 
-| # | Kontrol | Kural | Kepler today |
-|---|---------|-------|--------------|
-| 8 | **Open Purchase Order** | PO line `Open/Partial` = 0 veya exception approved | ❌ |
-| 9 | **Open Production Order** | PO status ∉ {Draft, In Production, On Hold} | ⚠️ Lifecycle var; close check yok |
-| 10 | **Open Quality Issue** | Claim/CAPA/NCR açık = 0 | ❌ |
-| 11 | **Open Warehouse Transaction** | Reserved/pending dispatch/inbound draft = 0 | ❌ |
-| 12 | **Open Financial Transaction** | Unposted invoice, payment, DN/CN draft = 0 | ❌ |
+- Command-path `style.close`
+- Approval actor from IAM
+- Audit + outbox on every persist
+- Closed styles immutable
 
-### C. Kapanış aksiyonları
+## AI Readiness
 
-| # | Adım | Davranış | Kepler today |
-|---|------|----------|--------------|
-| 13 | **Style Close** | `ProductCard.status → Kapalı`; SO read-only | ❌ |
-| 14 | **Archive** | Cold storage flag; search index retained | ❌ |
-| 15 | **Read Only Mode** | Mutation API 403; UI edit disabled | ❌ |
+- Style profitability / final KPI snapshot
+- Brain Style Summary
+- Anomaly events (score ≥ 40)
+- Twin `STYLE_CLOSING`
 
----
+## Tier-1 GAP (Infor Fashion / BlueCherry / SAP Fashion / D365 Apparel)
 
-## Önerilen StyleClose Aggregate (tasarım — implementasyon yok)
+| Capability | Status |
+|------------|--------|
+| Style-level close gates | ✅ |
+| Cross-module checklist | ✅ |
+| Immutable closed style | ✅ |
+| Collection/season rollup | ❌ |
+| Customer style portal | ❌ |
 
-```typescript
-// Konsept
-StyleCloseChecklist {
-  productCardId | salesOrderId
-  checks: CloseCheck[]  // name, status: Pass|Fail|Waived, blocker: boolean
-  closedAt?, closedBy?, waiverApprovals[]
-}
-```
+## Freeze
 
-**SSOT:** Style close **Sales Order veya Style** seviyesinde tetiklenir; Product Card teknik SSOT olarak `Kapalı` alır.
+Completed modules **not rewritten**; reuse via queries only.
 
----
+## Gates
 
-## PRD Uyumu
-
-- PRD Module 2: EXF gate SSOT — close checklist EXF'yi **duplicate etmemeli**, consume etmeli
-- PRD Module 6: Post-EXF shipment SSOT — Shipment Complete kontrolü Module 6 entity'den
-- Database spec: `status = Archived/Closed` pattern mevcut — Kepler runtime'a taşınmamış
-
----
-
-## Öncelik
-
-| ID | Gap | Priority |
-|----|-----|----------|
-| SC-P0-01 | StyleClose aggregate + checklist engine | P0 |
-| SC-P0-02 | Hard block: open PO/UE/QC/WH | P0 |
-| SC-P0-03 | Close → Archive → Read Only pipeline | P0 |
-| SC-P1-01 | Cost/Margin close integration | P1 |
-| SC-P1-02 | Waiver approval workflow | P1 |
-| SC-P2-01 | Multi-style order partial close | P2 |
-
----
-
-## Sonuç
-
-Style Closing Kepler'in **en büyük Tier-1 gap'lerinden biri**. Mevcut sistem production complete ile lifecycle'ı sonlandırıyor gibi görünse de **formal close, checklist, archive ve read-only yok**.
+`validate:style-closing` in build pipeline.

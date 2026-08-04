@@ -22,6 +22,7 @@ import { queryAllExportDocumentSets } from '../../../commercial-documents/commer
 import { queryAllExportShipments } from '../../../export-logistics/export-logistics-query.service'
 import { queryAllAccountingIntegrations } from '../../../finance-integration/finance-integration-query.service'
 import { queryAllCostClosings } from '../../../cost-closing/cost-closing-query.service'
+import { queryAllStyleClosings } from '../../../style-closing/style-closing-query.service'
 import type { BrainContext, BrainKnowledgeSnapshot } from '../../types'
 import type {
   FactoryGraph,
@@ -399,6 +400,29 @@ export function buildFactoryGraph(
       })
       addEdge(orderId, ccId, 'TRIGGERS', 'WORKFLOW')
     }
+
+    const styleClosings = queryAllStyleClosings()
+      .filter((s) => s.productCardId === order.productCardId)
+      .slice(0, 3)
+    for (const sc of styleClosings) {
+      const scId = addNode({
+        id: `style-closing-${sc.id}`,
+        type: 'STYLE_CLOSING',
+        label: `${sc.batchNo} · ${sc.status}`,
+        entityId: sc.id,
+        sourceId: 'WORKFLOW',
+        attributes: {
+          status: sc.status,
+          productCode: sc.productCode,
+          missingCount: sc.missingRequirements.length,
+          anomalyScore: sc.anomalyScore,
+          marginPercent: sc.finalMargin?.marginPercent ?? null,
+          profitabilityHint: sc.profitabilityHint,
+        },
+        dataQuality: sc.status === 'Closed' ? 'COMPLETE' : 'PARTIAL',
+      })
+      addEdge(orderId, scId, 'TRIGGERS', 'WORKFLOW')
+    }
   }
 
   for (const card of STOCK_CARDS.slice(0, 5)) {
@@ -493,6 +517,7 @@ function mapEnterpriseTypeToFactory(entityType: string): FactoryGraphNode['type'
     INVOICE: 'ACCOUNTING_INTEGRATION',
     COST_SHEET: 'COST_CLOSING',
     COST_CLOSING: 'COST_CLOSING',
+    STYLE_CLOSING: 'STYLE_CLOSING',
     CUSTOMER: 'CUSTOMER',
     SUPPLIER: 'SUPPLIER',
     BOM: 'BOM',

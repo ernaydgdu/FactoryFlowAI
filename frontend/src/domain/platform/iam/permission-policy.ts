@@ -24,6 +24,7 @@ export type Permission =
   | 'shipping.write'
   | 'finance.read'
   | 'finance.write'
+  | 'style.close'
   | 'cost.read'
   | 'reports.read'
   | 'ai.read'
@@ -54,6 +55,7 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'shipping.write',
     'finance.read',
     'finance.write',
+    'style.close',
     'cost.read',
     'reports.read',
     'ai.read',
@@ -82,6 +84,7 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'shipping.write',
     'finance.read',
     'finance.write',
+    'style.close',
     'cost.read',
     'reports.read',
     'ai.read',
@@ -144,6 +147,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: '/shipping', permission: 'shipping.read' },
   { prefix: '/finance-integration', permission: 'finance.read' },
   { prefix: '/cost-closing', permission: 'finance.read' },
+  { prefix: '/style-closing', permission: 'products.read' },
   { prefix: '/cost', permission: 'cost.read' },
   { prefix: '/reports', permission: 'reports.read' },
   { prefix: '/ai', permission: 'ai.read' },

@@ -95,6 +95,7 @@ function normalizeRouteParams(route) {
     .replace(':exportShipmentId', 'exs-1')
     .replace(':batchId', 'ai-1')
     .replace(':costClosingId', 'cc-1')
+    .replace(':styleClosingId', 'sc-1')
 }
 
 function extractRoutes() {

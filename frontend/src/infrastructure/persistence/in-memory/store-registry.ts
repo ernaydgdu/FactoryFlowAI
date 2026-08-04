@@ -26,6 +26,7 @@ import type {
   PersistedExportShipment,
   PersistedAccountingIntegration,
   PersistedCostClosing,
+  PersistedStyleClosing,
   PersistedQualityGateEvaluation,
   PersistedSalesOrder,
   PersistedSplitExecution,
@@ -111,6 +112,9 @@ export class InMemoryStoreRegistry {
 
   costClosings: PersistedCostClosing[] = []
   costClosingCounter = 0
+
+  styleClosings: PersistedStyleClosing[] = []
+  styleClosingCounter = 0
 
   stockCards: PersistedStockCard[] = []
 

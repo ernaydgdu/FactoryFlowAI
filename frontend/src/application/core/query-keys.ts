@@ -109,6 +109,14 @@ export const applicationQueryKeys = {
     history: () => [...applicationQueryKeys.costClosing.all, 'history'] as const,
     brain: () => [...applicationQueryKeys.costClosing.all, 'brain'] as const,
   },
+  styleClosing: {
+    all: ['style-closing'] as const,
+    dashboard: () => [...applicationQueryKeys.styleClosing.all, 'dashboard'] as const,
+    lists: () => [...applicationQueryKeys.styleClosing.all, 'lists'] as const,
+    detail: (id: string) => [...applicationQueryKeys.styleClosing.all, 'detail', id] as const,
+    history: () => [...applicationQueryKeys.styleClosing.all, 'history'] as const,
+    brain: () => [...applicationQueryKeys.styleClosing.all, 'brain'] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,

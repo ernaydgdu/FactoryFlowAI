@@ -44,6 +44,7 @@ import type { ExportDocumentSet } from '../../commercial-documents/commercial-do
 import type { ExportShipment } from '../../export-logistics/export-logistics.types'
 import type { AccountingIntegration } from '../../finance-integration/finance-integration.types'
 import type { CostClosing } from '../../cost-closing/cost-closing.types'
+import type { StyleClosing } from '../../style-closing/style-closing.types'
 import type { PurchaseOrder } from '../../types/workflows'
 import type { StockBalance, StockMovement } from '../../types/stock-ledger'
 import type { AccessoryCard, FabricCard, TextileProductCard } from '../../types/textile-erp'
@@ -111,6 +112,8 @@ export type PersistedExportShipment = WithPersistenceMetadata<ExportShipment>
 export type PersistedAccountingIntegration = WithPersistenceMetadata<AccountingIntegration>
 
 export type PersistedCostClosing = WithPersistenceMetadata<CostClosing>
+
+export type PersistedStyleClosing = WithPersistenceMetadata<StyleClosing>
 
 export type PersistedMrpRun = WithPersistenceMetadata<MrpRun>
 

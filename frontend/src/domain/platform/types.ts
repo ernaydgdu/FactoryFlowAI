@@ -65,6 +65,7 @@ export type ApprovalWorkflowType =
   | 'CostSheet'
   | 'ProductionRoute'
   | 'CostClosing'
+  | 'StyleClosing'
 
 export type ApprovalStep = {
   id: string

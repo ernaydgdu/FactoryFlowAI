@@ -380,6 +380,35 @@ const CostClosingHistoryPage = lazyPage(
   'CostClosingHistoryPage',
 )
 
+const StyleClosingLayout = lazyPage(
+  () => import('@/modules/style-closing/layout/StyleClosingLayout'),
+  'StyleClosingLayout',
+)
+const StyleClosingDashboardPage = lazyPage(
+  () => import('@/modules/style-closing/pages/StyleClosingPages'),
+  'StyleClosingDashboardPage',
+)
+const StyleClosingDetailPage = lazyPage(
+  () => import('@/modules/style-closing/pages/StyleClosingPages'),
+  'StyleClosingDetailPage',
+)
+const StyleClosingChecklistPage = lazyPage(
+  () => import('@/modules/style-closing/pages/StyleClosingPages'),
+  'StyleClosingChecklistPage',
+)
+const StyleClosingMissingPage = lazyPage(
+  () => import('@/modules/style-closing/pages/StyleClosingPages'),
+  'StyleClosingMissingPage',
+)
+const StyleClosingKpiPage = lazyPage(
+  () => import('@/modules/style-closing/pages/StyleClosingPages'),
+  'StyleClosingKpiPage',
+)
+const StyleClosingHistoryPage = lazyPage(
+  () => import('@/modules/style-closing/pages/StyleClosingPages'),
+  'StyleClosingHistoryPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -689,6 +718,16 @@ export function AppRouter() {
           <Route path="variance" element={<L><CostClosingVariancePage /></L>} />
           <Route path="reconciliation" element={<L><CostClosingReconciliationPage /></L>} />
           <Route path="history" element={<L><CostClosingHistoryPage /></L>} />
+        </Route>
+
+        <Route path="/style-closing" element={<L><StyleClosingLayout /></L>}>
+          <Route index element={<Navigate to="/style-closing/dashboard" replace />} />
+          <Route path="dashboard" element={<L><StyleClosingDashboardPage /></L>} />
+          <Route path="batches/:styleClosingId" element={<L><StyleClosingDetailPage /></L>} />
+          <Route path="checklist" element={<L><StyleClosingChecklistPage /></L>} />
+          <Route path="missing" element={<L><StyleClosingMissingPage /></L>} />
+          <Route path="kpi" element={<L><StyleClosingKpiPage /></L>} />
+          <Route path="history" element={<L><StyleClosingHistoryPage /></L>} />
         </Route>
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
         <Route path="/reports" element={<L><ReportsPage /></L>} />
