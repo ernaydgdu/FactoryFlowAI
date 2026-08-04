@@ -49,6 +49,16 @@ export class PackingListInMemoryRepository implements IPackingListRepository {
     )
   }
 
+  nextPackingListCounter(): number {
+    this.stores.packingListCounter += 1
+    return this.stores.packingListCounter
+  }
+
+  nextSsccSerial(): number {
+    this.stores.ssccSerialCounter += 1
+    return this.stores.ssccSerialCounter
+  }
+
   save(
     tenantId: string,
     aggregate: PersistedPackingList,

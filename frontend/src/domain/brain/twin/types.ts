@@ -22,6 +22,7 @@ export type FactoryGraphNodeType =
   | 'BOM'
   | 'PURCHASE_ORDER'
   | 'PRODUCTION_ORDER'
+  | 'PACKING_LIST'
   | 'SHIPMENT'
   | 'QUALITY_INSPECTION'
   | 'TIMELINE_EVENT'

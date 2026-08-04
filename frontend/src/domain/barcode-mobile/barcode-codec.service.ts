@@ -28,8 +28,11 @@ export function encodeGs1128Skeleton(input: {
   gtin?: string
   lot?: string
   qty?: number
+  /** AI (00) SSCC-18 */
+  sscc?: string
 }): string {
   const parts: string[] = []
+  if (input.sscc) parts.push(`(00)${input.sscc}`)
   if (input.gtin) parts.push(`(01)${input.gtin}`)
   if (input.lot) parts.push(`(10)${input.lot}`)
   if (input.qty != null) parts.push(`(37)${input.qty}`)

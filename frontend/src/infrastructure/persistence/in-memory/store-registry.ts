@@ -78,6 +78,8 @@ export class InMemoryStoreRegistry {
   goodsReceiptCounter = 0
 
   packingLists: PersistedPackingList[] = []
+  packingListCounter = 0
+  ssccSerialCounter = 0
 
   stockCards: PersistedStockCard[] = []
 

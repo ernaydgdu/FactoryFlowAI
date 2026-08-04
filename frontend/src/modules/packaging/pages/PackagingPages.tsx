@@ -1,26 +1,35 @@
 /**
- * Phase 5 Module 4 — Packaging & Packing List UI.
+ * Phase 5 Module 4 — Packaging & Packing List UI (hardened).
  */
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { useAuth } from '@/application/platform/iam/auth-context'
 import {
   newPackagingIdempotencyKey,
   useAddPackageMutation,
+  useApprovePackingListMutation,
+  useAssignContainerMutation,
   useAutoGenerateFromFgMutation,
   useBindShipmentMutation,
   useConfirmPackingListMutation,
   useCreatePackingListMutation,
   usePackagingDashboard,
   usePackingListDetail,
+  usePackingListDocument,
   usePackingLists,
+  useRevisePackingListMutation,
+  useSubmitPackingApprovalMutation,
   useValidatePackingListMutation,
 } from '@/application/packaging/use-packaging'
 import { DataTable, ErpModuleShell, StatusBadge } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-const ACTOR = 'pilot-user'
+function useActorUserId(): string {
+  const { user } = useAuth()
+  return user?.id ?? 'system'
+}
 
 export function PackagingDashboardPage() {
   const { data, isLoading } = usePackagingDashboard()
@@ -52,6 +61,7 @@ export function PackagingDashboardPage() {
                   ),
                 },
                 { key: 'so', header: 'Sipariş', render: (r) => r.salesOrderNo },
+                { key: 'rev', header: 'Rev', render: (r) => r.revision },
                 { key: 'st', header: 'Durum', render: (r) => <StatusBadge label={r.status} /> },
                 { key: 'pkg', header: 'Paket', render: (r) => r.totals.packageCount },
                 { key: 'qty', header: 'Adet', render: (r) => r.totals.totalQty },
@@ -96,9 +106,11 @@ export function PackingListPage() {
               },
               { key: 'so', header: 'SO', render: (r) => r.salesOrderNo },
               { key: 'ue', header: 'UE', render: (r) => r.productionOrderNo ?? '—' },
+              { key: 'rev', header: 'Rev', render: (r) => r.revision },
               { key: 'st', header: 'Durum', render: (r) => <StatusBadge label={r.status} /> },
+              { key: 'appr', header: 'Approval', render: (r) => r.approvalStatus },
               { key: 'pkg', header: 'Paket', render: (r) => r.totals.packageCount },
-              { key: 'w', header: 'Brüt kg', render: (r) => r.totals.grossWeightKg },
+              { key: 'ctr', header: 'Container', render: (r) => r.containerCode ?? '—' },
               { key: 'ship', header: 'Sevkiyat', render: (r) => r.shipmentReferenceNo ?? '—' },
             ]}
           />
@@ -109,13 +121,21 @@ export function PackingListPage() {
 }
 
 export function PackingListDetailPage() {
+  const actorUserId = useActorUserId()
   const { packingListId = '' } = useParams()
   const { data, isLoading } = usePackingListDetail(packingListId)
+  const { data: doc } = usePackingListDocument(packingListId)
   const validate = useValidatePackingListMutation()
+  const submit = useSubmitPackingApprovalMutation()
+  const approve = useApprovePackingListMutation()
   const confirm = useConfirmPackingListMutation()
+  const revise = useRevisePackingListMutation()
+  const assign = useAssignContainerMutation()
   const bind = useBindShipmentMutation()
   const [wh, setWh] = useState('MML-01')
+  const [container, setContainer] = useState('')
   const [err, setErr] = useState('')
+  const [msg, setMsg] = useState('')
 
   if (isLoading) return <div className="p-8 text-muted-foreground">Yükleniyor…</div>
   if (!data) return <div className="p-8">Packing list bulunamadı.</div>
@@ -125,11 +145,12 @@ export function PackingListDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {data.packingListNo} · {data.salesOrderNo}
+            {data.packingListNo} r{data.revision} · {data.salesOrderNo}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            {data.status} · {data.totals.packageCount} paket · {data.totals.totalQty} adet ·{' '}
-            {data.totals.volumeCbm} CBM
+            {data.status} / {data.approvalStatus} · {data.totals.packageCount} paket ·{' '}
+            {data.totals.totalQty} adet · {data.totals.volumeCbm} CBM
+            {data.containerCode ? ` · CTR ${data.containerCode}` : ''}
           </p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -137,7 +158,7 @@ export function PackingListDetailPage() {
             disabled={validate.isPending}
             onClick={() =>
               void validate
-                .mutateAsync({ packingListId: data.id, actorUserId: ACTOR })
+                .mutateAsync({ packingListId: data.id, actorUserId })
                 .catch((e: Error) => setErr(e.message))
             }
           >
@@ -145,14 +166,85 @@ export function PackingListDetailPage() {
           </Button>
           <Button
             variant="secondary"
+            disabled={submit.isPending}
+            onClick={() =>
+              void submit
+                .mutateAsync({
+                  packingListId: data.id,
+                  idempotencyKey: newPackagingIdempotencyKey('sub'),
+                  actorUserId,
+                })
+                .catch((e: Error) => setErr(e.message))
+            }
+          >
+            Submit Approval
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={approve.isPending}
+            onClick={() =>
+              void approve
+                .mutateAsync({
+                  packingListId: data.id,
+                  idempotencyKey: newPackagingIdempotencyKey('appr'),
+                  actorUserId,
+                })
+                .catch((e: Error) => setErr(e.message))
+            }
+          >
+            Approve
+          </Button>
+          <Button
+            variant="secondary"
             disabled={confirm.isPending}
             onClick={() =>
               void confirm
-                .mutateAsync({ packingListId: data.id, actorUserId: ACTOR })
+                .mutateAsync({ packingListId: data.id, actorUserId })
                 .catch((e: Error) => setErr(e.message))
             }
           >
             Confirm
+          </Button>
+          <Button
+            variant="outline"
+            disabled={revise.isPending}
+            onClick={() =>
+              void revise
+                .mutateAsync({
+                  packingListId: data.id,
+                  idempotencyKey: newPackagingIdempotencyKey('rev'),
+                  actorUserId,
+                })
+                .then((pl) => {
+                  setMsg(`Revised → ${pl.packingListNo} r${pl.revision}`)
+                  setErr('')
+                })
+                .catch((e: Error) => setErr(e.message))
+            }
+          >
+            Revise
+          </Button>
+          <input
+            className="h-9 rounded-md border px-2 text-sm"
+            value={container}
+            onChange={(e) => setContainer(e.target.value)}
+            placeholder="Container"
+          />
+          <Button
+            variant="outline"
+            disabled={assign.isPending || !container}
+            onClick={() =>
+              void assign
+                .mutateAsync({
+                  packingListId: data.id,
+                  containerCode: container,
+                  idempotencyKey: newPackagingIdempotencyKey('ctr'),
+                  actorUserId,
+                })
+                .catch((e: Error) => setErr(e.message))
+            }
+          >
+            Assign Container
           </Button>
           <input
             className="h-9 rounded-md border px-2 text-sm"
@@ -169,7 +261,7 @@ export function PackingListDetailPage() {
                   packingListId: data.id,
                   warehouseCode: wh,
                   idempotencyKey: newPackagingIdempotencyKey('ship'),
-                  actorUserId: ACTOR,
+                  actorUserId,
                 })
                 .catch((e: Error) => setErr(e.message))
             }
@@ -178,6 +270,7 @@ export function PackingListDetailPage() {
           </Button>
         </CardContent>
       </Card>
+      {msg ? <p className="text-sm text-emerald-700">{msg}</p> : null}
       {err ? <p className="text-sm text-red-600">{err}</p> : null}
       {data.validationErrors.length > 0 ? (
         <Card>
@@ -195,7 +288,7 @@ export function PackingListDetailPage() {
       ) : null}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Packages (Carton / Pallet)</CardTitle>
+          <CardTitle className="text-base">Packages (HU hierarchy)</CardTitle>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -205,9 +298,15 @@ export function PackingListDetailPage() {
               { key: 'no', header: 'No', render: (r) => r.packageNo },
               { key: 'k', header: 'Kind', render: (r) => r.kind },
               { key: 'sscc', header: 'SSCC', render: (r) => <span className="font-mono text-xs">{r.sscc}</span> },
-              { key: 'bc', header: 'Barcode', render: (r) => <span className="font-mono text-xs">{r.barcode}</span> },
+              { key: 'gs1', header: 'GS1-128', render: (r) => <span className="font-mono text-xs">{r.gs1128}</span> },
+              {
+                key: 'parent',
+                header: 'Parent',
+                render: (r) =>
+                  data.packages.find((p) => p.id === r.parentPackageId)?.packageNo ?? '—',
+              },
+              { key: 'ctr', header: 'CTR', render: (r) => r.containerCode ?? '—' },
               { key: 'qty', header: 'Qty', render: (r) => r.lines.reduce((s, l) => s + l.quantity, 0) },
-              { key: 'nw', header: 'Net kg', render: (r) => r.netWeightKg },
               { key: 'gw', header: 'Gross kg', render: (r) => r.grossWeightKg },
               { key: 'cbm', header: 'CBM', render: (r) => r.volumeCbm },
               { key: 'st', header: 'Status', render: (r) => r.status },
@@ -215,11 +314,24 @@ export function PackingListDetailPage() {
           />
         </CardContent>
       </Card>
+      {doc ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Packing List Document (PDF payload)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">
+              {JSON.stringify(doc, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   )
 }
 
 export function PackingStationPage() {
+  const actorUserId = useActorUserId()
   const create = useCreatePackingListMutation()
   const addPkg = useAddPackageMutation()
   const autoGen = useAutoGenerateFromFgMutation()
@@ -232,6 +344,7 @@ export function PackingStationPage() {
   const [qty, setQty] = useState('10')
   const [net, setNet] = useState('2.5')
   const [kind, setKind] = useState<'Carton' | 'Pallet'>('Carton')
+  const [parentPackageId, setParentPackageId] = useState('')
   const [unitsPerCarton, setUnitsPerCarton] = useState('20')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
@@ -255,7 +368,7 @@ export function PackingStationPage() {
                   productionOrderNo: productionOrderNo || undefined,
                   warehouseCode,
                   idempotencyKey: newPackagingIdempotencyKey('pl'),
-                  actorUserId: ACTOR,
+                  actorUserId,
                 })
                 .then((pl) => {
                   setActivePlId(pl.id)
@@ -287,7 +400,7 @@ export function PackingStationPage() {
                   unitsPerCarton: Number(unitsPerCarton),
                   netWeightPerUnitKg: 0.25,
                   idempotencyKey: newPackagingIdempotencyKey('auto'),
-                  actorUserId: ACTOR,
+                  actorUserId,
                 })
                 .then((pl) => {
                   setActivePlId(pl.id)
@@ -316,6 +429,12 @@ export function PackingStationPage() {
               Pallet
             </Button>
           </div>
+          <input
+            className="h-9 w-full rounded-md border px-2 text-sm"
+            value={parentPackageId}
+            onChange={(e) => setParentPackageId(e.target.value)}
+            placeholder="Parent Pallet Id (opt HU nest)"
+          />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <input className="h-9 rounded-md border px-2 text-sm" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Color" />
             <input className="h-9 rounded-md border px-2 text-sm" value={size} onChange={(e) => setSize(e.target.value)} placeholder="Size" />
@@ -331,8 +450,9 @@ export function PackingStationPage() {
                   kind,
                   lines: [{ color, size, quantity: Number(qty) }],
                   netWeightKg: Number(net),
+                  parentPackageId: parentPackageId || undefined,
                   idempotencyKey: newPackagingIdempotencyKey('pkg'),
-                  actorUserId: ACTOR,
+                  actorUserId,
                 })
                 .then((pl) => {
                   setMsg(`Package added · ${pl.totals.packageCount} total`)

@@ -1,8 +1,16 @@
-import type { PackingList, PackageEntity, PackingListTotals } from '@/domain/packaging/packaging.types'
+import type {
+  PackingList,
+  PackageEntity,
+  PackingListTotals,
+  PackingListDocument,
+  PackagingBrainReadModel,
+} from '@/domain/packaging/packaging.types'
 
 export type PackingListDto = PackingList
 export type PackageDto = PackageEntity
 export type PackingListTotalsDto = PackingListTotals
+export type PackingListDocumentDto = PackingListDocument
+export type PackagingBrainReadModelDto = PackagingBrainReadModel
 
 export type PackagingDashboardDto = {
   kpis: Array<{ label: string; value: string }>
@@ -24,6 +32,7 @@ export type AddPackageCommand = {
   netWeightKg: number
   tareWeightKg?: number
   dimensions?: { lengthCm?: number; widthCm?: number; heightCm?: number }
+  parentPackageId?: string
   idempotencyKey: string
   actorUserId: string
 }
@@ -44,10 +53,32 @@ export type PackingListIdCommand = {
   actorUserId: string
 }
 
+export type PackingListIdempotentCommand = {
+  packingListId: string
+  idempotencyKey: string
+  actorUserId: string
+}
+
 export type BindShipmentCommand = {
   packingListId: string
   warehouseCode: string
   stockCardId?: string
+  idempotencyKey: string
+  actorUserId: string
+}
+
+export type AssignContainerCommand = {
+  packingListId: string
+  containerCode: string
+  packageIds?: string[]
+  idempotencyKey: string
+  actorUserId: string
+}
+
+export type NestPackageCommand = {
+  packingListId: string
+  childPackageId: string
+  parentPackageId: string
   idempotencyKey: string
   actorUserId: string
 }

@@ -17,6 +17,7 @@ import {
 } from '../../../master-data'
 import { getAllTimelineEntries } from '../../../platform/services/timeline-service'
 import { buildEnterpriseRelationGraph } from '../../../enterprise/relation-graph-service'
+import { queryPackingListsBySalesOrderId } from '../../../packaging/packing-list-query.service'
 import type { BrainContext, BrainKnowledgeSnapshot } from '../../types'
 import type {
   FactoryGraph,
@@ -264,6 +265,26 @@ export function buildFactoryGraph(
       addEdge(orderId, custId, 'ORDERED_BY', 'MASTER_DATA')
     }
 
+    const packingLists = queryPackingListsBySalesOrderId(order.id)
+    for (const pl of packingLists.slice(0, 5)) {
+      const packingId = addNode({
+        id: `packing-${pl.id}`,
+        type: 'PACKING_LIST',
+        label: `${pl.packingListNo} r${pl.revision}`,
+        entityId: pl.id,
+        sourceId: 'WORKFLOW',
+        attributes: {
+          status: pl.status,
+          approvalStatus: pl.approvalStatus,
+          packageCount: pl.totals.packageCount,
+          containerCode: pl.containerCode,
+          shipmentReferenceNo: pl.shipmentReferenceNo,
+        },
+        dataQuality: pl.packages.length > 0 ? 'COMPLETE' : 'PARTIAL',
+      })
+      addEdge(orderId, packingId, 'CONTAINS', 'WORKFLOW')
+    }
+
     const shipmentId = addNode({
       id: `shipment-${order.id}`,
       type: 'SHIPMENT',
@@ -274,6 +295,11 @@ export function buildFactoryGraph(
       dataQuality: order.general.exf ? 'COMPLETE' : 'MISSING',
     })
     addEdge(orderId, shipmentId, 'SHIPS_TO', 'WORKFLOW')
+    for (const pl of packingLists.slice(0, 5)) {
+      if (pl.shipmentReferenceNo || pl.status === 'Shipped') {
+        addEdge(`packing-${pl.id}`, shipmentId, 'SHIPS_TO', 'WORKFLOW')
+      }
+    }
   }
 
   for (const card of STOCK_CARDS.slice(0, 5)) {
@@ -361,6 +387,7 @@ function mapEnterpriseTypeToFactory(entityType: string): FactoryGraphNode['type'
     WAREHOUSE: 'WAREHOUSE',
     PRODUCTION_ORDER: 'PRODUCTION_ORDER',
     PURCHASE_ORDER: 'PURCHASE_ORDER',
+    PACKING_LIST: 'PACKING_LIST',
     CUSTOMER: 'CUSTOMER',
     SUPPLIER: 'SUPPLIER',
     BOM: 'BOM',

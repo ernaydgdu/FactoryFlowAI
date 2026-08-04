@@ -1,111 +1,80 @@
-# Packing List Management Report — GAP Analysis
+# Packing List Management Report — Implemented Architecture
 
-**Generated:** 2026-08-03
+**Updated:** 2026-08-04 — Phase 5 Module 4 + Hardening Sprint
 
 ---
 
 ## Executive Summary
 
-Kepler'de **Paketleme sayfası** (`/packaging`) demo koli kartları gösterir. **Packing List** ticari/lojistik dokümanı olarak modellenmemiş; create, onay, revizyon, barkod ve ağırlık/CBM altyapısı yok.
+Packaging is a **production packing-list domain**, not a demo UI. `PackingList` is the aggregate root; `Package` (Carton / Pallet) is an **embedded handling unit** (no separate carton aggregate port — Architecture Freeze).
 
-| Metrik | Değer |
-|--------|-------|
-| UI sayfası | ✅ `PackagingPage` |
-| Domain entity | ⚠️ `Carton` (minimal) |
-| Application layer | ❌ Yok |
-| Persistence port | ❌ Yok |
-| Command path | ❌ Yok |
-
----
-
-## Mevcut Durum
-
-**Entity:** `domain/types/workflows.ts`
-
-```typescript
-Carton { cartonNo, orderId, lines[{color,size,qty}], totalQty, weight, status }
-// status: 'Açık' | 'Kapandı' | 'Sevk Edildi'
-```
-
-**UI:** `pages/packaging/PackagingPages.tsx` — `CARTONS` static seed, read-only expand card.
-
-**Order detail:** `packingStatus` stage badge (`orders.ts`) — packing list entity değil.
+| Layer | Status |
+|-------|--------|
+| Domain aggregate + CRUD | ✅ |
+| Application commands / RQ hooks | ✅ |
+| Persistence port + in-memory + Postgres adapter | ✅ |
+| IAM write asserts (`warehouse.write`) | ✅ |
+| Master Data GS1 company prefix | ✅ |
+| UI `/packaging/*` | ✅ |
 
 ---
 
-## Süreç GAP Matrisi
-
-| Süreç | Tier-1 | Kepler | Gap |
-|-------|--------|--------|-----|
-| Packing List Create | PL header + lines | ❌ | P0 |
-| Carton Management | CRUD + status | ⚠️ Demo list | P0 |
-| Carton Sequence | Auto SSCC/seq | ❌ | P0 |
-| Carton Barcode | GS1-128 / Code128 | ❌ | P0 |
-| Carton Label | Print template | ❌ | P1 |
-| Net Weight | Per carton | ❌ (single `weight`) | P0 |
-| Gross Weight | Carton + dunnage | ❌ | P0 |
-| CBM | Dim → volume | ❌ | P0 |
-| Carton Contents | Color/size matrix | ⚠️ Basic lines | P1 |
-| Color/Size Distribution | Rollup + validation vs SO matrix | ⚠️ Display only | P0 |
-| Mixed Carton | Multi-style/color rules | ❌ | P1 |
-| Partial Packing | Pack < order qty | ❌ | P0 |
-| Packing Revision | Version + activate | ❌ | P1 |
-| Packing Approval | QA/sign-off | ❌ | P1 |
-
----
-
-## Packing List ↔ Shipment İlişkisi
-
-### Tier-1 model
+## Aggregate Model
 
 ```
-Sales Order → Packing List(s) → Carton[] → Shipment Load Plan → Container
-                     ↓
-              Commercial Invoice (qty/weight SSOT)
+Sales Order → PackingList (rev N) → Package[] (Carton|Pallet HU)
+                                      ├─ parentPackageId (Carton → Pallet)
+                                      ├─ SSCC + GS1-128 AI (00)
+                                      └─ containerCode
+                 ↓ approval → confirm
+                 ↓ persistBindShipment → persistShipment (single inventory write path)
 ```
 
-### Kepler today
-
-```
-Sales Order --(mock stage)--> CARTONS[] -----> CONTAINER_PLANS[] (aggregate counts only)
-         no PL document ID          no link              no carton-level load
-```
-
-| İlişki | Beklenen | Kepler |
-|--------|----------|--------|
-| PL → Carton | 1:N, FK | ❌ Flat seed |
-| Carton → Container | N:M load assignment | ❌ `totalCartons` count only |
-| PL → Commercial Invoice | Qty/weight SSOT | ❌ |
-| Partial pack → partial ship | Allowed | ❌ |
-| PL revision → re-load | Version lock | ❌ |
+| Aggregate / Entity | Port | Notes |
+|--------------------|------|-------|
+| `PackingList` | `IPackingListRepository` | Header, revision, approval, totals, shipment bind |
+| `Package` | Embedded | Carton/Pallet; SSCC seq via `nextSsccSerial()` |
+| Sequences | `nextPackingListCounter` / `nextSsccSerial` | O(1) — no full-store scan |
 
 ---
 
-## Önerilen Domain Sınırları (constitution uyumlu)
+## Process Matrix (vs Tier-1)
 
-| Aggregate | Port | Not |
-|-----------|------|-----|
-| `PackingList` | `IPackingListRepository` (yeni) | Header + status |
-| `Carton` | Child veya ayrı AR | Scan-heavy → partition candidate |
-| `PackingListRevision` | Platform versioning | Mevcut `versioning-service` reuse |
-
----
-
-## Öncelik
-
-| ID | Gap | P |
-|----|-----|---|
-| PL-P0-01 | PackingList aggregate + create/edit | P0 |
-| PL-P0-02 | Carton sequence + barcode | P0 |
-| PL-P0-03 | Net/gross weight + CBM | P0 |
-| PL-P0-04 | SO matrix validation (partial pack) | P0 |
-| PL-P0-05 | Shipment load assignment | P0 |
-| PL-P1-01 | Mixed carton rules | P1 |
-| PL-P1-02 | PL approval + revision | P1 |
-| PL-P2-01 | Label print integration | P2 |
+| Süreç | Tier-1 | Kepler now |
+|-------|--------|------------|
+| Packing List Create | PL header + lines | ✅ |
+| Carton / Pallet HU | CRUD + nest | ✅ Carton→Pallet nest + container assign |
+| Carton Sequence / SSCC | Auto SSCC | ✅ MD `GS1_COMPANY_PREFIX` |
+| GS1-128 label | Print payload | ✅ AI skeleton `(00)` + package label builder |
+| Net / Gross / CBM | Per HU | ✅ |
+| SO matrix validation | Partial pack OK | ✅ qty ≤ matrix |
+| Approval workflow | QA / sign-off | ✅ Submit → Approve → Confirm |
+| Revision lifecycle | Version + activate | ✅ revise supersedes prior |
+| Shipment bind | Load / ship | ✅ via `persistShipment` + orchestration outbox |
+| PDF Packing List | Document | ✅ printable document payload (no binary PDF lib) |
+| ASN / EDI 856 | Buyer ASN | ❌ still open |
+| Commercial Invoice SSOT | Qty/weight | ❌ still open |
+| ZPL / physical printer | Hardware | ❌ payload only |
 
 ---
 
-## Sonuç
+## Security & Quality
 
-Paketleme **görsel demo** seviyesinde. Tier-1 packing list management için **14/14 süreçten 12'si eksik veya stub**.
+- Route: `warehouse.read`; **every write command**: `assertPackagingWritePermission` → `warehouse.write`
+- Actor: IAM `useAuth().user.id` (no hardcoded `pilot-user`)
+- Mutations: transactional, idempotent keys, audit + enterprise timeline + SO outbox
+- React Query: scoped invalidation (dashboard/lists/detail/brain/pdf; inventory only on bind)
+
+---
+
+## AI / Brain
+
+- Read model: `queryPackagingBrainReadModel`
+- Twin: `PACKING_LIST` nodes on factory graph (`ORDER → PACKING_LIST → SHIPMENT`)
+- Brain must not mutate packing (READ/ANALYZE only) — writes stay on packaging commands
+
+---
+
+## Remaining Tier-1 gaps (explicit)
+
+ASN/EDI, commercial invoice qty SSOT, binary PDF/ZPL printer drivers, catch-weight scales, multi-style carton rules, Postgres cutover (`PackingListPostgresRepository` wired, throws until PG backend).

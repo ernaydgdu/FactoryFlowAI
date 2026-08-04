@@ -29,7 +29,7 @@ export type MasterDataAttributeDefinition = {
   id: string
   code: string
   name: string
-  entityType: MasterDataEntityType | 'fabricCategory'
+  entityType: MasterDataEntityType | 'fabricCategory' | 'company'
   dataType: AttributeDataType
   unit?: string
   sortOrder: number
@@ -58,7 +58,7 @@ export type ValidationRuleKind =
 
 export type MasterDataValidationRule = {
   id: string
-  entityType: MasterDataEntityType | 'fabricCategory'
+  entityType: MasterDataEntityType | 'fabricCategory' | 'company'
   fieldCode: string
   rule: ValidationRuleKind
   value?: string | number | boolean

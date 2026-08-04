@@ -59,6 +59,15 @@ export const MASTER_DATA_ATTRIBUTE_DEFINITIONS: MasterDataAttributeDefinition[] 
   { id: 'attr-cert', code: 'CERTIFICATE', name: 'Certificate', entityType: 'fabricType', dataType: 'string', sortOrder: 70, isRequired: false },
   { id: 'attr-supplier', code: 'SUPPLIER', name: 'Supplier', entityType: 'fabricType', dataType: 'reference', sortOrder: 80, isRequired: false, referenceEntityType: 'supplier' },
   { id: 'attr-fastness', code: 'COLOR_FASTNESS', name: 'Color Fastness', entityType: 'fabricType', dataType: 'number', sortOrder: 90, isRequired: false },
+  {
+    id: 'attr-gs1-gcp',
+    code: 'GS1_COMPANY_PREFIX',
+    name: 'GS1 Company Prefix',
+    entityType: 'company',
+    dataType: 'string',
+    sortOrder: 10,
+    isRequired: true,
+  },
 ]
 
 export const MASTER_DATA_VALIDATION_RULES: MasterDataValidationRule[] = [
@@ -170,4 +179,15 @@ export const FABRIC_TYPE_ATTRIBUTE_VALUES = [
   attributeValueSeed('ft-denim', 'WEIGHT', 320),
   attributeValueSeed('ft-denim', 'WIDTH', 150),
   attributeValueSeed('ft-denim', 'ELASTIC_PCT', 2),
+]
+
+/** Company-level GS1 GCP — used by Packaging SSCC preparation. */
+export const COMPANY_ATTRIBUTE_VALUES: import('./types').MasterDataAttributeValue[] = [
+  {
+    attributeDefinitionId: 'attr-gs1-gcp',
+    attributeCode: 'GS1_COMPANY_PREFIX',
+    entityType: 'company',
+    entityId: 'factory-ist-001',
+    value: '0860123456',
+  },
 ]

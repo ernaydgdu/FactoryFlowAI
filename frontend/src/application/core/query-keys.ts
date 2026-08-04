@@ -62,6 +62,9 @@ export const applicationQueryKeys = {
     dashboard: () => [...applicationQueryKeys.packaging.all, 'dashboard'] as const,
     lists: () => [...applicationQueryKeys.packaging.all, 'lists'] as const,
     detail: (id: string) => [...applicationQueryKeys.packaging.all, 'detail', id] as const,
+    brain: (salesOrderId?: string) =>
+      [...applicationQueryKeys.packaging.all, 'brain', salesOrderId ?? 'all'] as const,
+    pdf: (id: string) => [...applicationQueryKeys.packaging.all, 'pdf', id] as const,
   },
   quality: {
     all: ['quality-management'] as const,

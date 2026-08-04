@@ -7,6 +7,7 @@ export function mapPackagingDashboard(): PackagingDashboardDto {
     kpis: [
       { label: 'Packing Lists', value: String(d.totalLists) },
       { label: 'Draft', value: String(d.draft) },
+      { label: 'Pending Approval', value: String(d.pendingApproval) },
       { label: 'Confirmed', value: String(d.confirmed) },
       { label: 'Shipped', value: String(d.shipped) },
       { label: 'Packages', value: String(d.totalPackages) },
