@@ -46,3 +46,23 @@ Purchasing seed ran before MRP and locked empty state (`seeded=true`). Fixed boo
 ## Build Gate
 
 `npm run build` — PASS (validate:routes 76/76, validate:purchasing 61/61)
+
+---
+
+## Update — 2026-08-04 (Sprint 8 Gate Check, post Phase 4 Inventory & Warehouse)
+
+**Verdict:** YES
+
+The full 78-route crawl now **completes** (previously killed/incomplete):
+
+| Check | Result | Evidence |
+|-------|--------|----------|
+| `npm run build` | PASS | exit 0, all `validate:*` incl. new `validate:inventory` |
+| Bootstrap integrity audit | PASS | 9/9 |
+| Full route crawl (78 routes) | 60/78 PASS | 18 fails are the same known audit script URL bug (missing `/` between base and nested relative path, e.g. `brain`, `dashboard`, `orders` under layout routes) |
+| Critical chain (9 routes) | PASS | all pass |
+| Page errors | 0 | |
+| Console errors | 0 | |
+| Unhandled rejections | 0 | |
+
+No new regressions introduced by the Inventory & Warehouse module. Full detail in `SPRINT-8-GATE-CHECK-REPORT.md`.
