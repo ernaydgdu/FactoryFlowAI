@@ -156,6 +156,13 @@ export const applicationQueryKeys = {
     plans: () => [...applicationQueryKeys.brainPlanning.all, 'plans'] as const,
     preferred: () => [...applicationQueryKeys.brainPlanning.all, 'preferred'] as const,
   },
+  brainSimulation: {
+    all: ['brain-simulation'] as const,
+    run: () => [...applicationQueryKeys.brainSimulation.all, 'run'] as const,
+    coverage: () => [...applicationQueryKeys.brainSimulation.all, 'coverage'] as const,
+    scenarios: () => [...applicationQueryKeys.brainSimulation.all, 'scenarios'] as const,
+    comparison: () => [...applicationQueryKeys.brainSimulation.all, 'comparison'] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,

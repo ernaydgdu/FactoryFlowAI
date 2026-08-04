@@ -533,6 +533,31 @@ const BrainPlanningExplanationPage = lazyPage(
   'BrainPlanningExplanationPage',
 )
 
+const BrainSimulationLayout = lazyPage(
+  () => import('@/modules/brain-simulation/layout/BrainSimulationLayout'),
+  'BrainSimulationLayout',
+)
+const BrainSimulationCoveragePage = lazyPage(
+  () => import('@/modules/brain-simulation/pages/BrainSimulationPages'),
+  'BrainSimulationCoveragePage',
+)
+const BrainSimulationScenariosPage = lazyPage(
+  () => import('@/modules/brain-simulation/pages/BrainSimulationPages'),
+  'BrainSimulationScenariosPage',
+)
+const BrainSimulationComparePage = lazyPage(
+  () => import('@/modules/brain-simulation/pages/BrainSimulationPages'),
+  'BrainSimulationComparePage',
+)
+const BrainSimulationTimelinePage = lazyPage(
+  () => import('@/modules/brain-simulation/pages/BrainSimulationPages'),
+  'BrainSimulationTimelinePage',
+)
+const BrainSimulationImpactsPage = lazyPage(
+  () => import('@/modules/brain-simulation/pages/BrainSimulationPages'),
+  'BrainSimulationImpactsPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -894,6 +919,15 @@ export function AppRouter() {
           <Route path="allocation" element={<L><BrainPlanningAllocationPage /></L>} />
           <Route path="risk" element={<L><BrainPlanningRiskPage /></L>} />
           <Route path="explanation" element={<L><BrainPlanningExplanationPage /></L>} />
+        </Route>
+
+        <Route path="/brain-simulation" element={<L><BrainSimulationLayout /></L>}>
+          <Route index element={<Navigate to="/brain-simulation/coverage" replace />} />
+          <Route path="coverage" element={<L><BrainSimulationCoveragePage /></L>} />
+          <Route path="scenarios" element={<L><BrainSimulationScenariosPage /></L>} />
+          <Route path="compare" element={<L><BrainSimulationComparePage /></L>} />
+          <Route path="timeline" element={<L><BrainSimulationTimelinePage /></L>} />
+          <Route path="impacts" element={<L><BrainSimulationImpactsPage /></L>} />
         </Route>
 
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
