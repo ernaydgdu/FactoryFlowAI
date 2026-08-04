@@ -1,0 +1,61 @@
+---
+description: Production-ready module quality — security, performance, testability, AI; no demos/mocks/debt
+alwaysApply: true
+---
+
+# Production-Ready Module Standard
+
+Her yeni modül **kurumsal / production-ready** kalite hedefiyle yazılır. Geçici çözüm, mock veya demo yaklaşımı kullanılmaz. Mevcut mimari (Architecture Freeze, aggregate boundaries, repository ports) bozulmaz.
+
+## Zorunlu kalite eksenleri
+
+### Güvenlik
+
+- Yetki / rol / tenant sınırlarını mevcut IAM ve domain kurallarına bağla; UI-only “güvenlik” kabul etme
+- Secrets, credentials, raw PII loglama yok
+- Command path’lerde validation + mevcut transaction / audit / outbox kalıplarını koru
+- Scanner / mobile / offline girdilerinde trust etmeden resolve et; spoof edilebilir barkodu yazma yetkisi sanma
+
+### Performans
+
+- Gereksiz full-store tarama, N+1, unbounded in-memory list büyütme yok
+- Query keys / invalidation dar tut; dashboard’lar derived read-model olsun
+- Lazy route + mevcut UI shell kalıplarını bozma; ağır işi domain/application’da tut
+- Offline / queue iskeleti bile unbounded growth veya sync storm üretmesin (limit / flush sözleşmesi)
+
+### Test edilebilirlik
+
+- Domain kurallarını UI’dan ayır; application command/query yüzeyi net olsun
+- Yeni davranış `validate:*` script’i veya mevcut gate ile doğrulanabilir olsun
+- Side-effect’ler repository/port üzerinden; gizli global mutable state büyütme
+- Fail-fast smoke ile yeni route’lar doğrulanabilir kalsın
+
+### AI entegrasyonu
+
+- AI çağrıları mevcut Brain / platform command sınırlarından geçsin; domain’e vendor SDK sızdırma
+- Prompt / tool çıktısını doğrulamadan persist veya stok/UE mutate etme
+- Deterministik iş kurallarını modele bırakma; AI öneri, domain karar verir
+- Yeni AI yüzeyleri audit edilebilir (actor, input özeti, outcome) olsun
+
+## Reddedilecek değişiklikler (teknik borç kapısı)
+
+Kod tamamlanmadan / commit öncesi şunları **reddet veya düzelt**:
+
+- “TODO sonra”, stub that throws in happy path, hardcoded demo UE/operator as business truth
+- Yeni persistence mimarisi / yeni aggregate port (Freeze ihlali)
+- Shop Floor / Quality / diğer freeze’li aggregate’lara gereksiz yazma
+- Mock repository’yi production path’e gömme
+- Console-only hata yutma, boş catch, silent fail
+- Architecture’ı delen “hızlı UI bypass” (domain’i atlayan doğrudan store mutate)
+- Güvenlik / performans / test kapısı olmayan “iskelet” iddiası: iskelet ancak **sözleşmesi net, sınırlı, production path’e zarar vermeyen** olabilir
+
+## Mimari koruma
+
+- Roadmap + Architecture Freeze’e sadık kal
+- Mevcut repository portlarını kullan; yeni port uydurma
+- Layer: domain → application → UI
+- Modül gate: build → bootstrap → yeni route smoke → commit
+
+## Çıktı beklentisi
+
+Modül teslimi: çalışır, güvenli sınırlı, ölçülebilir, test edilebilir, AI-safe; demo kokusu yok.
