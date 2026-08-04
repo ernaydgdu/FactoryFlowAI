@@ -42,6 +42,7 @@ import type { PackingList } from '../../packaging/packaging.types'
 import type { ShipmentRecord } from '../../shipment/shipment.types'
 import type { ExportDocumentSet } from '../../commercial-documents/commercial-documents.types'
 import type { ExportShipment } from '../../export-logistics/export-logistics.types'
+import type { AccountingIntegration } from '../../finance-integration/finance-integration.types'
 import type { PurchaseOrder } from '../../types/workflows'
 import type { StockBalance, StockMovement } from '../../types/stock-ledger'
 import type { AccessoryCard, FabricCard, TextileProductCard } from '../../types/textile-erp'
@@ -105,6 +106,8 @@ export type PersistedShipmentRecord = WithPersistenceMetadata<ShipmentRecord>
 export type PersistedExportDocumentSet = WithPersistenceMetadata<ExportDocumentSet>
 
 export type PersistedExportShipment = WithPersistenceMetadata<ExportShipment>
+
+export type PersistedAccountingIntegration = WithPersistenceMetadata<AccountingIntegration>
 
 export type PersistedMrpRun = WithPersistenceMetadata<MrpRun>
 

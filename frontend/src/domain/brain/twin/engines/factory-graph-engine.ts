@@ -20,6 +20,7 @@ import { buildEnterpriseRelationGraph } from '../../../enterprise/relation-graph
 import { queryPackingListsBySalesOrderId } from '../../../packaging/packing-list-query.service'
 import { queryAllExportDocumentSets } from '../../../commercial-documents/commercial-documents-query.service'
 import { queryAllExportShipments } from '../../../export-logistics/export-logistics-query.service'
+import { queryAllAccountingIntegrations } from '../../../finance-integration/finance-integration-query.service'
 import type { BrainContext, BrainKnowledgeSnapshot } from '../../types'
 import type {
   FactoryGraph,
@@ -347,6 +348,34 @@ export function buildFactoryGraph(
       addEdge(orderId, exsId, 'CONTAINS', 'WORKFLOW')
       addEdge(`shipment-${order.id}`, exsId, 'SHIPS_TO', 'WORKFLOW')
     }
+
+    const financeBatches = queryAllAccountingIntegrations()
+      .filter(
+        (b) =>
+          b.sourceReferenceId === order.id ||
+          b.sourceEventType === 'CommercialInvoiceIssued' ||
+          b.sourceEventType === 'ShipmentDeparted',
+      )
+      .slice(0, 5)
+    for (const batch of financeBatches) {
+      const finId = addNode({
+        id: `accounting-${batch.id}`,
+        type: 'ACCOUNTING_INTEGRATION',
+        label: `${batch.batchNo} · ${batch.status}`,
+        entityId: batch.id,
+        sourceId: 'WORKFLOW',
+        attributes: {
+          status: batch.status,
+          sourceEventType: batch.sourceEventType,
+          debitTotal: batch.journalEntry.debitTotal,
+          creditTotal: batch.journalEntry.creditTotal,
+          costAnomalyScore: batch.costAnomalyScore,
+          profitabilityHint: batch.profitabilityHint,
+        },
+        dataQuality: batch.status === 'Posted' ? 'COMPLETE' : 'PARTIAL',
+      })
+      addEdge(orderId, finId, 'TRIGGERS', 'WORKFLOW')
+    }
   }
 
   for (const card of STOCK_CARDS.slice(0, 5)) {
@@ -437,6 +466,8 @@ function mapEnterpriseTypeToFactory(entityType: string): FactoryGraphNode['type'
     PACKING_LIST: 'PACKING_LIST',
     EXPORT_DOCUMENT_SET: 'EXPORT_DOCUMENT_SET',
     EXPORT_SHIPMENT: 'EXPORT_SHIPMENT',
+    ACCOUNTING_INTEGRATION: 'ACCOUNTING_INTEGRATION',
+    INVOICE: 'ACCOUNTING_INTEGRATION',
     CUSTOMER: 'CUSTOMER',
     SUPPLIER: 'SUPPLIER',
     BOM: 'BOM',

@@ -326,6 +326,35 @@ const ExportDispatchWizardPage = lazyPage(
   'ExportDispatchWizardPage',
 )
 
+const FinanceIntegrationLayout = lazyPage(
+  () => import('@/modules/finance-integration/layout/FinanceIntegrationLayout'),
+  'FinanceIntegrationLayout',
+)
+const FinanceTimelinePage = lazyPage(
+  () => import('@/modules/finance-integration/pages/FinanceIntegrationPages'),
+  'FinanceTimelinePage',
+)
+const FinancePostingQueuePage = lazyPage(
+  () => import('@/modules/finance-integration/pages/FinanceIntegrationPages'),
+  'FinancePostingQueuePage',
+)
+const FinanceBatchDetailPage = lazyPage(
+  () => import('@/modules/finance-integration/pages/FinanceIntegrationPages'),
+  'FinanceBatchDetailPage',
+)
+const FinancePostingResultPage = lazyPage(
+  () => import('@/modules/finance-integration/pages/FinanceIntegrationPages'),
+  'FinancePostingResultPage',
+)
+const FinanceFailedPostingPage = lazyPage(
+  () => import('@/modules/finance-integration/pages/FinanceIntegrationPages'),
+  'FinanceFailedPostingPage',
+)
+const FinanceGlMappingPage = lazyPage(
+  () => import('@/modules/finance-integration/pages/FinanceIntegrationPages'),
+  'FinanceGlMappingPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -616,6 +645,16 @@ export function AppRouter() {
           <Route path="board" element={<L><ExportShipmentBoardPage /></L>} />
           <Route path="board/:exportShipmentId" element={<L><ExportShipmentDetailPage /></L>} />
           <Route path="dispatch" element={<L><ExportDispatchWizardPage /></L>} />
+        </Route>
+
+        <Route path="/finance-integration" element={<L><FinanceIntegrationLayout /></L>}>
+          <Route index element={<Navigate to="/finance-integration/timeline" replace />} />
+          <Route path="timeline" element={<L><FinanceTimelinePage /></L>} />
+          <Route path="queue" element={<L><FinancePostingQueuePage /></L>} />
+          <Route path="queue/:batchId" element={<L><FinanceBatchDetailPage /></L>} />
+          <Route path="results" element={<L><FinancePostingResultPage /></L>} />
+          <Route path="failed" element={<L><FinanceFailedPostingPage /></L>} />
+          <Route path="gl-mapping" element={<L><FinanceGlMappingPage /></L>} />
         </Route>
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
         <Route path="/reports" element={<L><ReportsPage /></L>} />

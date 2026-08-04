@@ -22,6 +22,8 @@ export type Permission =
   | 'warehouse.write'
   | 'shipping.read'
   | 'shipping.write'
+  | 'finance.read'
+  | 'finance.write'
   | 'cost.read'
   | 'reports.read'
   | 'ai.read'
@@ -50,6 +52,8 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'warehouse.write',
     'shipping.read',
     'shipping.write',
+    'finance.read',
+    'finance.write',
     'cost.read',
     'reports.read',
     'ai.read',
@@ -76,6 +80,8 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'warehouse.write',
     'shipping.read',
     'shipping.write',
+    'finance.read',
+    'finance.write',
     'cost.read',
     'reports.read',
     'ai.read',
@@ -136,6 +142,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: '/export-logistics', permission: 'shipping.read' },
   { prefix: '/commercial-documents', permission: 'shipping.read' },
   { prefix: '/shipping', permission: 'shipping.read' },
+  { prefix: '/finance-integration', permission: 'finance.read' },
   { prefix: '/cost', permission: 'cost.read' },
   { prefix: '/reports', permission: 'reports.read' },
   { prefix: '/ai', permission: 'ai.read' },

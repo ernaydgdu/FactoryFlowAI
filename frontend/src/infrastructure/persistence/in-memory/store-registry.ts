@@ -24,6 +24,7 @@ import type {
   PersistedShipmentRecord,
   PersistedExportDocumentSet,
   PersistedExportShipment,
+  PersistedAccountingIntegration,
   PersistedQualityGateEvaluation,
   PersistedSalesOrder,
   PersistedSplitExecution,
@@ -33,6 +34,12 @@ import type {
   PersistedWipTransfer,
   WipPositionReadModel,
 } from '@/domain/ports/persistence/persistence-aggregates'
+import type {
+  CostCenter,
+  FinancialPeriod,
+  GLAccountMapping,
+  ProfitCenter,
+} from '@/domain/finance-integration/finance-integration.types'
 import type { OutboxMessage } from '@/domain/ports/persistence/persistence.types'
 import type { ApprovalWorkflow, AuditLogEntry, DomainEvent, TimelineEntry, VersionedRecord } from '@/domain/platform/types'
 
@@ -93,6 +100,13 @@ export class InMemoryStoreRegistry {
 
   exportShipments: PersistedExportShipment[] = []
   exportShipmentCounter = 0
+
+  accountingIntegrations: PersistedAccountingIntegration[] = []
+  accountingIntegrationCounter = 0
+  accountingGlMappings: GLAccountMapping[] = []
+  accountingFinancialPeriods: FinancialPeriod[] = []
+  accountingCostCenters: CostCenter[] = []
+  accountingProfitCenters: ProfitCenter[] = []
 
   stockCards: PersistedStockCard[] = []
 

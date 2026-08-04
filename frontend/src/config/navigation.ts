@@ -202,7 +202,12 @@ export const navGroups: NavGroup[] = [
   {
     title: 'Maliyet Analizi',
     icon: Wallet,
-    items: [{ title: 'Maliyet Özeti', href: '/cost' }],
+    items: [
+      { title: 'Maliyet Özeti', href: '/cost' },
+      { title: 'Finance Integration', href: '/finance-integration/timeline' },
+      { title: 'Posting Queue', href: '/finance-integration/queue' },
+      { title: 'GL Mapping', href: '/finance-integration/gl-mapping' },
+    ],
   },
   {
     title: 'Raporlar',
@@ -324,6 +329,12 @@ export const routeTitles: Record<string, string> = {
   '/export-logistics/board': 'Export Shipment Board',
   '/export-logistics/dispatch': 'Dispatch Wizard',
   '/cost': 'Maliyet Analizi',
+  '/finance-integration': 'Finance Integration',
+  '/finance-integration/timeline': 'Financial Timeline',
+  '/finance-integration/queue': 'Posting Queue',
+  '/finance-integration/results': 'Posting Result',
+  '/finance-integration/failed': 'Failed Posting',
+  '/finance-integration/gl-mapping': 'GL Mapping',
   '/reports': 'Raporlar',
   '/ai': 'Kepler AI',
   '/settings': 'Ayarlar',

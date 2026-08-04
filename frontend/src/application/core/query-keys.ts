@@ -89,6 +89,18 @@ export const applicationQueryKeys = {
     detail: (id: string) => [...applicationQueryKeys.exportLogistics.all, 'detail', id] as const,
     brain: () => [...applicationQueryKeys.exportLogistics.all, 'brain'] as const,
   },
+  financeIntegration: {
+    all: ['finance-integration'] as const,
+    dashboard: () => [...applicationQueryKeys.financeIntegration.all, 'dashboard'] as const,
+    batches: () => [...applicationQueryKeys.financeIntegration.all, 'batches'] as const,
+    detail: (id: string) => [...applicationQueryKeys.financeIntegration.all, 'detail', id] as const,
+    queue: () => [...applicationQueryKeys.financeIntegration.all, 'queue'] as const,
+    failed: () => [...applicationQueryKeys.financeIntegration.all, 'failed'] as const,
+    results: () => [...applicationQueryKeys.financeIntegration.all, 'results'] as const,
+    mappings: () => [...applicationQueryKeys.financeIntegration.all, 'mappings'] as const,
+    periods: () => [...applicationQueryKeys.financeIntegration.all, 'periods'] as const,
+    brain: () => [...applicationQueryKeys.financeIntegration.all, 'brain'] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,
