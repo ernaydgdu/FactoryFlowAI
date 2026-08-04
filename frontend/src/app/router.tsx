@@ -504,6 +504,35 @@ const BrainReasoningRecommendationsPage = lazyPage(
   'BrainReasoningRecommendationsPage',
 )
 
+const BrainPlanningLayout = lazyPage(
+  () => import('@/modules/brain-planning/layout/BrainPlanningLayout'),
+  'BrainPlanningLayout',
+)
+const BrainPlanningCoveragePage = lazyPage(
+  () => import('@/modules/brain-planning/pages/BrainPlanningPages'),
+  'BrainPlanningCoveragePage',
+)
+const BrainPlanningPlansPage = lazyPage(
+  () => import('@/modules/brain-planning/pages/BrainPlanningPages'),
+  'BrainPlanningPlansPage',
+)
+const BrainPlanningSequencingPage = lazyPage(
+  () => import('@/modules/brain-planning/pages/BrainPlanningPages'),
+  'BrainPlanningSequencingPage',
+)
+const BrainPlanningAllocationPage = lazyPage(
+  () => import('@/modules/brain-planning/pages/BrainPlanningPages'),
+  'BrainPlanningAllocationPage',
+)
+const BrainPlanningRiskPage = lazyPage(
+  () => import('@/modules/brain-planning/pages/BrainPlanningPages'),
+  'BrainPlanningRiskPage',
+)
+const BrainPlanningExplanationPage = lazyPage(
+  () => import('@/modules/brain-planning/pages/BrainPlanningPages'),
+  'BrainPlanningExplanationPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -855,6 +884,16 @@ export function AppRouter() {
           <Route path="constraints" element={<L><BrainReasoningConstraintsPage /></L>} />
           <Route path="decisions" element={<L><BrainReasoningDecisionsPage /></L>} />
           <Route path="recommendations" element={<L><BrainReasoningRecommendationsPage /></L>} />
+        </Route>
+
+        <Route path="/brain-planning" element={<L><BrainPlanningLayout /></L>}>
+          <Route index element={<Navigate to="/brain-planning/coverage" replace />} />
+          <Route path="coverage" element={<L><BrainPlanningCoveragePage /></L>} />
+          <Route path="plans" element={<L><BrainPlanningPlansPage /></L>} />
+          <Route path="sequencing" element={<L><BrainPlanningSequencingPage /></L>} />
+          <Route path="allocation" element={<L><BrainPlanningAllocationPage /></L>} />
+          <Route path="risk" element={<L><BrainPlanningRiskPage /></L>} />
+          <Route path="explanation" element={<L><BrainPlanningExplanationPage /></L>} />
         </Route>
 
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
