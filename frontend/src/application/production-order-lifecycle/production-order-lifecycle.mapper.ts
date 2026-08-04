@@ -19,6 +19,7 @@ import {
   transitionProductionOrderStatus,
 } from '@/domain/production-order/lifecycle-service'
 import { analyzeProductionOrderForBrain } from '@/domain/production-order/lifecycle-brain-query'
+import { persistMaterialReservationForOrder } from '@/domain/production-order/material-reservation.service'
 import type { ProductionOrderLifecycleRecord } from '@/domain/production-order/lifecycle-types'
 
 import type {
@@ -189,6 +190,12 @@ export function executeTransitionProductionOrder(input: TransitionProductionOrde
       input.actor ?? 'planner',
       reservationContext,
     )
+    // Material reservation bağlantısı: BR-03 doğrulaması geçtikten sonra
+    // rezervasyonu kalıcı stok defterine de işle (satır bazında best-effort;
+    // stok kartı olmayan / yetersiz stoklu satırlar sonuçta raporlanır).
+    if (input.toStatus === 'Released') {
+      persistMaterialReservationForOrder(input.productionOrderNo, input.actor ?? 'planner')
+    }
     return mapListItem(updated)
   })
 }

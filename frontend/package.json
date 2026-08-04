@@ -20,7 +20,8 @@
     "validate:inventory": "node scripts/inventory-validation.mjs",
     "validate:warehouse-management": "node scripts/warehouse-management-validation.mjs",
     "validate:production-planning": "node scripts/production-planning-validation.mjs",
-    "build": "npm run validate:routes && npm run validate:iam && npm run validate:api-scaffold && npm run validate:persistence && npm run validate:master-data && npm run validate:product-card && npm run validate:bom && npm run validate:cost-sheet && npm run validate:sales-order && npm run validate:mrp && npm run validate:purchasing && npm run validate:inventory && npm run validate:warehouse-management && npm run validate:production-planning && tsc -b && vite build",
+    "validate:production-order": "node scripts/production-order-validation.mjs",
+    "build": "npm run validate:routes && npm run validate:iam && npm run validate:api-scaffold && npm run validate:persistence && npm run validate:master-data && npm run validate:product-card && npm run validate:bom && npm run validate:cost-sheet && npm run validate:sales-order && npm run validate:mrp && npm run validate:purchasing && npm run validate:inventory && npm run validate:warehouse-management && npm run validate:production-planning && npm run validate:production-order && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },

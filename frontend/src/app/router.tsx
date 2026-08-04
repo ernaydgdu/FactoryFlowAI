@@ -154,6 +154,18 @@ const ProductionOrderLifecycleDailyEntryPage = lazyPage(
   () => import('@/modules/production-order-lifecycle/pages/ProductionOrderLifecycleDailyEntryPage'),
   'ProductionOrderLifecycleDailyEntryPage',
 )
+const ProductionOrderStatusBoardPage = lazyPage(
+  () => import('@/modules/production-order-lifecycle/pages/ProductionOrderBoardPages'),
+  'ProductionOrderStatusBoardPage',
+)
+const ProductionOrderOperationListPage = lazyPage(
+  () => import('@/modules/production-order-lifecycle/pages/ProductionOrderBoardPages'),
+  'ProductionOrderOperationListPage',
+)
+const ProductionOrderReservationPage = lazyPage(
+  () => import('@/modules/production-order-lifecycle/pages/ProductionOrderBoardPages'),
+  'ProductionOrderReservationPage',
+)
 const CreateProductionOrderFromSalesPage = lazyPage(
   () => import('@/modules/production-order-lifecycle/pages/CreateProductionOrderFromSalesPage'),
   'CreateProductionOrderFromSalesPage',
@@ -285,6 +297,9 @@ export function AppRouter() {
           <Route index element={<Navigate to="/production-order-lifecycle/orders" replace />} />
           <Route path="orders" element={<L><ProductionOrderLifecycleListPage /></L>} />
           <Route path="orders/:productionOrderNo" element={<L><ProductionOrderLifecycleDetailPage /></L>} />
+          <Route path="board" element={<L><ProductionOrderStatusBoardPage /></L>} />
+          <Route path="operations" element={<L><ProductionOrderOperationListPage /></L>} />
+          <Route path="reservations" element={<L><ProductionOrderReservationPage /></L>} />
           <Route path="create" element={<L><CreateProductionOrderFromSalesPage /></L>} />
           <Route path="daily-entry" element={<L><ProductionOrderLifecycleDailyEntryPage /></L>} />
         </Route>

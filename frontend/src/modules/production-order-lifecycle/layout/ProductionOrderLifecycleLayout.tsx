@@ -4,6 +4,9 @@ import { cn } from '@/lib/utils'
 
 const SUB_NAV = [
   { label: 'Üretim Emirleri', href: '/production-order-lifecycle/orders' },
+  { label: 'Durum Panosu', href: '/production-order-lifecycle/board' },
+  { label: 'Operasyonlar', href: '/production-order-lifecycle/operations' },
+  { label: 'Rezervasyon', href: '/production-order-lifecycle/reservations' },
   { label: 'Siparişten Oluştur', href: '/production-order-lifecycle/create' },
   { label: 'Günlük Üretim', href: '/production-order-lifecycle/daily-entry' },
 ]
