@@ -89,6 +89,7 @@ function normalizeRouteParams(route) {
     .replace(':entityPath', 'suppliers')
     .replace(':code', 'HMD-01')
     .replace(':ncrId', 'NCR-1')
+    .replace(':packingListId', 'pl-1')
 }
 
 function extractRoutes() {

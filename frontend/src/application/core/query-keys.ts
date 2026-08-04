@@ -57,6 +57,12 @@ export const applicationQueryKeys = {
     dashboard: () => [...applicationQueryKeys.barcodeMobile.all, 'dashboard'] as const,
     offlineQueue: () => [...applicationQueryKeys.barcodeMobile.all, 'offline-queue'] as const,
   },
+  packaging: {
+    all: ['packaging'] as const,
+    dashboard: () => [...applicationQueryKeys.packaging.all, 'dashboard'] as const,
+    lists: () => [...applicationQueryKeys.packaging.all, 'lists'] as const,
+    detail: (id: string) => [...applicationQueryKeys.packaging.all, 'detail', id] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,

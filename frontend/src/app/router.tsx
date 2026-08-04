@@ -39,7 +39,6 @@ const QualityHubPage = lazyPage(() => import('@/pages/quality/QualityPages'), 'Q
 const InlineQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'), 'InlineQualityPage')
 const MidlineQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'), 'MidlineQualityPage')
 const FinalQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'), 'FinalQualityPage')
-const PackagingPage = lazyPage(() => import('@/pages/packaging/PackagingPages'), 'PackagingPage')
 const WarehouseDetailPage = lazyPage(
   () => import('@/pages/warehouse-management/WarehouseManagementPages'),
   'WarehouseDetailPage',
@@ -239,6 +238,27 @@ const QualityNcrDetailPage = lazyPage(
 const QualityTimelinePage = lazyPage(
   () => import('@/modules/quality-management/pages/QualityManagementPages'),
   'QualityTimelinePage',
+)
+
+const PackagingLayout = lazyPage(
+  () => import('@/modules/packaging/layout/PackagingLayout'),
+  'PackagingLayout',
+)
+const PackagingDashboardPage = lazyPage(
+  () => import('@/modules/packaging/pages/PackagingPages'),
+  'PackagingDashboardPage',
+)
+const PackingListPage = lazyPage(
+  () => import('@/modules/packaging/pages/PackagingPages'),
+  'PackingListPage',
+)
+const PackingListDetailPage = lazyPage(
+  () => import('@/modules/packaging/pages/PackagingPages'),
+  'PackingListDetailPage',
+)
+const PackingStationPage = lazyPage(
+  () => import('@/modules/packaging/pages/PackagingPages'),
+  'PackingStationPage',
 )
 
 const BarcodeMobileLayout = lazyPage(
@@ -486,7 +506,13 @@ export function AppRouter() {
         <Route path="/quality/midline" element={<L><MidlineQualityPage /></L>} />
         <Route path="/quality/final" element={<L><FinalQualityPage /></L>} />
 
-        <Route path="/packaging" element={<L><PackagingPage /></L>} />
+        <Route path="/packaging" element={<L><PackagingLayout /></L>}>
+          <Route index element={<Navigate to="/packaging/dashboard" replace />} />
+          <Route path="dashboard" element={<L><PackagingDashboardPage /></L>} />
+          <Route path="lists" element={<L><PackingListPage /></L>} />
+          <Route path="lists/:packingListId" element={<L><PackingListDetailPage /></L>} />
+          <Route path="station" element={<L><PackingStationPage /></L>} />
+        </Route>
 
         <Route path="/inventory" element={<L><InventoryHubPage /></L>} />
         <Route path="/inventory/dashboard" element={<L><InventoryDashboardPage /></L>} />

@@ -22,6 +22,7 @@ import { PurchaseRequestInMemoryRepository } from './aggregates/purchase-request
 import { RfqInMemoryRepository } from './aggregates/rfq.in-memory.repository'
 import { SupplierQuotationInMemoryRepository } from './aggregates/supplier-quotation.in-memory.repository'
 import { GoodsReceiptInMemoryRepository } from './aggregates/goods-receipt.in-memory.repository'
+import { PackingListInMemoryRepository } from './aggregates/packing-list.in-memory.repository'
 import { ApprovalWorkflowInMemoryRepository } from './aggregates/approval-workflow.in-memory.repository'
 import { BundleInMemoryRepository } from './aggregates/bundle.in-memory.repository'
 import { CodedAggregateFromLookupInMemoryRepository } from './aggregates/coded-aggregate-from-lookup.in-memory.repository'
@@ -111,6 +112,7 @@ export class InMemoryUnitOfWork implements IUnitOfWork {
   rfqs = new RfqInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['rfqs']
   supplierQuotations = new SupplierQuotationInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['supplierQuotations']
   goodsReceipts = new GoodsReceiptInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['goodsReceipts']
+  packingLists = new PackingListInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['packingLists']
   mrpRuns = new MrpRunInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['mrpRuns']
   fabricCards = new FabricCardInMemoryRepository() as unknown as IUnitOfWork['fabricCards']
   accessoryCards = new AccessoryCardInMemoryRepository() as unknown as IUnitOfWork['accessoryCards']
