@@ -187,8 +187,10 @@ export const navGroups: NavGroup[] = [
     title: 'Sevkiyat',
     icon: Truck,
     items: [
-      { title: 'Sevkiyat Takibi', href: '/shipping' },
+      { title: 'Shipment Dashboard', href: '/shipping/dashboard' },
+      { title: 'Shipments', href: '/shipping/shipments' },
       { title: 'Konteyner Planı', href: '/shipping/containers' },
+      { title: 'Shipment Station', href: '/shipping/station' },
     ],
   },
   {
@@ -303,7 +305,10 @@ export const routeTitles: Record<string, string> = {
   '/warehouse/count': 'Depo Sayım',
   '/warehouse/fg-receipt': 'Mamül Kabul',
   '/shipping': 'Sevkiyat',
+  '/shipping/dashboard': 'Shipment Dashboard',
+  '/shipping/shipments': 'Shipments',
   '/shipping/containers': 'Konteyner Planı',
+  '/shipping/station': 'Shipment Station',
   '/cost': 'Maliyet Analizi',
   '/reports': 'Raporlar',
   '/ai': 'Kepler AI',

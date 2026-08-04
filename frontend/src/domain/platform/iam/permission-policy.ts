@@ -21,6 +21,7 @@ export type Permission =
   | 'warehouse.read'
   | 'warehouse.write'
   | 'shipping.read'
+  | 'shipping.write'
   | 'cost.read'
   | 'reports.read'
   | 'ai.read'
@@ -48,6 +49,7 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'warehouse.read',
     'warehouse.write',
     'shipping.read',
+    'shipping.write',
     'cost.read',
     'reports.read',
     'ai.read',
@@ -73,6 +75,7 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'warehouse.read',
     'warehouse.write',
     'shipping.read',
+    'shipping.write',
     'cost.read',
     'reports.read',
     'ai.read',
@@ -93,6 +96,8 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'production.write',
     'warehouse.read',
     'warehouse.write',
+    'shipping.read',
+    'shipping.write',
     'reports.read',
     'ai.read',
   ],

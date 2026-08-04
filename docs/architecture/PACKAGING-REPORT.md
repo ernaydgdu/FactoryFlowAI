@@ -1,24 +1,23 @@
-# PACKAGING-REPORT.md — Phase 5 Module 4 (+ Hardening)
+# PACKAGING-REPORT.md — Phase 5 Module 4
 
-## Delivered
+## Status
 
-| Capability | Implementation |
-|------------|----------------|
-| PackingList aggregate | `IPackingListRepository` + in-memory + Postgres adapter |
-| Package (Carton/Pallet HU) | Embedded; parentPackageId nest; containerCode |
-| SSCC | `prepareSscc` + MD `GS1_COMPANY_PREFIX` |
-| GS1-128 label | `(00)` AI skeleton + `buildPackageGs1128Label` |
-| Weight / Volume | Net/tare/gross + CBM |
-| Validation | Packed qty ≤ SO matrix; HU parent rules |
-| Approval / Revision | Submit → Approve → Confirm; revise supersede |
-| Auto from FG | Cartons from SO matrix / FG qty |
-| Shipment binding | `persistBindShipment` → `persistShipment` + orchestration outbox |
-| PDF document | `buildPackingListDocument` printable payload |
-| AI read model | `queryPackagingBrainReadModel` |
-| Twin graph | `PACKING_LIST` nodes |
-| IAM | `warehouse.write` on every write command |
-| Sequences | `nextPackingListCounter` / `nextSsccSerial` |
-| UI | Dashboard, Lists, Detail, Station |
+**PRODUCTION READY (In-Memory Runtime)** — accepted complete.
+
+Do not reopen Packaging unless a production defect is found.
+
+Remaining gaps are **roadmap items**, not packaging defects:
+
+| Item | Track as |
+|------|----------|
+| PostgreSQL cutover | Sprint 7 persistence (`TD-PG-01`) |
+| Print infrastructure (PDF/ZPL) | Print platform (`TD-PRINT-01`) |
+| ASN / EDI | Commercial / EDI (`TD-EDI-01`) |
+| Commercial Documents | Phase 6 export docs (`TD-DOC-01`) |
+
+## Delivered (in-memory)
+
+PackingList aggregate · Package HU (Carton/Pallet) · SSCC + MD GS1 · approval/revision · container · shipment bind via `persistShipment` · Brain read model · twin nodes · IAM `warehouse.write` · O(1) sequences · UI `/packaging/*`.
 
 ## Gates
 

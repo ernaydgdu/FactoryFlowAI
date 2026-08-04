@@ -1,16 +1,14 @@
-# ARCHITECTURE-INTEGRITY-REPORT.md — Phase 5 Module 4 (Packaging + Hardening)
+# ARCHITECTURE-INTEGRITY-REPORT.md — Phase 6 Module 1 (Shipment)
 
 | Check | Result |
 |-------|--------|
-| PackingList aggregate port | **Added** — `IPackingListRepository` / `packingLists` on UoW |
-| Packages | Embedded HU (Carton/Pallet) — **no** duplicate carton port |
-| Sequences | `nextPackingListCounter` / `nextSsccSerial` (O(1)) |
-| GS1 company prefix | Master Data `GS1_COMPANY_PREFIX` on `company` |
-| Write IAM | `warehouse.write` asserted on every packaging command |
-| Postgres adapter | `PackingListPostgresRepository` (Sprint-7 not-ready until cutover) |
-| Shipment write path | **Reuses** `persistShipment` + orchestration outbox |
-| Twin | `PACKING_LIST` graph nodes |
-| Demo CARTONS UI | Replaced by live `/packaging/*` |
+| ShipmentRecord aggregate port | **Added** — `IShipmentRepository` / `shipments` on UoW |
+| Load lines / status log | Embedded — **no** shipment-line port |
+| Inventory write | **Reuses** `persistShipment` only |
+| PackingList | Read via query; load from packages (Freeze intact) |
+| Packaging module | **Not reopened** — PRODUCTION READY |
+| Audit + Timeline + Outbox | On every shipment mutation |
+| Idempotency | Required on create / load / transition / inventory |
+| IAM | `shipping.write` on write commands |
 
-**Drift verdict:** Additive aggregate; inventory shipment remains single write path; hardening does not introduce new aggregate ports beyond packingLists.
-
+**Drift verdict:** Additive logistics SSOT; inventory outbound remains single write path.

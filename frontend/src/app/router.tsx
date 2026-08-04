@@ -61,8 +61,6 @@ const MerchandisingListPage = lazyPage(() => import('@/pages/merchandising/Merch
 const MerchandisingDetailRoute = lazyPage(() => import('@/pages/merchandising/MerchandisingPages'), 'MerchandisingDetailRoute')
 const PurchasingPage = lazyPage(() => import('@/pages/purchasing/PurchasingPages'), 'PurchasingPage')
 const PurchaseOrderDetailRoute = lazyPage(() => import('@/pages/purchasing/PurchasingPages'), 'PurchaseOrderDetailRoute')
-const ShippingPage = lazyPage(() => import('@/pages/misc/MiscPages'), 'ShippingPage')
-const ContainerPlanningPage = lazyPage(() => import('@/pages/shipping/ContainerPages'), 'ContainerPlanningPage')
 const CostAnalysisPage = lazyPage(() => import('@/pages/misc/MiscPages'), 'CostAnalysisPage')
 const ReportsPage = lazyPage(() => import('@/pages/misc/MiscPages'), 'ReportsPage')
 const KeplerAiPage = lazyPage(() => import('@/pages/misc/MiscPages'), 'KeplerAiPage')
@@ -259,6 +257,31 @@ const PackingListDetailPage = lazyPage(
 const PackingStationPage = lazyPage(
   () => import('@/modules/packaging/pages/PackagingPages'),
   'PackingStationPage',
+)
+
+const ShippingLayout = lazyPage(
+  () => import('@/modules/shipping/layout/ShippingLayout'),
+  'ShippingLayout',
+)
+const ShipmentDashboardPage = lazyPage(
+  () => import('@/modules/shipping/pages/ShippingPages'),
+  'ShipmentDashboardPage',
+)
+const ShipmentListPage = lazyPage(
+  () => import('@/modules/shipping/pages/ShippingPages'),
+  'ShipmentListPage',
+)
+const ShipmentDetailPage = lazyPage(
+  () => import('@/modules/shipping/pages/ShippingPages'),
+  'ShipmentDetailPage',
+)
+const ShipmentStationPage = lazyPage(
+  () => import('@/modules/shipping/pages/ShippingPages'),
+  'ShipmentStationPage',
+)
+const ShipmentContainersPage = lazyPage(
+  () => import('@/modules/shipping/pages/ShippingPages'),
+  'ShipmentContainersPage',
 )
 
 const BarcodeMobileLayout = lazyPage(
@@ -528,8 +551,14 @@ export function AppRouter() {
         <Route path="/warehouse/fg-receipt" element={<L><FinishedGoodsReceiptPage /></L>} />
         <Route path="/warehouse/:code" element={<L><WarehouseDetailPage /></L>} />
 
-        <Route path="/shipping" element={<L><ShippingPage /></L>} />
-        <Route path="/shipping/containers" element={<L><ContainerPlanningPage /></L>} />
+        <Route path="/shipping" element={<L><ShippingLayout /></L>}>
+          <Route index element={<Navigate to="/shipping/dashboard" replace />} />
+          <Route path="dashboard" element={<L><ShipmentDashboardPage /></L>} />
+          <Route path="shipments" element={<L><ShipmentListPage /></L>} />
+          <Route path="shipments/:shipmentId" element={<L><ShipmentDetailPage /></L>} />
+          <Route path="containers" element={<L><ShipmentContainersPage /></L>} />
+          <Route path="station" element={<L><ShipmentStationPage /></L>} />
+        </Route>
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
         <Route path="/reports" element={<L><ReportsPage /></L>} />
         <Route path="/ai" element={<L><KeplerAiPage /></L>} />

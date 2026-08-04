@@ -39,6 +39,7 @@ import type {
   SupplierQuotation,
 } from '../../purchasing/purchasing.types'
 import type { PackingList } from '../../packaging/packaging.types'
+import type { ShipmentRecord } from '../../shipment/shipment.types'
 import type { PurchaseOrder } from '../../types/workflows'
 import type { StockBalance, StockMovement } from '../../types/stock-ledger'
 import type { AccessoryCard, FabricCard, TextileProductCard } from '../../types/textile-erp'
@@ -96,6 +97,8 @@ export type PersistedSupplierQuotation = WithPersistenceMetadata<SupplierQuotati
 export type PersistedGoodsReceipt = WithPersistenceMetadata<GoodsReceipt>
 
 export type PersistedPackingList = WithPersistenceMetadata<PackingList>
+
+export type PersistedShipmentRecord = WithPersistenceMetadata<ShipmentRecord>
 
 export type PersistedMrpRun = WithPersistenceMetadata<MrpRun>
 
