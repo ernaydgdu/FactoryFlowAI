@@ -164,6 +164,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: '/enterprise', permission: 'platform.settings' },
   { prefix: '/reports', permission: 'reports.read' },
   { prefix: '/brain-knowledge', permission: 'ai.read' },
+  { prefix: '/brain-reasoning', permission: 'ai.read' },
   { prefix: '/ai', permission: 'ai.read' },
   { prefix: '/dev', permission: 'platform.users.manage' },
 ]

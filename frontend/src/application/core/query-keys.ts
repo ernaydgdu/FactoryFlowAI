@@ -139,6 +139,16 @@ export const applicationQueryKeys = {
     kpis: () => [...applicationQueryKeys.brainKnowledge.all, 'kpis'] as const,
     neighbors: (id: string) => [...applicationQueryKeys.brainKnowledge.all, 'neighbors', id] as const,
   },
+  brainReasoning: {
+    all: ['brain-reasoning'] as const,
+    run: () => [...applicationQueryKeys.brainReasoning.all, 'run'] as const,
+    coverage: () => [...applicationQueryKeys.brainReasoning.all, 'coverage'] as const,
+    facts: () => [...applicationQueryKeys.brainReasoning.all, 'facts'] as const,
+    rules: () => [...applicationQueryKeys.brainReasoning.all, 'rules'] as const,
+    constraints: () => [...applicationQueryKeys.brainReasoning.all, 'constraints'] as const,
+    decisions: () => [...applicationQueryKeys.brainReasoning.all, 'decisions'] as const,
+    recommendations: () => [...applicationQueryKeys.brainReasoning.all, 'recommendations'] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,
