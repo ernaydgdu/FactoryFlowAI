@@ -143,6 +143,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: '/commercial-documents', permission: 'shipping.read' },
   { prefix: '/shipping', permission: 'shipping.read' },
   { prefix: '/finance-integration', permission: 'finance.read' },
+  { prefix: '/cost-closing', permission: 'finance.read' },
   { prefix: '/cost', permission: 'cost.read' },
   { prefix: '/reports', permission: 'reports.read' },
   { prefix: '/ai', permission: 'ai.read' },

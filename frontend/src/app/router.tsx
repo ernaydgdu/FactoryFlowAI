@@ -355,6 +355,31 @@ const FinanceGlMappingPage = lazyPage(
   'FinanceGlMappingPage',
 )
 
+const CostClosingLayout = lazyPage(
+  () => import('@/modules/cost-closing/layout/CostClosingLayout'),
+  'CostClosingLayout',
+)
+const CostClosingDashboardPage = lazyPage(
+  () => import('@/modules/cost-closing/pages/CostClosingPages'),
+  'CostClosingDashboardPage',
+)
+const CostClosingDetailPage = lazyPage(
+  () => import('@/modules/cost-closing/pages/CostClosingPages'),
+  'CostClosingDetailPage',
+)
+const CostClosingVariancePage = lazyPage(
+  () => import('@/modules/cost-closing/pages/CostClosingPages'),
+  'CostClosingVariancePage',
+)
+const CostClosingReconciliationPage = lazyPage(
+  () => import('@/modules/cost-closing/pages/CostClosingPages'),
+  'CostClosingReconciliationPage',
+)
+const CostClosingHistoryPage = lazyPage(
+  () => import('@/modules/cost-closing/pages/CostClosingPages'),
+  'CostClosingHistoryPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -655,6 +680,15 @@ export function AppRouter() {
           <Route path="results" element={<L><FinancePostingResultPage /></L>} />
           <Route path="failed" element={<L><FinanceFailedPostingPage /></L>} />
           <Route path="gl-mapping" element={<L><FinanceGlMappingPage /></L>} />
+        </Route>
+
+        <Route path="/cost-closing" element={<L><CostClosingLayout /></L>}>
+          <Route index element={<Navigate to="/cost-closing/dashboard" replace />} />
+          <Route path="dashboard" element={<L><CostClosingDashboardPage /></L>} />
+          <Route path="batches/:costClosingId" element={<L><CostClosingDetailPage /></L>} />
+          <Route path="variance" element={<L><CostClosingVariancePage /></L>} />
+          <Route path="reconciliation" element={<L><CostClosingReconciliationPage /></L>} />
+          <Route path="history" element={<L><CostClosingHistoryPage /></L>} />
         </Route>
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
         <Route path="/reports" element={<L><ReportsPage /></L>} />

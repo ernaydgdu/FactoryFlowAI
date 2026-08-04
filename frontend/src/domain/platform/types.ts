@@ -59,7 +59,12 @@ export type AuditLogEntry = {
 
 export type ApprovalStepStatus = 'Pending' | 'Approved' | 'Rejected' | 'Skipped'
 
-export type ApprovalWorkflowType = 'BOM' | 'ProductCard' | 'CostSheet' | 'ProductionRoute'
+export type ApprovalWorkflowType =
+  | 'BOM'
+  | 'ProductCard'
+  | 'CostSheet'
+  | 'ProductionRoute'
+  | 'CostClosing'
 
 export type ApprovalStep = {
   id: string

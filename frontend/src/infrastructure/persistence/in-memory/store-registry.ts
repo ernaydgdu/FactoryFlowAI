@@ -25,6 +25,7 @@ import type {
   PersistedExportDocumentSet,
   PersistedExportShipment,
   PersistedAccountingIntegration,
+  PersistedCostClosing,
   PersistedQualityGateEvaluation,
   PersistedSalesOrder,
   PersistedSplitExecution,
@@ -107,6 +108,9 @@ export class InMemoryStoreRegistry {
   accountingFinancialPeriods: FinancialPeriod[] = []
   accountingCostCenters: CostCenter[] = []
   accountingProfitCenters: ProfitCenter[] = []
+
+  costClosings: PersistedCostClosing[] = []
+  costClosingCounter = 0
 
   stockCards: PersistedStockCard[] = []
 

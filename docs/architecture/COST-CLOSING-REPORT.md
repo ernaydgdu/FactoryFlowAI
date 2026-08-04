@@ -1,70 +1,84 @@
-# Cost Closing Report — GAP Analysis
+# COST-CLOSING-REPORT.md — Phase 7 Module 2
 
-**Generated:** 2026-08-03
+**Updated:** 2026-08-04
 
----
+## Status
 
-## Executive Summary
-
-Kepler'de maliyet **hesaplama demo** var (`cost-calculator`, `textile-costing-service`); **cost closing** (variance, lock, approval) yok. Style close'un Cost/Margin Complete gate'leri çalışamaz.
+**Implemented (In-Memory Runtime)** — `CostClosing` manufacturing financial completion layer over Product Card / BOM / Production / Inventory / Shipment / Commercial Documents / Finance Integration.
 
 ---
 
-## Mevcut Durum
+## Architecture Decision Record (ADR)
 
-| Bileşen | Konum | Tip |
-|---------|-------|-----|
-| `calculateOrderCost()` | `cost-calculator.ts` | Synthetic formula |
-| `calculateTextileCostBreakdown()` | `textile-costing-service.ts` | Rich breakdown |
-| `CostAnalysisPage` | `MiscPages.tsx` | Read ORDER_COSTS seed |
-| Cost relations | `cost-relations.ts` | Enterprise graph |
-| Brain feed | `textile-entity-registry.ts` | Snapshot only |
+**Decision:** Introduce `CostClosing` as a dedicated aggregate with `ICostClosingRepository`. Closing gates and variances are computed via **read-only queries** to existing aggregates. Approval reuses platform `ApprovalWorkflow` with additive type `CostClosing`.
 
-**No:** planned vs actual, variance buckets, cost lock, approval workflow.
+**Why:** SAP CO / Oracle Cost Management / D365 Cost Accounting maturity needs period-aware close, variance, revaluation, and immutable Closed state — without rewriting Finance Integration or operational modules.
+
+**PostgreSQL-ready:** coded aggregate port + counter; cutover `TD-PG-01`.
 
 ---
 
-## Cost Closing Süreçleri
+## Delivered
 
-| Süreç | Tier-1 | Kepler | P |
-|-------|--------|--------|---|
-| Planned Cost | Standard cost at SO confirm | ⚠️ MRP-based estimate | P0 |
-| Actual Cost | Posted from prod/purchasing | ❌ | P0 |
-| Cost Variance | Plan vs actual | ❌ | P0 |
-| Material Variance | BOM actual vs plan | ❌ | P0 |
-| Labor Variance | SMV × rate vs actual | ⚠️ Fixed qty×rate | P0 |
-| Overhead Variance | OH allocation | ⚠️ Static overhead | P1 |
-| Final Margin | Revenue − actual cost | ⚠️ Demo margin % | P0 |
-| Cost Approval | Finance sign-off | ❌ | P1 |
-| Cost Lock | No further postings | ❌ | P0 |
+| Capability | Implementation |
+|------------|----------------|
+| Aggregate | CostClosing batch + variances + revaluation + reconciliation + closing result |
+| Lifecycle | Open → Calculating → Reconciling → Approved → Closed (immutable) |
+| Gates | Production, FG, Shipment (where applicable), Commercial docs, Accounting postings, Inventory recon, no open PO/GR |
+| Reverse | Allowed until Approved |
+| Idempotent | Create/transitions by idempotencyKey + salesOrder uniqueness |
+| IAM | `finance.write` on commands; route `finance.read` |
+| Approval | Platform workflow `CostClosing` |
+| Brain / Twin | Variance + anomaly read model; `COST_CLOSING` nodes |
+| UI | Dashboard, Variance, Reconciliation, Detail (approval timeline), History |
+| Validate | `validate:cost-closing` in build |
 
----
+## Technical Debt
 
-## Style Close Entegrasyonu
+| ID | Item |
+|----|------|
+| TD-PG-01 | Postgres cutover |
+| TD-CO-01 | Actual labor capture from shop-floor time tickets |
+| TD-CO-02 | Multi-level BOM rollup / WIP layers |
+| TD-FX-01 | Multi-currency close |
 
-```
-Cost Calculation Complete = all cost elements posted
-Margin Calculation Complete = selling price − locked actual cost
-Cost Lock = block new material/labor postings to style
-```
+## Performance Review
 
-Kepler `OrderCostBreakdown` fields: fabric, accessory, labor, embroidery, print, washing, waste, logistics, overhead, cm, fob — **planned only, no actuals ledger**.
+- Gate eval: filtered lists by salesOrderId
+- Dashboard cursor limit 500
+- Twin: max 5 closings per order
+- RQ scoped to `costClosing.*`
 
----
+## Security Review
 
-## Öncelik
+- Command-path `finance.write`
+- Approval workflow actor from IAM
+- Audit + outbox on every persist
+- Closed immutable
 
-| ID | Gap | P |
-|----|-----|---|
-| CC-P0-01 | Planned vs Actual cost model | P0 |
-| CC-P0-02 | Variance engine (material/labor) | P0 |
-| CC-P0-03 | Cost lock on style close | P0 |
-| CC-P1-01 | Overhead variance | P1 |
-| CC-P1-02 | Cost approval workflow | P1 |
-| CC-P2-01 | Standard cost roll-up from BOM | P2 |
+## AI Readiness
 
----
+- Cost variance read model
+- Profitability insight
+- Closing anomaly events (score ≥ 40)
+- Twin `COST_CLOSING`
+- Brain dashboard surface
 
-## Sonuç
+## Tier-1 GAP (SAP CO / Oracle / D365 / Infor)
 
-Maliyet **analitik demo**; cost closing **9/9 süreç eksik** (kısmi planned estimate hariç).
+| Capability | Status |
+|------------|--------|
+| Cost close batch + variance | ✅ |
+| Gate-based close | ✅ |
+| Immutable closed | ✅ |
+| Actual activity-based costing | ❌ |
+| Parallel/ledger valuation areas | ❌ |
+| External CO adapter | ❌ |
+
+## Freeze
+
+Completed modules **not rewritten**; Finance Integration / Inventory / Shipment / etc. reused via queries.
+
+## Gates
+
+`validate:cost-closing` in build pipeline.

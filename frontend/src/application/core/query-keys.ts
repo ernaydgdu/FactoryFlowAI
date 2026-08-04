@@ -101,6 +101,14 @@ export const applicationQueryKeys = {
     periods: () => [...applicationQueryKeys.financeIntegration.all, 'periods'] as const,
     brain: () => [...applicationQueryKeys.financeIntegration.all, 'brain'] as const,
   },
+  costClosing: {
+    all: ['cost-closing'] as const,
+    dashboard: () => [...applicationQueryKeys.costClosing.all, 'dashboard'] as const,
+    lists: () => [...applicationQueryKeys.costClosing.all, 'lists'] as const,
+    detail: (id: string) => [...applicationQueryKeys.costClosing.all, 'detail', id] as const,
+    history: () => [...applicationQueryKeys.costClosing.all, 'history'] as const,
+    brain: () => [...applicationQueryKeys.costClosing.all, 'brain'] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,
