@@ -24,6 +24,7 @@ export type FactoryGraphNodeType =
   | 'PRODUCTION_ORDER'
   | 'PACKING_LIST'
   | 'EXPORT_DOCUMENT_SET'
+  | 'EXPORT_SHIPMENT'
   | 'SHIPMENT'
   | 'QUALITY_INSPECTION'
   | 'TIMELINE_EVENT'

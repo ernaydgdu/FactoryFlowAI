@@ -82,6 +82,13 @@ export const applicationQueryKeys = {
     aiValidation: (id: string) =>
       [...applicationQueryKeys.commercialDocuments.all, 'ai-validation', id] as const,
   },
+  exportLogistics: {
+    all: ['export-logistics'] as const,
+    dashboard: () => [...applicationQueryKeys.exportLogistics.all, 'dashboard'] as const,
+    lists: () => [...applicationQueryKeys.exportLogistics.all, 'lists'] as const,
+    detail: (id: string) => [...applicationQueryKeys.exportLogistics.all, 'detail', id] as const,
+    brain: () => [...applicationQueryKeys.exportLogistics.all, 'brain'] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,

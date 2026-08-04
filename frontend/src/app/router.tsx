@@ -305,6 +305,27 @@ const CommercialDocumentsIssueWizardPage = lazyPage(
   'CommercialDocumentsIssueWizardPage',
 )
 
+const ExportLogisticsLayout = lazyPage(
+  () => import('@/modules/export-logistics/layout/ExportLogisticsLayout'),
+  'ExportLogisticsLayout',
+)
+const ExportLogisticsDashboardPage = lazyPage(
+  () => import('@/modules/export-logistics/pages/ExportLogisticsPages'),
+  'ExportLogisticsDashboardPage',
+)
+const ExportShipmentBoardPage = lazyPage(
+  () => import('@/modules/export-logistics/pages/ExportLogisticsPages'),
+  'ExportShipmentBoardPage',
+)
+const ExportShipmentDetailPage = lazyPage(
+  () => import('@/modules/export-logistics/pages/ExportLogisticsPages'),
+  'ExportShipmentDetailPage',
+)
+const ExportDispatchWizardPage = lazyPage(
+  () => import('@/modules/export-logistics/pages/ExportLogisticsPages'),
+  'ExportDispatchWizardPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -587,6 +608,14 @@ export function AppRouter() {
           <Route path="sets" element={<L><ExportDocumentSetListPage /></L>} />
           <Route path="sets/:documentSetId" element={<L><ExportDocumentSetDetailPage /></L>} />
           <Route path="issue" element={<L><CommercialDocumentsIssueWizardPage /></L>} />
+        </Route>
+
+        <Route path="/export-logistics" element={<L><ExportLogisticsLayout /></L>}>
+          <Route index element={<Navigate to="/export-logistics/dashboard" replace />} />
+          <Route path="dashboard" element={<L><ExportLogisticsDashboardPage /></L>} />
+          <Route path="board" element={<L><ExportShipmentBoardPage /></L>} />
+          <Route path="board/:exportShipmentId" element={<L><ExportShipmentDetailPage /></L>} />
+          <Route path="dispatch" element={<L><ExportDispatchWizardPage /></L>} />
         </Route>
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
         <Route path="/reports" element={<L><ReportsPage /></L>} />

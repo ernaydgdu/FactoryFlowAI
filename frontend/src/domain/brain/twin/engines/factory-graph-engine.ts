@@ -19,6 +19,7 @@ import { getAllTimelineEntries } from '../../../platform/services/timeline-servi
 import { buildEnterpriseRelationGraph } from '../../../enterprise/relation-graph-service'
 import { queryPackingListsBySalesOrderId } from '../../../packaging/packing-list-query.service'
 import { queryAllExportDocumentSets } from '../../../commercial-documents/commercial-documents-query.service'
+import { queryAllExportShipments } from '../../../export-logistics/export-logistics-query.service'
 import type { BrainContext, BrainKnowledgeSnapshot } from '../../types'
 import type {
   FactoryGraph,
@@ -323,6 +324,29 @@ export function buildFactoryGraph(
       addEdge(orderId, edsId, 'CONTAINS', 'WORKFLOW')
       addEdge(`shipment-${order.id}`, edsId, 'SHIPS_TO', 'WORKFLOW')
     }
+
+    const exportOrch = queryAllExportShipments()
+      .filter((e) => e.salesOrderId === order.id)
+      .slice(0, 5)
+    for (const exs of exportOrch) {
+      const exsId = addNode({
+        id: `export-shipment-${exs.id}`,
+        type: 'EXPORT_SHIPMENT',
+        label: `${exs.exportShipmentNo} · ${exs.status}`,
+        entityId: exs.id,
+        sourceId: 'WORKFLOW',
+        attributes: {
+          status: exs.status,
+          customsStatus: exs.customsStatus,
+          delayRiskScore: exs.delayRiskScore,
+          predictedDelayDays: exs.predictedDelayDays,
+          riskFlags: exs.riskFlags,
+        },
+        dataQuality: exs.status === 'Closed' ? 'COMPLETE' : 'PARTIAL',
+      })
+      addEdge(orderId, exsId, 'CONTAINS', 'WORKFLOW')
+      addEdge(`shipment-${order.id}`, exsId, 'SHIPS_TO', 'WORKFLOW')
+    }
   }
 
   for (const card of STOCK_CARDS.slice(0, 5)) {
@@ -412,6 +436,7 @@ function mapEnterpriseTypeToFactory(entityType: string): FactoryGraphNode['type'
     PURCHASE_ORDER: 'PURCHASE_ORDER',
     PACKING_LIST: 'PACKING_LIST',
     EXPORT_DOCUMENT_SET: 'EXPORT_DOCUMENT_SET',
+    EXPORT_SHIPMENT: 'EXPORT_SHIPMENT',
     CUSTOMER: 'CUSTOMER',
     SUPPLIER: 'SUPPLIER',
     BOM: 'BOM',
