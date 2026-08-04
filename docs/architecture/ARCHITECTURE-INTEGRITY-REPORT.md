@@ -1,16 +1,12 @@
-# ARCHITECTURE-INTEGRITY-REPORT.md — Phase 5 Module 1
-
-## Architecture Drift
+# ARCHITECTURE-INTEGRITY-REPORT.md — Phase 5 Module 2 (Quality)
 
 | Check | Result |
 |-------|--------|
-| New aggregate / persistence port | **None** |
-| Bootstrap / seed chain changed | **No** |
-| Business rules changed | **No** (BR-05/BR-08 reused) |
-| Execution Platform aggregate boundaries | **Unchanged** |
-| Demo arrays used for MES writes | **No** — repository-backed only |
-| Constitution (layers / Stock Ledger SSOT) | **Respected** — FG via `persistFinishedGoodsReceipt` |
+| New persistence port / aggregate | **None** — reuses `qualityGateEvaluations` + execution events + bundles |
+| Shop Floor aggregate changed | **No** |
+| Production Order aggregate changed | **No** |
+| Business rules changed | **No** |
+| Bootstrap / seed chain | **Unchanged** |
+| Layer stack (domain → application → UI) | **Respected** |
 
-## Drift verdict
-
-**No constitutional drift.** Shop Floor is additive application + UI over frozen execution/inventory/PO ports.
+**Drift verdict:** No constitutional drift. Quality Management is an additive read/command layer over the frozen quality-gate stream.

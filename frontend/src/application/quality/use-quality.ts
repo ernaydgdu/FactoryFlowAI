@@ -49,6 +49,21 @@ export function useQcPlanSteps() {
   })
 }
 
+export function useNcrDetail(ncrId: string) {
+  return useQuery({
+    queryKey: applicationQueryKeys.quality.ncrDetail(ncrId),
+    queryFn: () => qualityApplicationService.query.ncrDetail(ncrId),
+    enabled: !!ncrId,
+  })
+}
+
+export function useQualityTimeline(productionOrderNo = '') {
+  return useQuery({
+    queryKey: applicationQueryKeys.quality.timeline(productionOrderNo || 'all'),
+    queryFn: () => qualityApplicationService.query.timeline(productionOrderNo || undefined),
+  })
+}
+
 export function useInspectionMutation() {
   const qc = useQueryClient()
   return useMutation({

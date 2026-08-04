@@ -81,3 +81,45 @@ export function getQualityDashboardKpis() {
           ),
   }
 }
+
+const QUALITY_EVENT_TYPES = new Set([
+  'QualityPassed',
+  'QualityRejected',
+  'QualityReworked',
+  'QualityGateEvaluated',
+  'ReworkCompleted',
+  'BundleOnHold',
+])
+
+export type QualityTimelineItem = {
+  id: string
+  occurredAt: string
+  eventType: string
+  title: string
+  description: string
+  actor: string
+  productionOrderNo: string
+  operationCode: string | null
+  bundleId: string | null
+}
+
+/** Quality Timeline — execution event stream'den kalite olayları. */
+export function listQualityTimeline(productionOrderNo?: string): QualityTimelineItem[] {
+  return getAllExecutionTimelineEvents()
+    .filter((e) => QUALITY_EVENT_TYPES.has(e.eventType))
+    .filter((e) => !productionOrderNo || e.productionOrderNo === productionOrderNo)
+    .slice()
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+    .slice(0, 150)
+    .map((e) => ({
+      id: e.id,
+      occurredAt: e.occurredAt,
+      eventType: e.eventType,
+      title: e.title,
+      description: e.description,
+      actor: e.actor,
+      productionOrderNo: e.productionOrderNo,
+      operationCode: e.operationCode ?? null,
+      bundleId: e.bundleId ?? null,
+    }))
+}

@@ -59,6 +59,8 @@ export const applicationQueryKeys = {
     reworkQueue: () => [...applicationQueryKeys.quality.all, 'rework-queue'] as const,
     holdQueue: () => [...applicationQueryKeys.quality.all, 'hold-queue'] as const,
     plan: () => [...applicationQueryKeys.quality.all, 'plan'] as const,
+    ncrDetail: (id: string) => [...applicationQueryKeys.quality.all, 'ncr', id] as const,
+    timeline: (po: string) => [...applicationQueryKeys.quality.all, 'timeline', po] as const,
   },
   shopFloor: {
     all: ['shop-floor'] as const,

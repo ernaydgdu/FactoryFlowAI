@@ -38,6 +38,10 @@ export function listNcrRecords(): NcrRecord[] {
   )
 }
 
+export function getNcrById(ncrId: string): NcrRecord | null {
+  return listNcrRecords().find((n) => n.id === ncrId) ?? null
+}
+
 /** CAPA iskeleti — yalnızca öneri üretir, persist etmez. */
 export function planCapaForNcr(ncrId: string, owner?: string, dueDate?: string): CapaPlan {
   const ncr = listNcrRecords().find((n) => n.id === ncrId)

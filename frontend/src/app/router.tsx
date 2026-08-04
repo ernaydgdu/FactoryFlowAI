@@ -232,6 +232,14 @@ const QualityHoldQueuePage = lazyPage(
   () => import('@/modules/quality-management/pages/QualityManagementPages'),
   'QualityHoldQueuePage',
 )
+const QualityNcrDetailPage = lazyPage(
+  () => import('@/modules/quality-management/pages/QualityManagementPages'),
+  'QualityNcrDetailPage',
+)
+const QualityTimelinePage = lazyPage(
+  () => import('@/modules/quality-management/pages/QualityManagementPages'),
+  'QualityTimelinePage',
+)
 
 const ExecutionPlatformLayout = lazyPage(
   () => import('@/modules/execution-platform/layout/ExecutionPlatformLayout'),
@@ -395,6 +403,8 @@ export function AppRouter() {
           <Route path="inspection" element={<L><QualityInspectionPage /></L>} />
           <Route path="rework" element={<L><QualityReworkQueuePage /></L>} />
           <Route path="hold" element={<L><QualityHoldQueuePage /></L>} />
+          <Route path="timeline" element={<L><QualityTimelinePage /></L>} />
+          <Route path="ncr/:ncrId" element={<L><QualityNcrDetailPage /></L>} />
         </Route>
 
         <Route path="/quality" element={<L><QualityHubPage /></L>} />

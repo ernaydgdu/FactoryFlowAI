@@ -83,7 +83,8 @@ function extractRoutes() {
         .replace(':productId', '1')
         .replace(':id', '1')
         .replace(':entityPath', 'suppliers')
-        .replace(':code', 'HMD-01'),
+        .replace(':code', 'HMD-01')
+        .replace(':ncrId', 'NCR-1'),
     )
     .sort()
 }

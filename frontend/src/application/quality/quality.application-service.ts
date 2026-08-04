@@ -10,7 +10,9 @@ import {
   mapCapaPlan,
   mapHoldQueue,
   mapInspectionList,
+  mapNcrDetail,
   mapQualityDashboard,
+  mapQualityTimeline,
   mapReworkQueue,
 } from './quality.mapper'
 import { listQcPlanSteps } from '@/domain/quality/qc-plan.service'
@@ -23,6 +25,8 @@ export const qualityApplicationService = {
     holdQueue: mapHoldQueue,
     qcPlanSteps: listQcPlanSteps,
     capaPlan: mapCapaPlan,
+    ncrDetail: mapNcrDetail,
+    timeline: mapQualityTimeline,
   },
   command: {
     inspection: executeInspection,

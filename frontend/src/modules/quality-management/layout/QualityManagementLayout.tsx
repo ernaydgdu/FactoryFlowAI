@@ -7,6 +7,7 @@ const SUB_NAV = [
   { label: 'Muayene', href: '/quality-management/inspection' },
   { label: 'Rework Queue', href: '/quality-management/rework' },
   { label: 'Hold Queue', href: '/quality-management/hold' },
+  { label: 'Timeline', href: '/quality-management/timeline' },
 ]
 
 export function QualityManagementLayout() {

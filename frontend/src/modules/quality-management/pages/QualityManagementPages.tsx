@@ -3,6 +3,7 @@
  * Kaynak: qualityGateEvaluations stream + Bundle OnHold (yeni aggregate yok).
  */
 import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 
 import { useShopFloorContexts } from '@/application/shop-floor/use-shop-floor'
 import {
@@ -10,14 +11,15 @@ import {
   useCompleteReworkMutation,
   useHoldMutation,
   useHoldQueue,
+  useNcrDetail,
   useQcPlanSteps,
   useQualityDashboard,
   useQualityInspections,
+  useQualityTimeline,
   useRejectMutation,
   useReworkMutation,
   useReworkQueue,
 } from '@/application/quality/use-quality'
-import { mapCapaPlan } from '@/application/quality/quality.mapper'
 import { DataTable, ErpModuleShell, StatusBadge } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -54,8 +56,6 @@ function PoSelect({
 
 export function QualityDashboardPage() {
   const { data, isLoading } = useQualityDashboard()
-  const [capaNcr, setCapaNcr] = useState('')
-  const capa = capaNcr ? mapCapaPlan(capaNcr, ACTOR) : null
 
   if (isLoading) return <div className="p-8 text-muted-foreground">Yükleniyor…</div>
   if (!data) return null
@@ -100,7 +100,7 @@ export function QualityDashboardPage() {
           <CardHeader>
             <CardTitle className="text-base">NCR Kayıtları (Reject / Hold / Scrap)</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             <DataTable
               rowKey={(r) => r.id}
               data={data.ncrs}
@@ -109,9 +109,9 @@ export function QualityDashboardPage() {
                   key: 'id',
                   header: 'NCR',
                   render: (r) => (
-                    <button type="button" className="underline" onClick={() => setCapaNcr(r.id)}>
+                    <Link className="underline" to={`/quality-management/ncr/${r.id}`}>
                       {r.id}
-                    </button>
+                    </Link>
                   ),
                 },
                 { key: 'po', header: 'UE', render: (r) => r.productionOrderNo },
@@ -121,25 +121,6 @@ export function QualityDashboardPage() {
                 { key: 'at', header: 'Açılış', render: (r) => r.openedAt },
               ]}
             />
-            {capa && (
-              <div className="rounded-md border p-3 text-sm">
-                <p className="font-medium">CAPA İskeleti — {capa.ncrId}</p>
-                {capa.valid ? (
-                  <ul className="mt-1 list-disc pl-5 text-muted-foreground">
-                    {capa.proposedActions.map((a) => (
-                      <li key={a}>{a}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <ul className="mt-1 text-destructive">
-                    {capa.errors.map((e) => (
-                      <li key={e}>● {e}</li>
-                    ))}
-                  </ul>
-                )}
-                <p className="mt-2 text-xs text-muted-foreground">Persist yok — plan önerisi.</p>
-              </div>
-            )}
           </CardContent>
         </Card>
         <Card>
@@ -155,7 +136,18 @@ export function QualityDashboardPage() {
                 { key: 'op', header: 'Op', render: (r) => r.operationCode },
                 { key: 'g', header: 'Gate', render: (r) => r.gateType },
                 { key: 'd', header: 'Sonuç', render: (r) => <StatusBadge {...r.disposition} /> },
-                { key: 'ncr', header: 'NCR', render: (r) => r.ncrId },
+                {
+                  key: 'ncr',
+                  header: 'NCR',
+                  render: (r) =>
+                    r.ncrId !== '—' ? (
+                      <Link className="underline" to={`/quality-management/ncr/${r.ncrId}`}>
+                        {r.ncrId}
+                      </Link>
+                    ) : (
+                      '—'
+                    ),
+                },
                 { key: 'at', header: 'Zaman', render: (r) => r.evaluatedAt },
               ]}
             />
@@ -319,6 +311,127 @@ export function QualityHoldQueuePage() {
             { key: 'op', header: 'Op', render: (r) => r.currentOperationCode },
             { key: 'qty', header: 'Adet', render: (r) => r.pieceCount },
             { key: 'r', header: 'Neden', render: (r) => r.reasonCode },
+          ]}
+        />
+      </div>
+    </ErpModuleShell>
+  )
+}
+
+export function QualityNcrDetailPage() {
+  const { ncrId = '' } = useParams<{ ncrId: string }>()
+  const { data: detail, isLoading } = useNcrDetail(ncrId)
+
+  if (isLoading) return <div className="p-8 text-muted-foreground">Yükleniyor…</div>
+  if (!detail) {
+    return (
+      <ErpModuleShell title="NCR Bulunamadı" description={ncrId} kpis={[]}>
+        <div className="p-8">
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/quality-management/dashboard">Dashboard&apos;a dön</Link>
+          </Button>
+        </div>
+      </ErpModuleShell>
+    )
+  }
+
+  return (
+    <ErpModuleShell
+      title={`NCR — ${detail.id}`}
+      description={`${detail.productionOrderNo} · ${detail.operationCode} · ${detail.disposition}`}
+      kpis={[
+        { label: 'Durum', value: detail.status.label, hint: detail.gateType },
+        { label: 'Bundle', value: detail.bundleId, hint: '' },
+        { label: 'Evaluation', value: detail.evaluationId, hint: 'Gate stream' },
+        { label: 'Açan', value: detail.openedBy, hint: detail.openedAt },
+      ]}
+    >
+      <div className="p-4 pt-6 space-y-4">
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/quality-management/dashboard">← Dashboard</Link>
+        </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">NCR Detay</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-1">
+            <p>
+              <StatusBadge {...detail.status} /> · {detail.disposition} @ {detail.gateType}
+            </p>
+            <p className="text-muted-foreground">Notlar: {detail.notes}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">CAPA İskeleti (persist yok)</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {detail.capa.valid ? (
+              <ul className="list-disc pl-5 text-muted-foreground">
+                {detail.capa.proposedActions.map((a) => (
+                  <li key={a}>{a}</li>
+                ))}
+              </ul>
+            ) : (
+              <ul className="text-destructive">
+                {detail.capa.errors.map((e) => (
+                  <li key={e}>● {e}</li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">İlişkili Quality Timeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              rowKey={(r) => r.id}
+              data={detail.relatedTimeline}
+              columns={[
+                { key: 't', header: 'Zaman', render: (r) => r.occurredAt },
+                { key: 'e', header: 'Olay', render: (r) => r.eventType },
+                { key: 'title', header: 'Başlık', render: (r) => r.title },
+                { key: 'a', header: 'Aktör', render: (r) => r.actor },
+              ]}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    </ErpModuleShell>
+  )
+}
+
+export function QualityTimelinePage() {
+  const { data: contexts } = useShopFloorContexts()
+  const [po, setPo] = useState('')
+  const { data: timeline, isLoading } = useQualityTimeline(po)
+
+  if (isLoading) return <div className="p-8 text-muted-foreground">Yükleniyor…</div>
+
+  return (
+    <ErpModuleShell
+      title="Quality Timeline"
+      description="Kalite olayları — execution event stream (QualityPassed/Rejected/Reworked/Hold)"
+      kpis={[{ label: 'Olay', value: String(timeline?.length ?? 0), hint: po || 'Tümü' }]}
+    >
+      <div className="p-4 pt-6 space-y-3">
+        <PoSelect value={po} onChange={setPo} />
+        <p className="text-xs text-muted-foreground">
+          Boş bırakılırsa tüm UE kalite olayları listelenir. Context sayısı: {contexts?.length ?? 0}
+        </p>
+        <DataTable
+          rowKey={(r) => r.id}
+          data={timeline ?? []}
+          columns={[
+            { key: 't', header: 'Zaman', render: (r) => r.occurredAt },
+            { key: 'po', header: 'UE', render: (r) => r.productionOrderNo },
+            { key: 'e', header: 'Olay', render: (r) => r.eventType },
+            { key: 'title', header: 'Başlık', render: (r) => r.title },
+            { key: 'op', header: 'Op', render: (r) => r.operationCode },
+            { key: 'b', header: 'Bundle', render: (r) => r.bundleId },
+            { key: 'a', header: 'Aktör', render: (r) => r.actor },
           ]}
         />
       </div>

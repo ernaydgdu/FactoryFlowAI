@@ -75,3 +75,31 @@ export type CapaPlanDto = {
   valid: boolean
   errors: string[]
 }
+
+export type NcrDetailDto = {
+  id: string
+  productionOrderNo: string
+  operationCode: string
+  gateType: string
+  disposition: string
+  status: StatusBadgeDto
+  openedAt: string
+  openedBy: string
+  bundleId: string
+  evaluationId: string
+  notes: string
+  capa: CapaPlanDto
+  relatedTimeline: { id: string; occurredAt: string; eventType: string; title: string; actor: string }[]
+}
+
+export type QualityTimelineRowDto = {
+  id: string
+  occurredAt: string
+  eventType: string
+  title: string
+  description: string
+  actor: string
+  productionOrderNo: string
+  operationCode: string
+  bundleId: string
+}

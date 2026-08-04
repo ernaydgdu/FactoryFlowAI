@@ -56,6 +56,7 @@ const router = read('src/app/router.tsx')
 const nav = read('src/config/navigation.ts')
 const pkg = read('package.json')
 const keys = read('src/application/core/query-keys.ts')
+const startup = read('scripts/startup-audit.mjs')
 
 check(insp.includes('evaluateQualityGate'), 'Domain: inspection uses existing quality gate stream')
 check(insp.includes('executeAcceptInspection'), 'Domain: Accept')
@@ -68,30 +69,35 @@ check(ncr.includes('planCapaForNcr'), 'Domain: CAPA skeleton')
 check(!ncr.includes('save(') && !ncr.includes('.append('), 'CAPA: plan-only skeleton, no persist')
 check(query.includes('listReworkQueue'), 'Domain: Rework Queue')
 check(query.includes('listHoldQueue'), 'Domain: Hold Queue')
+check(query.includes('listQualityTimeline'), 'Domain: Quality Timeline')
+check(ncr.includes('getNcrById'), 'Domain: NCR detail lookup')
 check(cmd.includes('executeInspection'), 'App: executeInspection')
 check(cmd.includes('executeAccept'), 'App: executeAccept')
 check(cmd.includes('executeReject'), 'App: executeReject')
 check(cmd.includes('executeRework'), 'App: executeRework')
+check(cmd.includes('executeHold'), 'App: executeHold')
 check(cmd.includes('runCommandInTransaction'), 'App: transaction wrapper')
 check(hooks.includes('useAcceptMutation'), 'Hook: accept')
 check(hooks.includes('useRejectMutation'), 'Hook: reject')
 check(hooks.includes('useReworkMutation'), 'Hook: rework')
 check(hooks.includes('useHoldMutation'), 'Hook: hold')
+check(hooks.includes('useNcrDetail'), 'Hook: NCR detail')
+check(hooks.includes('useQualityTimeline'), 'Hook: quality timeline')
 check(keys.includes('quality:'), 'Query keys: quality namespace')
 check(ui.includes('export function QualityDashboardPage'), 'UI: QC Dashboard')
 check(ui.includes('export function QualityInspectionPage'), 'UI: Inspection Screen')
 check(ui.includes('export function QualityReworkQueuePage'), 'UI: Rework Queue')
 check(ui.includes('export function QualityHoldQueuePage'), 'UI: Hold Queue')
+check(ui.includes('export function QualityNcrDetailPage'), 'UI: NCR Detail')
+check(ui.includes('export function QualityTimelinePage'), 'UI: Quality Timeline')
 check(router.includes('/quality-management'), 'Router: quality-management routes')
+check(router.includes('ncr/:ncrId'), 'Router: NCR detail route')
 check(nav.includes('Quality Management'), 'Navigation: Quality Management menu')
+check(startup.includes("':ncrId'"), 'Startup audit: :ncrId mapped')
 check(
   !exists('src/domain/ports/persistence/aggregates/ncr.repository.ts') &&
     !exists('src/domain/ports/persistence/aggregates/qc-plan.repository.ts'),
   'Architecture Freeze: no new aggregate port',
-)
-check(
-  !read('src/domain/shop-floor/production-declaration.service.ts').includes('Quality') || true,
-  'Shop Floor aggregate untouched (no quality edits required)',
 )
 check(pkg.includes('validate:quality'), 'Build: validate:quality in pipeline')
 

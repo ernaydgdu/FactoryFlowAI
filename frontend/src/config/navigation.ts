@@ -116,6 +116,7 @@ export const navGroups: NavGroup[] = [
       { title: 'Muayene', href: '/quality-management/inspection' },
       { title: 'Rework Queue', href: '/quality-management/rework' },
       { title: 'Hold Queue', href: '/quality-management/hold' },
+      { title: 'Quality Timeline', href: '/quality-management/timeline' },
     ],
   },
   {
@@ -254,6 +255,7 @@ export const routeTitles: Record<string, string> = {
   '/quality-management/inspection': 'Muayene',
   '/quality-management/rework': 'Rework Queue',
   '/quality-management/hold': 'Hold Queue',
+  '/quality-management/timeline': 'Quality Timeline',
   '/execution-platform/bundles': 'Bundle Board',
   '/execution-platform/operations': 'Operasyon Board',
   '/execution-platform/work-sessions': 'Work Session Monitor',
@@ -293,6 +295,9 @@ export function getRouteTitle(pathname: string): string {
   }
   if (pathname.startsWith('/production-order-lifecycle/orders/')) {
     return 'Üretim Emri Detay'
+  }
+  if (pathname.startsWith('/quality-management/ncr/')) {
+    return 'NCR Detay'
   }
   if (pathname.startsWith('/products/')) {
     return 'Ürün Kartı Detay'

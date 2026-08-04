@@ -1,10 +1,11 @@
 import type { StatusBadgeDto } from '@/application/core/types'
-import { listNcrRecords, planCapaForNcr } from '@/domain/quality/ncr-capa.service'
+import { getNcrById, listNcrRecords, planCapaForNcr } from '@/domain/quality/ncr-capa.service'
 import { listQcPlanCoverage, listQcPlanSteps } from '@/domain/quality/qc-plan.service'
 import {
   getQualityDashboardKpis,
   listAllGateEvaluations,
   listHoldQueue,
+  listQualityTimeline,
   listReworkQueue,
 } from '@/domain/quality/quality-query.service'
 import type { QualityGateDisposition } from '@/domain/execution-platform/execution-types'
@@ -13,8 +14,10 @@ import type {
   CapaPlanDto,
   HoldQueueRowDto,
   InspectionRowDto,
+  NcrDetailDto,
   NcrRowDto,
   QualityDashboardDto,
+  QualityTimelineRowDto,
   ReworkQueueRowDto,
 } from './quality.dto'
 
@@ -133,4 +136,54 @@ export function mapHoldQueue(): HoldQueueRowDto[] {
 
 export function mapCapaPlan(ncrId: string, owner?: string, dueDate?: string): CapaPlanDto {
   return planCapaForNcr(ncrId, owner, dueDate)
+}
+
+export function mapNcrDetail(ncrId: string): NcrDetailDto | null {
+  const ncr = getNcrById(ncrId)
+  if (!ncr) return null
+  const capa = planCapaForNcr(ncrId, 'quality-owner')
+  const relatedTimeline = listQualityTimeline(ncr.productionOrderNo)
+    .filter(
+      (t) =>
+        t.operationCode === ncr.operationCode ||
+        (ncr.bundleId != null && t.bundleId === ncr.bundleId) ||
+        t.title.includes(ncr.disposition),
+    )
+    .slice(0, 30)
+    .map((t) => ({
+      id: t.id,
+      occurredAt: t.occurredAt,
+      eventType: t.eventType,
+      title: t.title,
+      actor: t.actor,
+    }))
+  return {
+    id: ncr.id,
+    productionOrderNo: ncr.productionOrderNo,
+    operationCode: ncr.operationCode,
+    gateType: ncr.gateType,
+    disposition: ncr.disposition,
+    status: ncrStatusBadge(ncr.status),
+    openedAt: ncr.openedAt,
+    openedBy: ncr.openedBy,
+    bundleId: ncr.bundleId ?? '—',
+    evaluationId: ncr.evaluationId,
+    notes: ncr.notes ?? '—',
+    capa,
+    relatedTimeline,
+  }
+}
+
+export function mapQualityTimeline(productionOrderNo?: string): QualityTimelineRowDto[] {
+  return listQualityTimeline(productionOrderNo).map((t) => ({
+    id: t.id,
+    occurredAt: t.occurredAt,
+    eventType: t.eventType,
+    title: t.title,
+    description: t.description,
+    actor: t.actor,
+    productionOrderNo: t.productionOrderNo,
+    operationCode: t.operationCode ?? '—',
+    bundleId: t.bundleId ?? '—',
+  }))
 }
