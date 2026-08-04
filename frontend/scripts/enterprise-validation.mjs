@@ -34,6 +34,7 @@ const files = [
   'src/application/core/command-permission.ts',
   'src/domain/brain/enterprise-ai-foundation.ts',
   'src/domain/enterprise-hardening/enterprise-hardening-query.service.ts',
+  'src/application/enterprise-hardening/enterprise-hardening-observability.query.ts',
   'src/application/enterprise-hardening/enterprise-hardening.application-service.ts',
   'src/application/enterprise-hardening/use-enterprise-hardening.ts',
   'src/modules/enterprise-hardening/layout/EnterpriseHardeningLayout.tsx',
@@ -50,7 +51,8 @@ const cmdPerm = read('src/application/core/command-permission.ts')
 const pcGuard = read('src/application/product-card/product-card-permission.guard.ts')
 const poGuard = read('src/application/production-order-lifecycle/production-order-permission.guard.ts')
 const ai = read('src/domain/brain/enterprise-ai-foundation.ts')
-const query = read('src/domain/enterprise-hardening/enterprise-hardening-query.service.ts')
+const domainQuery = read('src/domain/enterprise-hardening/enterprise-hardening-query.service.ts')
+const appObs = read('src/application/enterprise-hardening/enterprise-hardening-observability.query.ts')
 const router = read('src/app/router.tsx')
 const nav = read('src/config/navigation.ts')
 const iam = read('src/domain/platform/iam/permission-policy.ts')
@@ -99,12 +101,29 @@ check(ai.includes('domainEventCatalog'), 'AI: domain event catalog')
 check(ai.includes('recommendations'), 'AI: recommendation surfaces')
 check(ai.includes('predictions'), 'AI: prediction surfaces')
 check(ai.includes('sideEffects: \'NONE\'') || ai.includes("sideEffects: 'NONE'"), 'AI: sideEffects NONE')
+check(ai.includes("eventType: 'OrderCreated'"), 'AI: catalog uses DomainEventType OrderCreated')
+check(!ai.includes('SalesOrderChanged'), 'AI: catalog has no invented SalesOrderChanged')
+check(ai.includes('DomainEventType'), 'AI: catalog typed against DomainEventType')
 
-check(query.includes('queryEnterpriseHealth'), 'Obs: health query')
-check(query.includes('queryBootstrapDiagnosticsDashboard'), 'Obs: bootstrap diagnostics')
-check(query.includes('queryPerformanceDashboard'), 'Obs: performance dashboard')
-check(query.includes('queryAuditDashboard'), 'Obs: audit dashboard')
-check(query.includes('queryReliabilityAudit'), 'Obs: reliability audit')
+check(!domainQuery.includes('@/infrastructure/'), 'Layer: domain enterprise-hardening has no infra imports')
+check(!domainQuery.includes('@/performance/'), 'Layer: domain enterprise-hardening has no performance imports')
+check(appObs.includes('queryEnterpriseHealth'), 'Obs: health query in application')
+check(appObs.includes('queryBootstrapDiagnosticsDashboard'), 'Obs: bootstrap diagnostics in application')
+check(appObs.includes('queryPerformanceDashboard'), 'Obs: performance dashboard in application')
+check(domainQuery.includes('queryAuditDashboard'), 'Obs: audit dashboard in domain')
+check(domainQuery.includes('queryReliabilityAudit'), 'Obs: reliability audit in domain')
+
+const poPersist = read('src/domain/production-order/lifecycle-persistence.ts')
+const stockCrud = read('src/domain/inventory/stock-ledger-crud.service.ts')
+check(poPersist.includes('expectedVersion'), 'OL: production-order save passes expectedVersion')
+check(stockCrud.includes('expectedVersion: existing.version'), 'OL: stock-ledger save passes expectedVersion')
+
+const execGuard = read('src/application/execution-platform/shared/execution-permission.guard.ts')
+const execMap = read('src/application/execution-platform/shared/kepler-execution-role.ts')
+check(execMap.includes('resolveTrustedExecutionRole'), 'Sec: Kepler→Execution role resolver')
+check(execGuard.includes('resolveTrustedExecutionRole'), 'Sec: execution guard uses trusted role')
+check(execGuard.includes("assertCommandPermission('execution.write')"), 'Sec: execution writes require execution.write')
+check(execGuard.includes('_ctx') || execGuard.includes('ignored'), 'Sec: client ExecutionRole not authoritative')
 
 check(router.includes('/enterprise'), 'Router: /enterprise')
 check(router.includes('EnterpriseHealthPage'), 'Router: health page')

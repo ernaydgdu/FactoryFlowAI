@@ -8,10 +8,13 @@ import type {
   ExecutionRole,
 } from '@/domain/execution-platform/execution-types'
 
+import { assertCommandPermission } from '@/application/core/command-permission'
 import { runCommandInTransaction } from '@/application/core/command-transaction'
+import { resolveTrustedExecutionRole } from './kepler-execution-role'
 
 export type ExecutionActorContext = {
   actor: string
+  /** @deprecated Ignored for authorization — Kepler session role is authoritative (TD-P0-04). */
   role: ExecutionRole
 }
 
@@ -31,12 +34,20 @@ export function checkExecutionPermission(
   return canPerformExecutionAction(role, action, resource)
 }
 
+/**
+ * Execution writes: require Kepler `execution.write`, then enforce Execution matrix
+ * using the session-mapped role (never the client-claimed role).
+ */
 export function runWithExecutionPermission<T>(
-  ctx: ExecutionActorContext,
+  _ctx: ExecutionActorContext,
   action: ExecutionPermissionAction,
   resource: ExecutionResourceType,
   fn: () => T,
 ): T {
-  guardExecutionPermission(ctx.role, action, resource)
-  return runCommandInTransaction(fn)
+  return runCommandInTransaction(() => {
+    assertCommandPermission('execution.write')
+    const trustedRole = resolveTrustedExecutionRole()
+    guardExecutionPermission(trustedRole, action, resource)
+    return fn()
+  })
 }

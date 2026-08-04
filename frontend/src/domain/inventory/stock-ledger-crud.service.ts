@@ -89,12 +89,16 @@ function saveLedgerMovement(
 ): InventoryMovementResult {
   const now = new Date().toISOString()
   const existing = ensureLedger(warehouseCode)
-  const saved = ledgerRepo().save(DEFAULT_TENANT_ID, {
-    ...existing,
-    balances: ledgerState.balances,
-    lastMovementNo: ledgerState.lastMovementNo,
-    updatedAt: now,
-  })
+  const saved = ledgerRepo().save(
+    DEFAULT_TENANT_ID,
+    {
+      ...existing,
+      balances: ledgerState.balances,
+      lastMovementNo: ledgerState.lastMovementNo,
+      updatedAt: now,
+    },
+    { expectedVersion: existing.version },
+  )
   appendMovement(saved.id, movement)
 
   logAudit(

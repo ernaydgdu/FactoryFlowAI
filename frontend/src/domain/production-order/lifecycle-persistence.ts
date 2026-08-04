@@ -21,6 +21,10 @@ export function saveLifecycleRecord(record: ProductionOrderLifecycleRecord): Pro
     updatedAt: now,
     deletedAt: null,
   }
-  productionOrderRepo().save(DEFAULT_TENANT_ID, persisted)
+  productionOrderRepo().save(
+    DEFAULT_TENANT_ID,
+    persisted,
+    existing ? { expectedVersion: existing.version } : undefined,
+  )
   return record
 }

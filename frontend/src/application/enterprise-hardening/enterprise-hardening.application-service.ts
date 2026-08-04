@@ -6,7 +6,7 @@ import {
   queryEnterpriseHealth,
   queryPerformanceDashboard,
   queryReliabilityAudit,
-} from '@/domain/enterprise-hardening/enterprise-hardening-query.service'
+} from './enterprise-hardening-observability.query'
 
 export const enterpriseHardeningApplicationService = {
   query: {

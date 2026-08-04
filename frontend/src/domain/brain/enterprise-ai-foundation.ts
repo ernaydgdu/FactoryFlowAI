@@ -10,6 +10,7 @@ import { buildFactoryGraph } from '@/domain/brain/twin/engines/factory-graph-eng
 import { assessDigitalTwinHealth } from '@/domain/brain/twin/engines/digital-twin-health-engine'
 import type { FactoryGraphNodeType } from '@/domain/brain/twin/types'
 import type { BrainContext, BrainKnowledgeSnapshot } from '@/domain/brain/types'
+import type { DomainEventType } from '@/domain/platform/types'
 
 export type BrainDomainReadModelRef = {
   domain: string
@@ -56,16 +57,28 @@ export type EnterpriseAiFoundationModel = {
   }
 }
 
-const EVENT_CATALOG: DomainEventCatalogEntry[] = [
-  { aggregate: 'SalesOrder', eventType: 'SalesOrderChanged', explainability: 'Outbox from sales/order lifecycle' },
-  { aggregate: 'AccountingIntegration', eventType: 'PostBatch', explainability: 'Finance posting audit+outbox' },
-  { aggregate: 'CostClosing', eventType: 'CloseCostClosing', explainability: 'CO close immutable transition' },
-  { aggregate: 'StyleClosing', eventType: 'CloseStyleClosing', explainability: 'Style close immutable transition' },
-  { aggregate: 'ExportShipment', eventType: 'TransitionExportShipment', explainability: 'Export logistics status log' },
-  { aggregate: 'PackingList', eventType: 'ConfirmPackingList', explainability: 'Packaging confirmation' },
-  { aggregate: 'ShipmentRecord', eventType: 'DispatchShipment', explainability: 'Shipment inventory bind' },
-  { aggregate: 'ProductionOrder', eventType: 'StatusTransition', explainability: 'Lifecycle status machine' },
-]
+/** Catalog ⊆ DomainEventType — must match platform/types + outbox-event-mapping (TD-P0-08). */
+const EVENT_CATALOG: DomainEventCatalogEntry[] = (
+  [
+    { aggregate: 'SalesOrder', eventType: 'OrderCreated', explainability: 'Sales order create → outbox brain/notification/ai-memory/dashboard' },
+    { aggregate: 'ProductCard', eventType: 'BomApproved', explainability: 'BOM approval → brain/digital-twin/ai-memory' },
+    { aggregate: 'PurchaseOrder', eventType: 'PurchaseCreated', explainability: 'Purchasing create event (default ai-memory handlers)' },
+    { aggregate: 'StockLedger', eventType: 'StockReceived', explainability: 'Inventory receipt event (default ai-memory handlers)' },
+    { aggregate: 'ProductionOrder', eventType: 'ProductionStarted', explainability: 'Production start → brain/dashboard/wip-refresh/digital-twin' },
+    { aggregate: 'ProductionOrder', eventType: 'ProductionFinished', explainability: 'Production finish → brain/dashboard/digital-twin' },
+    { aggregate: 'Shipment', eventType: 'ShipmentCompleted', explainability: 'Shipment complete → brain/notification/dashboard' },
+    { aggregate: 'EntityRevision', eventType: 'RevisionActivated', explainability: 'Revision activate → brain/digital-twin/ai-memory' },
+    { aggregate: 'ApprovalWorkflow', eventType: 'ApprovalSubmitted', explainability: 'Approval submit (default ai-memory handlers)' },
+    { aggregate: 'ApprovalWorkflow', eventType: 'ApprovalCompleted', explainability: 'Approval complete → brain/notification/ai-memory' },
+    { aggregate: 'Comment', eventType: 'CommentAdded', explainability: 'Comment stream (default ai-memory handlers)' },
+    { aggregate: 'EntityTag', eventType: 'TagApplied', explainability: 'Tag stream (default ai-memory handlers)' },
+    { aggregate: 'Platform', eventType: 'EntityUpdated', explainability: 'Generic entity update → brain/dashboard/ai-memory' },
+  ] as const satisfies ReadonlyArray<{
+    aggregate: string
+    eventType: DomainEventType
+    explainability: string
+  }>
+).map((e) => ({ ...e }))
 
 function foundationContext(): BrainContext {
   return {
