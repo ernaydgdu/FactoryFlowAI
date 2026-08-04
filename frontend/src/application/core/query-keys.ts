@@ -52,6 +52,14 @@ export const applicationQueryKeys = {
     finishedGoodsWarehouses: () =>
       [...applicationQueryKeys.warehouseManagement.all, 'fg-warehouses'] as const,
   },
+  quality: {
+    all: ['quality-management'] as const,
+    dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,
+    inspections: () => [...applicationQueryKeys.quality.all, 'inspections'] as const,
+    reworkQueue: () => [...applicationQueryKeys.quality.all, 'rework-queue'] as const,
+    holdQueue: () => [...applicationQueryKeys.quality.all, 'hold-queue'] as const,
+    plan: () => [...applicationQueryKeys.quality.all, 'plan'] as const,
+  },
   shopFloor: {
     all: ['shop-floor'] as const,
     contexts: () => [...applicationQueryKeys.shopFloor.all, 'contexts'] as const,

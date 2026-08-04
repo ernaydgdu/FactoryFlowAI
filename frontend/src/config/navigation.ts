@@ -109,6 +109,16 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    title: 'Quality Management',
+    icon: Factory,
+    items: [
+      { title: 'QC Dashboard', href: '/quality-management/dashboard' },
+      { title: 'Muayene', href: '/quality-management/inspection' },
+      { title: 'Rework Queue', href: '/quality-management/rework' },
+      { title: 'Hold Queue', href: '/quality-management/hold' },
+    ],
+  },
+  {
     title: 'Shop Floor (MES)',
     icon: Factory,
     items: [
@@ -240,6 +250,10 @@ export const routeTitles: Record<string, string> = {
   '/shop-floor/machines': 'Makine Durumu',
   '/shop-floor/labor': 'İşçilik Takibi',
   '/shop-floor/timeline': 'Shop Floor Timeline',
+  '/quality-management/dashboard': 'QC Dashboard',
+  '/quality-management/inspection': 'Muayene',
+  '/quality-management/rework': 'Rework Queue',
+  '/quality-management/hold': 'Hold Queue',
   '/execution-platform/bundles': 'Bundle Board',
   '/execution-platform/operations': 'Operasyon Board',
   '/execution-platform/work-sessions': 'Work Session Monitor',

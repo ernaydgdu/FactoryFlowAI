@@ -22,7 +22,8 @@
     "validate:production-planning": "node scripts/production-planning-validation.mjs",
     "validate:production-order": "node scripts/production-order-validation.mjs",
     "validate:shop-floor": "node scripts/shop-floor-validation.mjs",
-    "build": "npm run validate:routes && npm run validate:iam && npm run validate:api-scaffold && npm run validate:persistence && npm run validate:master-data && npm run validate:product-card && npm run validate:bom && npm run validate:cost-sheet && npm run validate:sales-order && npm run validate:mrp && npm run validate:purchasing && npm run validate:inventory && npm run validate:warehouse-management && npm run validate:production-planning && npm run validate:production-order && npm run validate:shop-floor && tsc -b && vite build",
+    "validate:quality": "node scripts/quality-validation.mjs",
+    "build": "npm run validate:routes && npm run validate:iam && npm run validate:api-scaffold && npm run validate:persistence && npm run validate:master-data && npm run validate:product-card && npm run validate:bom && npm run validate:cost-sheet && npm run validate:sales-order && npm run validate:mrp && npm run validate:purchasing && npm run validate:inventory && npm run validate:warehouse-management && npm run validate:production-planning && npm run validate:production-order && npm run validate:shop-floor && npm run validate:quality && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },

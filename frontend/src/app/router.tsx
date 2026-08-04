@@ -212,6 +212,27 @@ const ShopFloorTimelinePage = lazyPage(
   'ShopFloorTimelinePage',
 )
 
+const QualityManagementLayout = lazyPage(
+  () => import('@/modules/quality-management/layout/QualityManagementLayout'),
+  'QualityManagementLayout',
+)
+const QualityDashboardPage = lazyPage(
+  () => import('@/modules/quality-management/pages/QualityManagementPages'),
+  'QualityDashboardPage',
+)
+const QualityInspectionPage = lazyPage(
+  () => import('@/modules/quality-management/pages/QualityManagementPages'),
+  'QualityInspectionPage',
+)
+const QualityReworkQueuePage = lazyPage(
+  () => import('@/modules/quality-management/pages/QualityManagementPages'),
+  'QualityReworkQueuePage',
+)
+const QualityHoldQueuePage = lazyPage(
+  () => import('@/modules/quality-management/pages/QualityManagementPages'),
+  'QualityHoldQueuePage',
+)
+
 const ExecutionPlatformLayout = lazyPage(
   () => import('@/modules/execution-platform/layout/ExecutionPlatformLayout'),
   'ExecutionPlatformLayout',
@@ -366,6 +387,14 @@ export function AppRouter() {
           <Route path="machines" element={<L><ShopFloorMachineStatusPage /></L>} />
           <Route path="labor" element={<L><ShopFloorLaborPage /></L>} />
           <Route path="timeline" element={<L><ShopFloorTimelinePage /></L>} />
+        </Route>
+
+        <Route path="/quality-management" element={<L><QualityManagementLayout /></L>}>
+          <Route index element={<Navigate to="/quality-management/dashboard" replace />} />
+          <Route path="dashboard" element={<L><QualityDashboardPage /></L>} />
+          <Route path="inspection" element={<L><QualityInspectionPage /></L>} />
+          <Route path="rework" element={<L><QualityReworkQueuePage /></L>} />
+          <Route path="hold" element={<L><QualityHoldQueuePage /></L>} />
         </Route>
 
         <Route path="/quality" element={<L><QualityHubPage /></L>} />
