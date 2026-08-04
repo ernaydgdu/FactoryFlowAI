@@ -163,6 +163,19 @@ export const applicationQueryKeys = {
     scenarios: () => [...applicationQueryKeys.brainSimulation.all, 'scenarios'] as const,
     comparison: () => [...applicationQueryKeys.brainSimulation.all, 'comparison'] as const,
   },
+  brainMemory: {
+    all: ['brain-memory'] as const,
+    run: () => [...applicationQueryKeys.brainMemory.all, 'run'] as const,
+    coverage: () => [...applicationQueryKeys.brainMemory.all, 'coverage'] as const,
+    records: () => [...applicationQueryKeys.brainMemory.all, 'records'] as const,
+    indexes: () => [...applicationQueryKeys.brainMemory.all, 'indexes'] as const,
+    preset: (preset: string, style: string) =>
+      [...applicationQueryKeys.brainMemory.all, 'preset', preset, style] as const,
+    byIndex: (index: string, key: string) =>
+      [...applicationQueryKeys.brainMemory.all, 'byIndex', index, key] as const,
+    replay: (productionOrderNo: string) =>
+      [...applicationQueryKeys.brainMemory.all, 'replay', productionOrderNo] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,

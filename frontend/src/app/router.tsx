@@ -558,6 +558,35 @@ const BrainSimulationImpactsPage = lazyPage(
   'BrainSimulationImpactsPage',
 )
 
+const BrainMemoryLayout = lazyPage(
+  () => import('@/modules/brain-memory/layout/BrainMemoryLayout'),
+  'BrainMemoryLayout',
+)
+const BrainMemoryCoveragePage = lazyPage(
+  () => import('@/modules/brain-memory/pages/BrainMemoryPages'),
+  'BrainMemoryCoveragePage',
+)
+const BrainMemoryRecordsPage = lazyPage(
+  () => import('@/modules/brain-memory/pages/BrainMemoryPages'),
+  'BrainMemoryRecordsPage',
+)
+const BrainMemoryIndexesPage = lazyPage(
+  () => import('@/modules/brain-memory/pages/BrainMemoryPages'),
+  'BrainMemoryIndexesPage',
+)
+const BrainMemoryQueriesPage = lazyPage(
+  () => import('@/modules/brain-memory/pages/BrainMemoryPages'),
+  'BrainMemoryQueriesPage',
+)
+const BrainMemoryDecisionsPage = lazyPage(
+  () => import('@/modules/brain-memory/pages/BrainMemoryPages'),
+  'BrainMemoryDecisionsPage',
+)
+const BrainMemoryTimelinePage = lazyPage(
+  () => import('@/modules/brain-memory/pages/BrainMemoryPages'),
+  'BrainMemoryTimelinePage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -928,6 +957,16 @@ export function AppRouter() {
           <Route path="compare" element={<L><BrainSimulationComparePage /></L>} />
           <Route path="timeline" element={<L><BrainSimulationTimelinePage /></L>} />
           <Route path="impacts" element={<L><BrainSimulationImpactsPage /></L>} />
+        </Route>
+
+        <Route path="/brain-memory" element={<L><BrainMemoryLayout /></L>}>
+          <Route index element={<Navigate to="/brain-memory/coverage" replace />} />
+          <Route path="coverage" element={<L><BrainMemoryCoveragePage /></L>} />
+          <Route path="records" element={<L><BrainMemoryRecordsPage /></L>} />
+          <Route path="indexes" element={<L><BrainMemoryIndexesPage /></L>} />
+          <Route path="queries" element={<L><BrainMemoryQueriesPage /></L>} />
+          <Route path="decisions" element={<L><BrainMemoryDecisionsPage /></L>} />
+          <Route path="timeline" element={<L><BrainMemoryTimelinePage /></L>} />
         </Route>
 
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
