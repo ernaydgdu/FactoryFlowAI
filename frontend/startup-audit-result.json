@@ -10,84 +10,112 @@
     {
       "route": "/accessories/cards",
       "ok": true,
-      "rootLen": 25112,
+      "rootLen": 26317,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/accessories/stock",
       "ok": true,
-      "rootLen": 25112,
+      "rootLen": 26317,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/ai",
       "ok": true,
-      "rootLen": 25104,
+      "rootLen": 26309,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/cost",
       "ok": true,
-      "rootLen": 25110,
+      "rootLen": 26315,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/cutting",
       "ok": true,
-      "rootLen": 25107,
+      "rootLen": 26312,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/dashboard",
       "ok": true,
-      "rootLen": 25097,
+      "rootLen": 26302,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/dev/execution-demo",
       "ok": true,
-      "rootLen": 25115,
+      "rootLen": 26320,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/execution-platform",
       "ok": true,
-      "rootLen": 25115,
+      "rootLen": 26320,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/fabric/cards",
       "ok": true,
-      "rootLen": 25109,
+      "rootLen": 26314,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/fabric/movements",
       "ok": true,
-      "rootLen": 25112,
+      "rootLen": 26317,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/fabric/receipt",
       "ok": true,
-      "rootLen": 25107,
+      "rootLen": 26312,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/fabric/stock",
       "ok": true,
-      "rootLen": 25109,
+      "rootLen": 26314,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/inventory",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/inventory/dashboard",
+      "ok": true,
+      "rootLen": 26320,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/inventory/ledger",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/inventory/stock-inquiry",
+      "ok": true,
+      "rootLen": 26310,
       "pageErrors": [],
       "consoleErrors": []
     },
@@ -101,334 +129,394 @@
     {
       "route": "/master-data",
       "ok": true,
-      "rootLen": 25094,
+      "rootLen": 26299,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/master-data/suppliers",
       "ok": true,
-      "rootLen": 25095,
+      "rootLen": 26300,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/merchandising",
       "ok": true,
-      "rootLen": 25108,
+      "rootLen": 26313,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/merchandising/1",
       "ok": true,
-      "rootLen": 25124,
+      "rootLen": 26329,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/orders",
       "ok": true,
-      "rootLen": 25110,
+      "rootLen": 26315,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/orders/1",
       "ok": true,
-      "rootLen": 25118,
+      "rootLen": 26323,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/orders/1/edit",
       "ok": true,
-      "rootLen": 25118,
+      "rootLen": 26323,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/orders/new",
       "ok": true,
-      "rootLen": 25107,
+      "rootLen": 26312,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/packaging",
       "ok": true,
-      "rootLen": 25114,
+      "rootLen": 26319,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/planning/mrp",
       "ok": true,
-      "rootLen": 25098,
+      "rootLen": 26303,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/planning/size-sets",
       "ok": true,
-      "rootLen": 25108,
+      "rootLen": 26313,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/production-order-lifecycle",
       "ok": true,
-      "rootLen": 25115,
+      "rootLen": 26320,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/production-planning",
       "ok": true,
-      "rootLen": 25115,
+      "rootLen": 26320,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/production/lines",
       "ok": true,
-      "rootLen": 25117,
+      "rootLen": 26322,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/production/operations",
       "ok": true,
-      "rootLen": 25121,
+      "rootLen": 26326,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/production/orders",
       "ok": true,
-      "rootLen": 25120,
+      "rootLen": 26325,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/production/sewing",
       "ok": true,
-      "rootLen": 25117,
+      "rootLen": 26322,
       "pageErrors": [],
       "consoleErrors": []
     },
     {
       "route": "/production/washing",
-      "ok": false,
-      "error": "locator.innerHTML: Target page, context or browser has been closed\nCall log:\n  - waiting for locator('#root')\n"
+      "ok": true,
+      "rootLen": 26323,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/products",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26313,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/products/1",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26326,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/products/1/bom",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26326,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/products/1/cost-sheet",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26326,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/products/1/edit",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26326,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/products/new",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26326,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/purchasing",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/purchasing/orders",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26320,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/purchasing/orders/1",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26329,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/quality",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26324,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/quality/final",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26326,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/quality/inline",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26327,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/quality/midline",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26328,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/reports",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26308,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/settings",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26295,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/settings/users",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26313,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/shipping",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26308,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/shipping/containers",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26315,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/warehouse",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/warehouse/count",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/warehouse/inbound",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "/warehouse/outbound",
-      "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "ok": true,
+      "rootLen": 26309,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/warehouse/reservation",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/warehouse/transfer",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": []
     },
     {
       "route": "brain",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173brain\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "bundles",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173bundles\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "calendar",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173calendar\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "capacity",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173capacity\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "create",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173create\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "daily-entry",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173daily-entry\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "dashboard",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173dashboard\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "lines",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173lines\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "operations",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173operations\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "orders",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173orders\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "orders/UE-2026-0100",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173orders/UE-2026-0100\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "quality",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173quality\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "schedule",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173schedule\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "split",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173split\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "timeline",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173timeline\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "wip",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173wip\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "work-sessions",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173work-sessions\", waiting until \"domcontentloaded\"\n"
     },
     {
       "route": "workshops",
       "ok": false,
-      "error": "page.goto: Target page, context or browser has been closed"
+      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173workshops\", waiting until \"domcontentloaded\"\n"
     }
   ],
   "pageErrors": [],
   "consoleErrors": [],
   "rejections": [],
-  "critFails": [
-    "/products",
-    "/products/1/bom",
-    "/products/1/cost-sheet",
-    "/purchasing"
-  ],
+  "critFails": [],
   "summary": {
-    "pass": 31,
-    "fail": 40
+    "pass": 60,
+    "fail": 18
   }
 }
