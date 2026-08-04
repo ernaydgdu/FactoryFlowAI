@@ -277,6 +277,26 @@ const WarehouseScanPage = lazyPage(
   () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
   'WarehouseScanPage',
 )
+const ReceivingScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'ReceivingScanPage',
+)
+const MaterialIssueScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'MaterialIssueScanPage',
+)
+const ProductionScanWorkflowPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'ProductionScanWorkflowPage',
+)
+const FgReceiptScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'FgReceiptScanPage',
+)
+const ShipmentScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'ShipmentScanPage',
+)
 
 const ExecutionPlatformLayout = lazyPage(
   () => import('@/modules/execution-platform/layout/ExecutionPlatformLayout'),
@@ -449,6 +469,11 @@ export function AppRouter() {
           <Route path="dashboard" element={<L><BarcodeDashboardPage /></L>} />
           <Route path="operator" element={<L><MobileOperatorPage /></L>} />
           <Route path="scanner" element={<L><ScannerScreenPage /></L>} />
+          <Route path="receiving" element={<L><ReceivingScanPage /></L>} />
+          <Route path="material-issue" element={<L><MaterialIssueScanPage /></L>} />
+          <Route path="production" element={<L><ProductionScanWorkflowPage /></L>} />
+          <Route path="fg-receipt" element={<L><FgReceiptScanPage /></L>} />
+          <Route path="shipment" element={<L><ShipmentScanPage /></L>} />
           <Route path="bundle" element={<L><BundleScanPage /></L>} />
           <Route path="material" element={<L><MaterialScanPage /></L>} />
           <Route path="finished-goods" element={<L><FinishedGoodsScanPage /></L>} />

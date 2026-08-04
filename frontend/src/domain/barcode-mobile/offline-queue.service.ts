@@ -1,68 +1,102 @@
 /**
- * Offline Queue iskeleti — tarama olaylarını bellekte tutar.
- * Yeni persistence portu YOK; flush yalnızca in-process.
+ * Offline queue — durable client queue (localStorage), bounded.
+ * Sync executor is injected by application (transaction + workflow).
  */
-import type { OfflineQueueItem, ScanKind } from './barcode.types'
-import {
-  executeScanBundle,
-  executeScanFinishedGoods,
-  executeScanMaterial,
-  executeScanOperation,
-} from './scan.service'
+import type { OfflineQueueItem, SyncResult, WorkflowKind } from './barcode.types'
+import type { ScanResult } from './barcode.types'
 
-const queue: OfflineQueueItem[] = []
-let seq = 0
+const STORAGE_KEY = 'ffai.barcode.offline-queue.v1'
+const MAX_QUEUE = 200
+const MAX_ATTEMPTS = 5
 
-export function enqueueOfflineScan(input: {
-  kind: ScanKind
-  raw: string
+function readStore(): OfflineQueueItem[] {
+  if (typeof localStorage === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as OfflineQueueItem[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeStore(items: OfflineQueueItem[]): void {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(-MAX_QUEUE)))
+}
+
+export function enqueueOfflineWorkflow(input: {
+  workflow: WorkflowKind
+  payload: Record<string, unknown>
   actorUserId: string
+  idempotencyKey: string
 }): OfflineQueueItem {
+  const items = readStore()
+  const existing = items.find((i) => i.idempotencyKey === input.idempotencyKey && i.status === 'Pending')
+  if (existing) return existing
+
+  if (items.filter((i) => i.status === 'Pending').length >= MAX_QUEUE) {
+    throw new Error(`Offline kuyruk dolu (max ${MAX_QUEUE}). Sync edin.`)
+  }
+
   const item: OfflineQueueItem = {
-    id: `OFF-${++seq}`,
-    kind: input.kind,
-    raw: input.raw,
+    id: `OFF-${input.idempotencyKey}`,
+    workflow: input.workflow,
+    payload: input.payload,
     actorUserId: input.actorUserId,
+    idempotencyKey: input.idempotencyKey,
     enqueuedAt: new Date().toISOString(),
     status: 'Pending',
+    attempts: 0,
   }
-  queue.push(item)
+  items.push(item)
+  writeStore(items)
   return item
 }
 
 export function listOfflineQueue(): OfflineQueueItem[] {
-  return queue.slice().reverse()
+  return readStore().slice().reverse()
 }
 
-export function flushOfflineQueue(): { flushed: number; failed: number } {
+export function syncOfflineQueue(
+  executor: (item: OfflineQueueItem) => ScanResult,
+): SyncResult {
+  const items = readStore()
   let flushed = 0
   let failed = 0
-  for (const item of queue) {
+  for (const item of items) {
     if (item.status !== 'Pending') continue
+    item.attempts += 1
     try {
-      const result =
-        item.kind === 'BUNDLE'
-          ? executeScanBundle(item.raw)
-          : item.kind === 'OPERATION'
-            ? executeScanOperation(item.raw)
-            : item.kind === 'MATERIAL'
-              ? executeScanMaterial(item.raw)
-              : item.kind === 'FINISHED_GOODS'
-                ? executeScanFinishedGoods(item.raw)
-                : { ok: false, message: 'Bilinmeyen scan türü' }
+      const result = executor(item)
       if (result.ok) {
         item.status = 'Flushed'
+        item.lastError = undefined
         flushed += 1
       } else {
-        item.status = 'Failed'
         item.lastError = result.message
-        failed += 1
+        if (item.attempts >= MAX_ATTEMPTS) {
+          item.status = 'Failed'
+          failed += 1
+        }
       }
     } catch (e) {
-      item.status = 'Failed'
       item.lastError = (e as Error).message
-      failed += 1
+      if (item.attempts >= MAX_ATTEMPTS) {
+        item.status = 'Failed'
+        failed += 1
+      }
     }
   }
-  return { flushed, failed }
+  writeStore(items)
+  return {
+    flushed,
+    failed,
+    remaining: items.filter((i) => i.status === 'Pending').length,
+  }
+}
+
+export function flushOfflineQueue(executor: (item: OfflineQueueItem) => ScanResult): SyncResult {
+  return syncOfflineQueue(executor)
 }

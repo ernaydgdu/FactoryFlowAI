@@ -5,12 +5,14 @@ import {
   persistGoodsIssue,
   persistReservation,
   persistReservationRelease,
+  persistShipment,
   persistStockAdjustment,
   persistStockTransfer,
 } from '@/domain/inventory/stock-ledger-crud.service'
 import type {
   CycleCountInput,
   GoodsIssueInput,
+  ShipmentInput,
   StockAdjustmentInput,
   StockReservationInput,
   StockTransferInput,
@@ -32,6 +34,7 @@ export type InventoryCommandResult = {
 
 export type GoodsReceiptCommand = CreateGoodsReceiptInput & { actorUserId: string }
 export type GoodsIssueCommand = GoodsIssueInput & { actorUserId: string }
+export type ShipmentCommand = ShipmentInput & { actorUserId: string }
 export type TransferCommand = StockTransferInput & { actorUserId: string }
 export type ReservationCommand = StockReservationInput & { actorUserId: string }
 export type AdjustmentCommand = StockAdjustmentInput & { actorUserId: string }
@@ -49,6 +52,19 @@ export function executeGoodsIssue(command: GoodsIssueCommand): InventoryCommandR
   return runCommandInTransaction(() => {
     const { actorUserId, ...input } = command
     const result = persistGoodsIssue(input, actorUserId)
+    return {
+      entityId: result.movement.id,
+      entityNo: result.movement.movementNo,
+      status: 'Posted',
+      version: 1,
+    }
+  })
+}
+
+export function executeShipment(command: ShipmentCommand): InventoryCommandResult {
+  return runCommandInTransaction(() => {
+    const { actorUserId, ...input } = command
+    const result = persistShipment(input, actorUserId)
     return {
       entityId: result.movement.id,
       entityNo: result.movement.movementNo,

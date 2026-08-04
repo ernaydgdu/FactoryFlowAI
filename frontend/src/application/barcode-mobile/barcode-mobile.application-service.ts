@@ -1,21 +1,28 @@
 import { mapBarcodeDashboard } from './barcode-mobile.mapper'
 import {
+  executeFgReceiptScan,
   executeFlushOfflineQueue,
+  executeMaterialIssueScan,
+  executeProductionScan,
+  executeReceivingScan,
   executeScanBundle,
   executeScanFinishedGoods,
   executeScanMaterial,
   executeScanOperation,
   executeScanProduction,
+  executeShipmentScan,
+  executeSyncOfflineQueue,
+  executeWorkflowScan,
   queryBundleLabel,
   queryFinishedGoodsLabel,
+  queryOfflineQueue,
   queryPalletLabel,
 } from './barcode-mobile-command.mapper'
-import { listOfflineQueue } from '@/domain/barcode-mobile/offline-queue.service'
 
 export const barcodeMobileApplicationService = {
   query: {
     dashboard: mapBarcodeDashboard,
-    offlineQueue: listOfflineQueue,
+    offlineQueue: queryOfflineQueue,
     bundleLabel: queryBundleLabel,
     palletLabel: queryPalletLabel,
     finishedGoodsLabel: queryFinishedGoodsLabel,
@@ -26,6 +33,13 @@ export const barcodeMobileApplicationService = {
     executeScanMaterial,
     executeScanFinishedGoods,
     executeScanProduction,
+    executeWorkflowScan,
+    executeReceivingScan,
+    executeMaterialIssueScan,
+    executeProductionScan,
+    executeFgReceiptScan,
+    executeShipmentScan,
+    syncOfflineQueue: executeSyncOfflineQueue,
     flushOfflineQueue: executeFlushOfflineQueue,
   },
 }

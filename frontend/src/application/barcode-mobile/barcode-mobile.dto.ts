@@ -4,16 +4,15 @@ import type {
   PalletLabelView,
   ScanKind,
   ScanResult,
-  Symbology,
+  SyncResult,
+  WorkflowKind,
 } from '@/domain/barcode-mobile/barcode.types'
 
 export type ScanResultDto = ScanResult
-
 export type OfflineQueueItemDto = OfflineQueueItem
-
 export type BundleLabelDto = BundleLabelView
-
 export type PalletLabelDto = PalletLabelView
+export type SyncResultDto = SyncResult
 
 export type FinishedGoodsLabelDto = {
   labelType: 'FINISHED_GOODS'
@@ -26,7 +25,7 @@ export type FinishedGoodsLabelDto = {
 
 export type BarcodeFormatSampleDto = {
   kind: ScanKind
-  symbology: Symbology
+  symbology: string
   example: string
   description: string
 }
@@ -39,8 +38,27 @@ export type BarcodeDashboardDto = {
   queuePreview: OfflineQueueItemDto[]
 }
 
+/** Resolve-only scan (no mutation). */
 export type ScanCommand = {
   raw: string
   actorUserId: string
+  offline?: boolean
+}
+
+export type WorkflowScanCommand = {
+  workflow: WorkflowKind
+  raw: string
+  actorUserId: string
+  idempotencyKey: string
+  quantity?: number
+  produced?: number
+  purchaseOrderId?: string
+  warehouseCode?: string
+  productionOrderNo?: string
+  lot?: string
+  lineId?: string
+  machineId?: string
+  shiftCode?: string
+  shipmentRef?: string
   offline?: boolean
 }

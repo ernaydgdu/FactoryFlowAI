@@ -101,16 +101,17 @@ export function decodeBarcode(raw: string): DecodedBarcode {
     }
   }
 
-  if (trimmed.includes('(01)') || trimmed.includes('(10)')) {
+  if (trimmed.includes('(01)') || trimmed.includes('(10)') || trimmed.includes('(21)')) {
     const gtin = trimmed.match(/\(01\)(\d+)/)?.[1]
     const lot = trimmed.match(/\(10\)([^\(]+)/)?.[1]
     const qtyRaw = trimmed.match(/\(37\)(\d+)/)?.[1]
+    const serial = trimmed.match(/\(21\)([^\(]+)/)?.[1]
     return {
       raw: trimmed,
       symbology: 'GS1_128',
       kind: 'MATERIAL',
-      gs1: { gtin, lot, qty: qtyRaw ? Number(qtyRaw) : undefined },
-      stockCardCode: lot,
+      gs1: { gtin, lot, qty: qtyRaw ? Number(qtyRaw) : undefined, serial },
+      stockCardCode: lot ?? gtin,
     }
   }
 

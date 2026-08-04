@@ -26,6 +26,8 @@ export type CreateGoodsReceiptInput = {
   purchaseOrderId: string
   warehouseCode: string
   lines: { materialCode: string; quantity: number; lot?: string }[]
+  /** Stable client key — same key returns existing GR without double-post. */
+  idempotencyKey?: string
 }
 
 function grRepo(): IGoodsReceiptRepository {
@@ -49,6 +51,25 @@ function nextGrNo(): string {
 }
 
 export function persistPostGoodsReceipt(input: CreateGoodsReceiptInput, actorUserId: string): GoodsReceipt {
+  if (input.idempotencyKey) {
+    const existingId = `gr-idem-${input.idempotencyKey}`
+    const existing = grRepo().findById(DEFAULT_TENANT_ID, existingId)
+    if (existing) {
+      return {
+        id: existing.id,
+        grNo: existing.grNo,
+        purchaseOrderId: existing.purchaseOrderId,
+        poNo: existing.poNo,
+        warehouseCode: existing.warehouseCode,
+        receivedAt: existing.receivedAt,
+        lines: existing.lines,
+        status: existing.status,
+        createdAt: existing.createdAt,
+        createdBy: existing.createdBy,
+      }
+    }
+  }
+
   const po = queryPurchaseOrderById(input.purchaseOrderId)
   if (!po) throw new GoodsReceiptDomainError('PO bulunamadı.')
   if (po.status === 'Cancelled' || po.status === 'Archived' || po.status === 'Draft') {
@@ -69,7 +90,7 @@ export function persistPostGoodsReceipt(input: CreateGoodsReceiptInput, actorUse
   })
 
   const gr: GoodsReceipt = {
-    id: nextGrId(),
+    id: input.idempotencyKey ? `gr-idem-${input.idempotencyKey}` : nextGrId(),
     grNo: nextGrNo(),
     purchaseOrderId: po.id,
     poNo: po.poNo,

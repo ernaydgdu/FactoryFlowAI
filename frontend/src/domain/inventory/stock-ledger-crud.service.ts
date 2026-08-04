@@ -18,12 +18,16 @@ import type {
   GoodsIssueInput,
   GoodsReceiptLedgerInput,
   InventoryMovementResult,
+  ShipmentInput,
   StockAdjustmentInput,
   StockReservationInput,
   StockTransferInput,
 } from './inventory.types'
 import { ledgerFromBalances, recordPersistedMovement } from './stock-ledger-engine.service'
-import { queryStockLedgerByWarehouse } from './stock-ledger-query.service'
+import {
+  queryStockLedgerByWarehouse,
+  queryStockMovementByReferenceNo,
+} from './stock-ledger-query.service'
 
 export class InventoryDomainError extends Error {
   constructor(message: string) {
@@ -185,6 +189,10 @@ export function persistGoodsReceiptToLedger(
 }
 
 export function persistGoodsIssue(input: GoodsIssueInput, actorUserId: string): InventoryMovementResult {
+  const existing = queryStockMovementByReferenceNo(input.referenceNo)
+  if (existing && existing.type === 'CONSUMPTION') {
+    return { movement: existing, warehouseCode: existing.warehouseCode }
+  }
   return postSingleMovement(
     input.warehouseCode,
     {
@@ -198,6 +206,29 @@ export function persistGoodsIssue(input: GoodsIssueInput, actorUserId: string): 
     },
     actorUserId,
     'GoodsIssue',
+  )
+}
+
+/** Shipment — outbound SHIPMENT movement (audit + timeline + outbox via saveLedgerMovement). */
+export function persistShipment(input: ShipmentInput, actorUserId: string): InventoryMovementResult {
+  if (input.quantity <= 0) throw new InventoryDomainError('Sevkiyat miktarı sıfırdan büyük olmalı.')
+  const existing = queryStockMovementByReferenceNo(input.referenceNo)
+  if (existing && existing.type === 'SHIPMENT') {
+    return { movement: existing, warehouseCode: existing.warehouseCode }
+  }
+  return postSingleMovement(
+    input.warehouseCode,
+    {
+      type: 'SHIPMENT',
+      stockCardId: input.stockCardId,
+      quantity: input.quantity,
+      referenceType: 'SHIPMENT',
+      referenceId: input.referenceId,
+      referenceNo: input.referenceNo,
+      reason: input.reason,
+    },
+    actorUserId,
+    'Shipment',
   )
 }
 
@@ -336,6 +367,13 @@ export function persistFinishedGoodsReceipt(
   if (wh.type !== 'Mamül') {
     throw new InventoryDomainError(`${input.warehouseCode} bir mamül deposu değil.`)
   }
+  const referenceNo = input.idempotencyKey ?? input.productionOrderNo
+  if (input.idempotencyKey) {
+    const existing = queryStockMovementByReferenceNo(input.idempotencyKey)
+    if (existing && existing.type === 'PRODUCTION_OUTPUT') {
+      return { movement: existing, warehouseCode: existing.warehouseCode }
+    }
+  }
   return postSingleMovement(
     input.warehouseCode,
     {
@@ -344,7 +382,7 @@ export function persistFinishedGoodsReceipt(
       quantity: input.quantity,
       referenceType: 'PRODUCTION',
       referenceId: input.productionOrderId,
-      referenceNo: input.productionOrderNo,
+      referenceNo,
       reason: input.reason ?? `Mamül kabul — ${input.productionOrderNo}`,
     },
     actorUserId,

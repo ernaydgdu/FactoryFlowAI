@@ -1,26 +1,34 @@
 /**
- * Phase 5 Module 3 — Barcode & Mobile UI.
- * Camera Scanner abstraction + offline queue skeleton; no Shop Floor/Quality aggregate writes.
+ * Phase 5 Module 3 — Barcode & Mobile UI (production workflows).
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import {
+  newIdempotencyKey,
   useBarcodeDashboard,
-  useFlushOfflineQueueMutation,
+  useFgReceiptScanMutation,
+  useMaterialIssueScanMutation,
   useOfflineQueue,
+  useProductionWorkflowScanMutation,
+  useReceivingScanMutation,
   useScanBundleMutation,
   useScanFinishedGoodsMutation,
   useScanMaterialMutation,
   useScanOperationMutation,
   useScanProductionMutation,
+  useShipmentScanMutation,
+  useSyncOfflineQueueMutation,
 } from '@/application/barcode-mobile/use-barcode-mobile'
 import type { ScanResultDto } from '@/application/barcode-mobile/barcode-mobile.dto'
 import { DataTable, ErpModuleShell } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { createManualTextScanner, createStubCameraScanner } from '@/domain/barcode-mobile/scanner-abstraction'
-import type { ScannerHandle } from '@/domain/barcode-mobile/scanner-abstraction'
+import {
+  createCameraScanner,
+  createManualTextScanner,
+  type ScannerHandle,
+} from '@/domain/barcode-mobile/scanner-abstraction'
 
 const OPERATOR_KEY = 'ffai.barcode.operator'
 
@@ -41,7 +49,9 @@ function ResultBanner({ result }: { result: ScanResultDto | null }) {
       }`}
     >
       <div className="font-medium">
-        {result.ok ? 'OK' : 'FAIL'} · {result.kind} · {result.symbology}
+        {result.ok ? 'OK' : 'FAIL'} · {result.kind}
+        {result.idempotentReplay ? ' · replay' : ''}
+        {result.entityNo ? ` · ${result.entityNo}` : ''}
       </div>
       <div>{result.message}</div>
       <div className="mt-1 font-mono text-xs break-all opacity-80">{result.raw}</div>
@@ -49,7 +59,7 @@ function ResultBanner({ result }: { result: ScanResultDto | null }) {
   )
 }
 
-function ScanPanel({
+function ResolveScanPanel({
   title,
   description,
   placeholder,
@@ -59,19 +69,15 @@ function ScanPanel({
   title: string
   description: string
   placeholder: string
-  onScan: (raw: string, offline: boolean) => Promise<ScanResultDto>
+  onScan: (raw: string) => Promise<ScanResultDto>
   pending?: boolean
 }) {
   const [raw, setRaw] = useState('')
-  const [offline, setOffline] = useState(false)
   const [result, setResult] = useState<ScanResultDto | null>(null)
-
   async function submit() {
     if (!raw.trim()) return
-    const r = await onScan(raw.trim(), offline)
-    setResult(r)
+    setResult(await onScan(raw.trim()))
   }
-
   return (
     <Card>
       <CardHeader>
@@ -88,12 +94,60 @@ function ScanPanel({
             if (e.key === 'Enter') void submit()
           }}
         />
+        <Button disabled={pending || !raw.trim()} onClick={() => void submit()}>
+          Tara (resolve)
+        </Button>
+        <ResultBanner result={result} />
+      </CardContent>
+    </Card>
+  )
+}
+
+function WorkflowPanel({
+  title,
+  description,
+  placeholder,
+  extraFields,
+  onSubmit,
+  pending,
+}: {
+  title: string
+  description: string
+  placeholder: string
+  extraFields: ReactNode
+  onSubmit: (raw: string, offline: boolean) => Promise<ScanResultDto>
+  pending?: boolean
+}) {
+  const [raw, setRaw] = useState('')
+  const [offline, setOffline] = useState(false)
+  const [result, setResult] = useState<ScanResultDto | null>(null)
+  async function submit() {
+    if (!raw.trim()) return
+    setResult(await onSubmit(raw.trim(), offline))
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <input
+          className="flex h-10 w-full rounded-md border px-3 font-mono text-sm"
+          placeholder={placeholder}
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void submit()
+          }}
+        />
+        {extraFields}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={offline} onChange={(e) => setOffline(e.target.checked)} />
-          Offline kuyruğa al (iskelet)
+          Offline kuyruğa al (sync sonra yazar)
         </label>
         <Button disabled={pending || !raw.trim()} onClick={() => void submit()}>
-          Tara
+          Kaydet / Tara
         </Button>
         <ResultBanner result={result} />
       </CardContent>
@@ -103,29 +157,25 @@ function ScanPanel({
 
 export function BarcodeDashboardPage() {
   const { data, isLoading } = useBarcodeDashboard()
-  const flush = useFlushOfflineQueueMutation()
+  const sync = useSyncOfflineQueueMutation()
 
   if (isLoading) return <div className="p-8 text-muted-foreground">Yükleniyor…</div>
   if (!data) return null
 
   return (
-    <ErpModuleShell title="Barcode Dashboard" description="Symbology · Label · Offline Queue" kpis={data.kpis}>
+    <ErpModuleShell title="Barcode Dashboard" description="Formats · Offline queue · Sync" kpis={data.kpis}>
       <div className="p-4 pt-6 space-y-4">
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link to="/barcode-mobile/operator">Mobile Operator</Link>
           </Button>
-          <Button
-            variant="secondary"
-            disabled={flush.isPending}
-            onClick={() => void flush.mutateAsync()}
-          >
-            Flush Offline Queue
+          <Button variant="secondary" disabled={sync.isPending} onClick={() => void sync.mutateAsync()}>
+            Sync Offline Queue
           </Button>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Barcode / QR / GS1 Formatları</CardTitle>
+            <CardTitle className="text-base">Barcode / QR / GS1</CardTitle>
           </CardHeader>
           <CardContent>
             <DataTable
@@ -142,7 +192,7 @@ export function BarcodeDashboardPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Offline Queue Preview</CardTitle>
+            <CardTitle className="text-base">Offline Queue</CardTitle>
           </CardHeader>
           <CardContent>
             <DataTable
@@ -150,9 +200,9 @@ export function BarcodeDashboardPage() {
               data={data.queuePreview}
               columns={[
                 { key: 'id', header: 'ID', render: (r) => r.id },
-                { key: 'k', header: 'Kind', render: (r) => r.kind },
+                { key: 'w', header: 'Workflow', render: (r) => r.workflow },
                 { key: 's', header: 'Status', render: (r) => r.status },
-                { key: 'r', header: 'Raw', render: (r) => <span className="font-mono text-xs">{r.raw}</span> },
+                { key: 'k', header: 'Idempotency', render: (r) => <span className="font-mono text-xs">{r.idempotencyKey}</span> },
               ]}
             />
           </CardContent>
@@ -166,33 +216,28 @@ export function MobileOperatorPage() {
   const [operatorId, setOperatorId] = useState(getOperator)
   const [draft, setDraft] = useState(operatorId)
   const queue = useOfflineQueue()
-
-  function login() {
-    const id = draft.trim() || 'operator-1'
-    setOperator(id)
-    setOperatorId(id)
-  }
-
-  function logout() {
-    sessionStorage.removeItem(OPERATOR_KEY)
-    setOperatorId('')
-    setDraft('')
-  }
+  const sync = useSyncOfflineQueueMutation()
 
   return (
     <div className="mx-auto max-w-lg space-y-4 p-2">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Operator Login (PWA)</CardTitle>
-          <p className="text-sm text-muted-foreground">SessionStorage — cihaz lokal kimlik iskeleti</p>
+          <CardTitle className="text-base">Operator Login</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {operatorId ? (
             <>
               <p className="text-sm">
-                Aktif operatör: <span className="font-semibold">{operatorId}</span>
+                Aktif: <span className="font-semibold">{operatorId}</span>
               </p>
-              <Button variant="outline" onClick={logout}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  sessionStorage.removeItem(OPERATOR_KEY)
+                  setOperatorId('')
+                  setDraft('')
+                }}
+              >
                 Çıkış
               </Button>
             </>
@@ -200,11 +245,19 @@ export function MobileOperatorPage() {
             <>
               <input
                 className="flex h-10 w-full rounded-md border px-3 text-sm"
-                placeholder="operator-1"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
+                placeholder="operator-1"
               />
-              <Button onClick={login}>Giriş</Button>
+              <Button
+                onClick={() => {
+                  const id = draft.trim() || 'operator-1'
+                  setOperator(id)
+                  setOperatorId(id)
+                }}
+              >
+                Giriş
+              </Button>
             </>
           )}
         </CardContent>
@@ -212,42 +265,39 @@ export function MobileOperatorPage() {
       {operatorId ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Hızlı Rotalar</CardTitle>
+            <CardTitle className="text-base">Workflows</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button asChild size="sm">
-              <Link to="/barcode-mobile/scanner">Operation Scan</Link>
-            </Button>
-            <Button asChild size="sm" variant="secondary">
-              <Link to="/barcode-mobile/bundle">Bundle Scan</Link>
-            </Button>
-            <Button asChild size="sm" variant="secondary">
-              <Link to="/barcode-mobile/quality">Quality Scan</Link>
-            </Button>
-            <Button asChild size="sm" variant="secondary">
-              <Link to="/barcode-mobile/warehouse">Warehouse Scan</Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to="/barcode-mobile/material">Material</Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to="/barcode-mobile/finished-goods">Finished Goods</Link>
+            {[
+              ['receiving', 'Receiving'],
+              ['material-issue', 'Material Issue'],
+              ['production', 'Production'],
+              ['fg-receipt', 'FG Receipt'],
+              ['shipment', 'Shipment'],
+              ['scanner', 'Scanner'],
+            ].map(([path, label]) => (
+              <Button key={path} asChild size="sm" variant="secondary">
+                <Link to={`/barcode-mobile/${path}`}>{label}</Link>
+              </Button>
+            ))}
+            <Button size="sm" disabled={sync.isPending} onClick={() => void sync.mutateAsync()}>
+              Sync
             </Button>
           </CardContent>
         </Card>
       ) : null}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Offline Queue ({queue.data?.length ?? 0})</CardTitle>
+          <CardTitle className="text-base">Offline ({queue.data?.length ?? 0})</CardTitle>
         </CardHeader>
         <CardContent>
           <DataTable
             rowKey={(r) => r.id}
             data={queue.data ?? []}
             columns={[
-              { key: 'id', header: 'ID', render: (r) => r.id },
-              { key: 'k', header: 'Kind', render: (r) => r.kind },
+              { key: 'w', header: 'Workflow', render: (r) => r.workflow },
               { key: 's', header: 'Status', render: (r) => r.status },
+              { key: 'a', header: 'Attempts', render: (r) => r.attempts },
             ]}
           />
         </CardContent>
@@ -263,6 +313,7 @@ export function ScannerScreenPage() {
   const [result, setResult] = useState<ScanResultDto | null>(null)
   const [hint, setHint] = useState('')
   const handleRef = useRef<ScannerHandle | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const scanOpRef = useRef(scanOp)
   scanOpRef.current = scanOp
   const [manual, setManual] = useState('')
@@ -270,12 +321,12 @@ export function ScannerScreenPage() {
   useEffect(() => {
     const callbacks = {
       onScan: (raw: string) => {
-        const actor = getOperator() || 'operator-1'
-        void scanOpRef.current.mutateAsync({ raw, actorUserId: actor }).then(setResult)
+        void scanOpRef.current.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1' }).then(setResult)
       },
       onError: (message: string) => setHint(message),
     }
-    const handle = mode === 'camera' ? createStubCameraScanner(callbacks) : createManualTextScanner(callbacks)
+    const handle =
+      mode === 'camera' ? createCameraScanner(callbacks, videoRef.current) : createManualTextScanner(callbacks)
     handleRef.current = handle
     void handle.start()
     return () => {
@@ -283,46 +334,42 @@ export function ScannerScreenPage() {
     }
   }, [mode])
 
-  async function inject() {
-    handleRef.current?.injectManual?.(manual)
-  }
-
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Scanner Screen — Operation / Production Scan</CardTitle>
-          <p className="text-sm text-muted-foreground">Camera Scanner abstraction (manual | stub camera)</p>
+          <CardTitle className="text-base">Scanner — Operation / Production resolve</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
-            <Button variant={mode === 'manual' ? 'default' : 'outline'} size="sm" onClick={() => setMode('manual')}>
-              Manual
+            <Button size="sm" variant={mode === 'manual' ? 'default' : 'outline'} onClick={() => setMode('manual')}>
+              Manual / Wedge
             </Button>
-            <Button variant={mode === 'camera' ? 'default' : 'outline'} size="sm" onClick={() => setMode('camera')}>
-              Camera Stub
+            <Button size="sm" variant={mode === 'camera' ? 'default' : 'outline'} onClick={() => setMode('camera')}>
+              Camera
             </Button>
           </div>
+          {mode === 'camera' ? (
+            <video ref={videoRef} className="h-48 w-full rounded-md bg-black object-cover" muted playsInline />
+          ) : null}
           {hint ? <p className="text-xs text-amber-700">{hint}</p> : null}
           <input
             className="flex h-10 w-full rounded-md border px-3 font-mono text-sm"
-            placeholder="KPL-OP-V1|UE-…|CUT"
             value={manual}
             onChange={(e) => setManual(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void inject()
-            }}
+            placeholder="KPL-OP-V1|UE-…|CUT"
           />
           <div className="flex gap-2">
-            <Button onClick={() => void inject()}>Inject Scan</Button>
+            <Button onClick={() => handleRef.current?.injectManual?.(manual)}>Inject</Button>
             <Button
               variant="secondary"
-              onClick={() => {
-                const actor = getOperator() || 'operator-1'
-                void scanProd.mutateAsync({ raw: manual, actorUserId: actor }).then(setResult)
-              }}
+              onClick={() =>
+                void scanProd
+                  .mutateAsync({ raw: manual, actorUserId: getOperator() || 'operator-1' })
+                  .then(setResult)
+              }
             >
-              Production Scan
+              Production Resolve
             </Button>
           </div>
           <ResultBanner result={result} />
@@ -332,17 +379,171 @@ export function ScannerScreenPage() {
   )
 }
 
+export function ReceivingScanPage() {
+  const scan = useReceivingScanMutation()
+  const [poId, setPoId] = useState('')
+  const [wh, setWh] = useState('')
+  const [qty, setQty] = useState('1')
+  return (
+    <WorkflowPanel
+      title="Receiving Scan"
+      description="Mal kabul → persistPostGoodsReceipt (audit + timeline + outbox, idempotent)"
+      placeholder="KPL-MAT-V1|… veya GS1"
+      pending={scan.isPending}
+      extraFields={
+        <div className="grid gap-2 sm:grid-cols-3">
+          <input className="h-9 rounded-md border px-2 text-sm" placeholder="PO id" value={poId} onChange={(e) => setPoId(e.target.value)} />
+          <input className="h-9 rounded-md border px-2 text-sm" placeholder="Warehouse" value={wh} onChange={(e) => setWh(e.target.value)} />
+          <input className="h-9 rounded-md border px-2 text-sm" type="number" value={qty} onChange={(e) => setQty(e.target.value)} />
+        </div>
+      }
+      onSubmit={(raw, offline) =>
+        scan.mutateAsync({
+          workflow: 'RECEIVING',
+          raw,
+          purchaseOrderId: poId,
+          warehouseCode: wh,
+          quantity: Number(qty),
+          actorUserId: getOperator() || 'operator-1',
+          idempotencyKey: newIdempotencyKey('rcv'),
+          offline,
+        })
+      }
+    />
+  )
+}
+
+export function MaterialIssueScanPage() {
+  const scan = useMaterialIssueScanMutation()
+  const [qty, setQty] = useState('1')
+  const [wh, setWh] = useState('')
+  const [po, setPo] = useState('')
+  return (
+    <WorkflowPanel
+      title="Material Issue Scan"
+      description="Malzeme çıkış → persistGoodsIssue (idempotent referenceNo)"
+      placeholder="KPL-MAT-V1|…"
+      pending={scan.isPending}
+      extraFields={
+        <div className="grid gap-2 sm:grid-cols-3">
+          <input className="h-9 rounded-md border px-2 text-sm" type="number" value={qty} onChange={(e) => setQty(e.target.value)} />
+          <input className="h-9 rounded-md border px-2 text-sm" placeholder="Warehouse (opt)" value={wh} onChange={(e) => setWh(e.target.value)} />
+          <input className="h-9 rounded-md border px-2 text-sm" placeholder="UE (opt)" value={po} onChange={(e) => setPo(e.target.value)} />
+        </div>
+      }
+      onSubmit={(raw, offline) =>
+        scan.mutateAsync({
+          workflow: 'MATERIAL_ISSUE',
+          raw,
+          quantity: Number(qty),
+          warehouseCode: wh || undefined,
+          productionOrderNo: po || undefined,
+          actorUserId: getOperator() || 'operator-1',
+          idempotencyKey: newIdempotencyKey('iss'),
+          offline,
+        })
+      }
+    />
+  )
+}
+
+export function ProductionScanWorkflowPage() {
+  const scan = useProductionWorkflowScanMutation()
+  const [qty, setQty] = useState('1')
+  return (
+    <WorkflowPanel
+      title="Production Scan"
+      description="Operasyon barkodu → persistProductionDeclaration (reasonCode IDEM)"
+      placeholder="KPL-OP-V1|UE-…|OP"
+      pending={scan.isPending}
+      extraFields={
+        <input className="h-9 w-full rounded-md border px-2 text-sm" type="number" value={qty} onChange={(e) => setQty(e.target.value)} />
+      }
+      onSubmit={(raw, offline) =>
+        scan.mutateAsync({
+          workflow: 'PRODUCTION',
+          raw,
+          produced: Number(qty),
+          actorUserId: getOperator() || 'operator-1',
+          idempotencyKey: newIdempotencyKey('prd'),
+          offline,
+        })
+      }
+    />
+  )
+}
+
+export function FgReceiptScanPage() {
+  const scan = useFgReceiptScanMutation()
+  const [qty, setQty] = useState('1')
+  const [wh, setWh] = useState('MML-01')
+  return (
+    <WorkflowPanel
+      title="FG Receipt Scan"
+      description="Mamül kabul → persistFinishedGoodsReceipt (idempotent key)"
+      placeholder="KPL-FG-V1|UE-… veya fg-UE"
+      pending={scan.isPending}
+      extraFields={
+        <div className="grid gap-2 sm:grid-cols-2">
+          <input className="h-9 rounded-md border px-2 text-sm" type="number" value={qty} onChange={(e) => setQty(e.target.value)} />
+          <input className="h-9 rounded-md border px-2 text-sm" value={wh} onChange={(e) => setWh(e.target.value)} placeholder="Mamül WH" />
+        </div>
+      }
+      onSubmit={(raw, offline) =>
+        scan.mutateAsync({
+          workflow: 'FG_RECEIPT',
+          raw,
+          quantity: Number(qty),
+          warehouseCode: wh,
+          actorUserId: getOperator() || 'operator-1',
+          idempotencyKey: newIdempotencyKey('fg'),
+          offline,
+        })
+      }
+    />
+  )
+}
+
+export function ShipmentScanPage() {
+  const scan = useShipmentScanMutation()
+  const [qty, setQty] = useState('1')
+  const [wh, setWh] = useState('')
+  return (
+    <WorkflowPanel
+      title="Shipment Scan"
+      description="Sevkiyat → persistShipment (SHIPMENT + audit/timeline/outbox)"
+      placeholder="KPL-MAT / KPL-FG / GS1"
+      pending={scan.isPending}
+      extraFields={
+        <div className="grid gap-2 sm:grid-cols-2">
+          <input className="h-9 rounded-md border px-2 text-sm" type="number" value={qty} onChange={(e) => setQty(e.target.value)} />
+          <input className="h-9 rounded-md border px-2 text-sm" placeholder="Warehouse (opt)" value={wh} onChange={(e) => setWh(e.target.value)} />
+        </div>
+      }
+      onSubmit={(raw, offline) =>
+        scan.mutateAsync({
+          workflow: 'SHIPMENT',
+          raw,
+          quantity: Number(qty),
+          warehouseCode: wh || undefined,
+          actorUserId: getOperator() || 'operator-1',
+          idempotencyKey: newIdempotencyKey('shp'),
+          offline,
+        })
+      }
+    />
+  )
+}
+
 export function BundleScanPage() {
   const scan = useScanBundleMutation()
   return (
-    <ScanPanel
-      title="Bundle Scan"
-      description="KPL-BUNDLE-V1 — lookupBundleByScan"
+    <ResolveScanPanel
+      title="Bundle Scan (resolve)"
+      description="lookupBundleByScan"
       placeholder="KPL-BUNDLE-V1|…"
       pending={scan.isPending}
-      onScan={(raw, offline) =>
-        scan.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1', offline })
-      }
+      onScan={(raw) => scan.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1' })}
     />
   )
 }
@@ -350,14 +551,12 @@ export function BundleScanPage() {
 export function MaterialScanPage() {
   const scan = useScanMaterialMutation()
   return (
-    <ScanPanel
-      title="Material Scan"
-      description="KPL-MAT-V1|code veya stok kartı kodu"
-      placeholder="KPL-MAT-V1|STK-…"
+    <ResolveScanPanel
+      title="Material Scan (resolve)"
+      description="Stok kartı resolve"
+      placeholder="KPL-MAT-V1|…"
       pending={scan.isPending}
-      onScan={(raw, offline) =>
-        scan.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1', offline })
-      }
+      onScan={(raw) => scan.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1' })}
     />
   )
 }
@@ -365,14 +564,12 @@ export function MaterialScanPage() {
 export function FinishedGoodsScanPage() {
   const scan = useScanFinishedGoodsMutation()
   return (
-    <ScanPanel
-      title="Finished Goods Scan"
-      description="KPL-FG-V1|UE veya fg-UE"
+    <ResolveScanPanel
+      title="Finished Goods Scan (resolve)"
+      description="UE / fg- resolve"
       placeholder="KPL-FG-V1|UE-…"
       pending={scan.isPending}
-      onScan={(raw, offline) =>
-        scan.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1', offline })
-      }
+      onScan={(raw) => scan.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1' })}
     />
   )
 }
@@ -380,54 +577,16 @@ export function FinishedGoodsScanPage() {
 export function QualityScanPage() {
   const scan = useScanBundleMutation()
   return (
-    <ScanPanel
-      title="Quality Scan"
-      description="Kalite hattı için bundle tarama (aggregate yazılmaz — yalnızca resolve)"
+    <ResolveScanPanel
+      title="Quality Scan (resolve)"
+      description="Bundle resolve — quality aggregate yazılmaz"
       placeholder="KPL-BUNDLE-V1|…"
       pending={scan.isPending}
-      onScan={(raw, offline) =>
-        scan.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1', offline })
-      }
+      onScan={(raw) => scan.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1' })}
     />
   )
 }
 
 export function WarehouseScanPage() {
-  const scanMat = useScanMaterialMutation()
-  const scanFg = useScanFinishedGoodsMutation()
-  const [mode, setMode] = useState<'material' | 'fg'>('material')
-
-  return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
-        <Button size="sm" variant={mode === 'material' ? 'default' : 'outline'} onClick={() => setMode('material')}>
-          Material
-        </Button>
-        <Button size="sm" variant={mode === 'fg' ? 'default' : 'outline'} onClick={() => setMode('fg')}>
-          Finished Goods / Pallet
-        </Button>
-      </div>
-      {mode === 'material' ? (
-        <ScanPanel
-          title="Warehouse — Material Scan"
-          description="Depo malzeme tarama"
-          placeholder="KPL-MAT-V1|…"
-          pending={scanMat.isPending}
-          onScan={(raw, offline) =>
-            scanMat.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1', offline })
-          }
-        />
-      ) : (
-        <ScanPanel
-          title="Warehouse — Finished Goods Scan"
-          description="Mamül / palet UE eşlemesi"
-          placeholder="KPL-FG-V1|UE-… veya KPL-PAL-V1|…"
-          pending={scanFg.isPending}
-          onScan={(raw, offline) =>
-            scanFg.mutateAsync({ raw, actorUserId: getOperator() || 'operator-1', offline })
-          }
-        />
-      )}
-    </div>
-  )
+  return <MaterialIssueScanPage />
 }

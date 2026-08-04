@@ -67,6 +67,16 @@ export function queryStockMovementsByStockCard(stockCardId: string): StockMoveme
   return page.items.map(stripMovement)
 }
 
+/** Idempotency lookup — referenceNo is the durable client mutation key for scan posts. */
+export function queryStockMovementByReferenceNo(referenceNo: string): StockMovement | null {
+  if (!referenceNo) return null
+  const page = movementRepo().cursor(DEFAULT_TENANT_ID, {}, { limit: PERSISTENCE_CURSOR_MAX_LIMIT })
+  for (const row of page.items) {
+    if (row.referenceNo === referenceNo) return stripMovement(row)
+  }
+  return null
+}
+
 export function queryAllBalances(): InventoryBalanceView[] {
   const ledgers = queryAllStockLedgers()
   const views: InventoryBalanceView[] = []

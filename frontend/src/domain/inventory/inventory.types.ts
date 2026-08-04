@@ -28,6 +28,15 @@ export type GoodsIssueInput = {
   reason: string
 }
 
+export type ShipmentInput = {
+  stockCardId: string
+  warehouseCode: string
+  quantity: number
+  referenceId: string
+  referenceNo: string
+  reason: string
+}
+
 export type StockTransferInput = {
   stockCardId: string
   quantity: number
@@ -71,6 +80,8 @@ export type FinishedGoodsReceiptInput = {
   warehouseCode: string
   quantity: number
   reason?: string
+  /** When set, used as movement referenceNo for idempotent replay. */
+  idempotencyKey?: string
 }
 
 export type WarehouseStockSummary = {

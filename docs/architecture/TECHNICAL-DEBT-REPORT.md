@@ -1,13 +1,12 @@
-# TECHNICAL-DEBT-REPORT.md — Phase 5 Module 3 (Barcode & Mobile)
+# TECHNICAL-DEBT-REPORT.md — Phase 5 Module 3
 
-| Item | Severity | Notes |
-|------|----------|-------|
-| GS1-128 binary Code128 encoder absent | Low | AI string skeleton only — print engines later |
-| QR render (canvas/SVG) absent | Low | Payload JSON only; label UI shows text |
-| Camera: no `getUserMedia` / BarcodeDetector | Medium | Stub scanner; device integration next |
-| Offline queue not durable | Medium | Intentional skeleton — no new persistence port |
-| No service worker / offline shell cache | Medium | Manifest-only PWA installability |
-| Operator auth is sessionStorage | Low | IAM integration deferred |
-| Warehouse pallet scan piggybacks FG command | Low | Acceptable for skeleton; dedicated pallet command later |
+| Item | Status |
+|------|--------|
+| In-memory offline queue | **Removed** — localStorage durable queue |
+| Stub camera | **Removed** — real BarcodeDetector / getUserMedia |
+| Resolve-only scans without write path | **Closed** for receiving/issue/production/FG/shipment |
+| Shipment without persist | **Closed** — `persistShipment` on stock ledger |
+| GS1 binary Code128 glyph renderer | Open (low) — AI string sufficient for scan path |
+| Service worker offline shell | Open (low) — manifest + queue cover operator sync |
 
-**Acceptable for Module 3 gate** — skeletons explicit; Architecture Freeze preserved.
+**Gate:** No intentional demo/mock write paths remain for Module 3 workflows.

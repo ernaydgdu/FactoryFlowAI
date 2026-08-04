@@ -2,12 +2,12 @@
 
 | Check | Result |
 |-------|--------|
-| New persistence port / aggregate | **None** — offline queue is in-memory; scans are read resolve |
-| Shop Floor aggregate changed | **No** |
-| Quality aggregate / quality-gate stream changed | **No** |
-| Bundle / execution platform write paths changed | **No** — codec reuses `parseBundleBarcode` only |
-| Business rules changed | **No** |
-| Bootstrap / seed chain | **Unchanged** |
-| Layer stack (domain → application → UI) | **Respected** |
+| New persistence port / aggregate | **None** — offline queue is client localStorage; mutations use existing GR / ledger / declaration ports |
+| Shop Floor / Quality aggregate schemas | **Unchanged** — declaration called via existing `persistProductionDeclaration` |
+| Duplicate repositories | **None** |
+| Layer direction | domain workflow → domain persist; application wraps `runCommandInTransaction` |
+| Idempotency | GR `idempotencyKey`; ledger `referenceNo`; production `reasonCode=IDEM:…` |
+| Audit + Timeline + Outbox | Inherited from `persistPostGoodsReceipt` / `saveLedgerMovement` / declaration event path |
+| Bootstrap / seed | **Unchanged** |
 
-**Drift verdict:** No constitutional drift. Barcode & Mobile is an additive resolve/label/PWA layer over existing repositories and bundle barcode format.
+**Drift verdict:** No constitutional drift. Barcode & Mobile is an additive scan/workflow façade over frozen write paths.

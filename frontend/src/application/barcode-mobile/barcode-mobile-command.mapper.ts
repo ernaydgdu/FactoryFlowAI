@@ -1,7 +1,13 @@
 /**
- * Application scan commands — delegates to domain; no new aggregate writes.
- * Offline enqueue/flush is in-memory skeleton (no persistence port).
+ * Application scan / workflow commands.
+ * Mutations run inside runCommandInTransaction → existing audit/timeline/outbox paths.
  */
+import { runCommandInTransaction } from '@/application/core/command-transaction'
+import {
+  enqueueOfflineWorkflow,
+  listOfflineQueue,
+  syncOfflineQueue,
+} from '@/domain/barcode-mobile/offline-queue.service'
 import {
   executeScanBundle as domainScanBundle,
   executeScanFinishedGoods as domainScanFg,
@@ -10,54 +16,111 @@ import {
   executeScanProduction as domainScanProduction,
 } from '@/domain/barcode-mobile/scan.service'
 import {
-  enqueueOfflineScan,
-  flushOfflineQueue,
-} from '@/domain/barcode-mobile/offline-queue.service'
-import type { ScanKind, ScanResult } from '@/domain/barcode-mobile/barcode.types'
+  BarcodeMobileDomainError,
+  runWorkflow,
+} from '@/domain/barcode-mobile/scan-workflow.service'
 import {
   buildBundleLabel,
   buildFinishedGoodsLabel,
   buildPalletLabel,
 } from '@/domain/barcode-mobile/label.service'
+import type { ScanResult } from '@/domain/barcode-mobile/barcode.types'
 
-import type { ScanCommand } from './barcode-mobile.dto'
+import type { ScanCommand, SyncResultDto, WorkflowScanCommand } from './barcode-mobile.dto'
 
-export { BarcodeMobileDomainError } from '@/domain/barcode-mobile/scan.service'
-
-function maybeOffline(kind: ScanKind, command: ScanCommand): ScanResult | null {
-  if (!command.offline) return null
-  enqueueOfflineScan({ kind, raw: command.raw, actorUserId: command.actorUserId })
-  return {
-    kind,
-    raw: command.raw,
-    symbology: 'UNKNOWN',
-    ok: true,
-    message: `Offline kuyruğa alındı (${kind})`,
-  }
-}
+export { BarcodeMobileDomainError }
 
 export function executeScanOperation(command: ScanCommand): ScanResult {
-  return maybeOffline('OPERATION', command) ?? domainScanOperation(command.raw)
+  return domainScanOperation(command.raw)
 }
 
 export function executeScanBundle(command: ScanCommand): ScanResult {
-  return maybeOffline('BUNDLE', command) ?? domainScanBundle(command.raw)
+  return domainScanBundle(command.raw)
 }
 
 export function executeScanMaterial(command: ScanCommand): ScanResult {
-  return maybeOffline('MATERIAL', command) ?? domainScanMaterial(command.raw)
+  return domainScanMaterial(command.raw)
 }
 
 export function executeScanFinishedGoods(command: ScanCommand): ScanResult {
-  return maybeOffline('FINISHED_GOODS', command) ?? domainScanFg(command.raw)
+  return domainScanFg(command.raw)
 }
 
 export function executeScanProduction(command: ScanCommand): ScanResult {
-  return maybeOffline('OPERATION', command) ?? domainScanProduction(command.raw)
+  return domainScanProduction(command.raw)
 }
 
-export function executeFlushOfflineQueue() {
-  return flushOfflineQueue()
+function payloadFromCommand(command: WorkflowScanCommand): Record<string, unknown> {
+  return {
+    raw: command.raw,
+    quantity: command.quantity,
+    produced: command.produced,
+    purchaseOrderId: command.purchaseOrderId,
+    warehouseCode: command.warehouseCode,
+    productionOrderNo: command.productionOrderNo,
+    lot: command.lot,
+    lineId: command.lineId,
+    machineId: command.machineId,
+    shiftCode: command.shiftCode,
+    shipmentRef: command.shipmentRef,
+  }
+}
+
+export function executeWorkflowScan(command: WorkflowScanCommand): ScanResult {
+  if (command.offline) {
+    enqueueOfflineWorkflow({
+      workflow: command.workflow,
+      payload: payloadFromCommand(command),
+      actorUserId: command.actorUserId,
+      idempotencyKey: command.idempotencyKey,
+    })
+    return {
+      kind: command.workflow,
+      raw: command.raw,
+      symbology: 'UNKNOWN',
+      ok: true,
+      message: `Offline kuyruğa alındı (${command.workflow})`,
+    }
+  }
+  return runCommandInTransaction(() =>
+    runWorkflow(command.workflow, payloadFromCommand(command), command.actorUserId, command.idempotencyKey),
+  )
+}
+
+export function executeReceivingScan(command: WorkflowScanCommand): ScanResult {
+  return executeWorkflowScan({ ...command, workflow: 'RECEIVING' })
+}
+
+export function executeMaterialIssueScan(command: WorkflowScanCommand): ScanResult {
+  return executeWorkflowScan({ ...command, workflow: 'MATERIAL_ISSUE' })
+}
+
+export function executeProductionScan(command: WorkflowScanCommand): ScanResult {
+  return executeWorkflowScan({ ...command, workflow: 'PRODUCTION' })
+}
+
+export function executeFgReceiptScan(command: WorkflowScanCommand): ScanResult {
+  return executeWorkflowScan({ ...command, workflow: 'FG_RECEIPT' })
+}
+
+export function executeShipmentScan(command: WorkflowScanCommand): ScanResult {
+  return executeWorkflowScan({ ...command, workflow: 'SHIPMENT' })
+}
+
+export function executeSyncOfflineQueue(): SyncResultDto {
+  return syncOfflineQueue((item) =>
+    runCommandInTransaction(() =>
+      runWorkflow(item.workflow, item.payload, item.actorUserId, item.idempotencyKey),
+    ),
+  )
+}
+
+export function executeFlushOfflineQueue(): SyncResultDto {
+  return executeSyncOfflineQueue()
+}
+
+export function queryOfflineQueue() {
+  return listOfflineQueue()
 }
 
 export function queryBundleLabel(bundleId: string) {

@@ -20,6 +20,7 @@ import {
   executeGoodsReceipt,
   executeReservation,
   executeReservationRelease,
+  executeShipment,
   executeTransfer,
 } from './inventory-command.mapper'
 
@@ -42,6 +43,7 @@ export const inventoryApplicationService = {
   command: {
     goodsReceipt: executeGoodsReceipt,
     goodsIssue: executeGoodsIssue,
+    shipment: executeShipment,
     transfer: executeTransfer,
     reservation: executeReservation,
     reservationRelease: executeReservationRelease,

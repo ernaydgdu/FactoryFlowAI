@@ -1,28 +1,21 @@
-# BARCODE-REPORT.md — Phase 5 Module 3
+# BARCODE-REPORT.md — Phase 5 Module 3 (production)
 
-**Scope:** Barcode / QR / GS1-128 skeleton + Bundle & Pallet labels + scan resolve.
-
-## Delivered
+## Capabilities
 
 | Capability | Implementation |
 |------------|----------------|
-| Bundle barcode | Reuses `KPL-BUNDLE-V1` via `parseBundleBarcode` / `lookupBundleByScan` |
-| Operation barcode | `KPL-OP-V1\|UE\|OP` encode/decode |
-| Material barcode | `KPL-MAT-V1\|code` + stock card code fallback |
-| Finished Goods | `KPL-FG-V1\|UE` + `fg-{UE}` compatibility |
-| Pallet barcode | `KPL-PAL-V1\|WH\|SEQ\|UE` |
-| QR | JSON payload (`encodeQrPayload`) |
-| GS1-128 | AI string skeleton `(01)(10)(37)` — no binary Code128 encoder |
-| Bundle Label | `buildBundleLabel` |
-| Pallet Label | `buildPalletLabel` |
-| FG Label | `buildFinishedGoodsLabel` |
+| GS1-128 | AI decode `(01)(10)(21)(37)` + encode skeleton |
+| QR | JSON payload encode/decode |
+| Receiving scan | `executeReceivingScan` → `persistPostGoodsReceipt` |
+| Material issue | `executeMaterialIssueScan` → `persistGoodsIssue` |
+| Production scan | `executeProductionScanWorkflow` → `persistProductionDeclaration` |
+| FG receipt | `executeFgReceiptScan` → `persistFinishedGoodsReceipt` |
+| Shipment | `executeShipmentScan` → `persistShipment` (new thin ledger write) |
+| Offline + sync | localStorage queue + TX flush |
+| Camera | `BarcodeDetector` + `getUserMedia` + manual wedge |
 
-## Scan resolve
+## Mutation guarantees
 
-- `executeScanOperation` / `executeScanBundle` / `executeScanMaterial` / `executeScanFinishedGoods` / `executeScanProduction`
-- Read-only against existing production order, stock card, execution context, bundle lookup ports
-
-## Constraints
-
-- No new persistence aggregate
-- Shop Floor / Quality aggregates untouched
+- Commands wrapped in `runCommandInTransaction`
+- Idempotent keys prevent double-post
+- Audit / enterprise or execution timeline / outbox via existing persist paths
