@@ -18,6 +18,7 @@ export type EnterpriseEntityType =
   | 'BUYER'
   | 'MERCHANDISER'
   | 'BOM'
+  | 'MRP_RUN'
   | 'OPERATION_ROUTE'
   | 'OPERATION'
   | 'SIZE_SET'

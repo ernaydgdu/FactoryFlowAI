@@ -29,10 +29,19 @@ import type {
   ProductionOrderLifecycleRecord,
   ProductionOrderSnapshot,
 } from '../../production-order/lifecycle-types'
+import type { MrpRun } from '../../mrp/mrp.types'
 import type { ProductCard, SalesOrder, StockCard } from '../../types'
+import type {
+  GoodsReceipt,
+  PurchaseOrderAggregate,
+  PurchaseRequest,
+  RequestForQuotation,
+  SupplierQuotation,
+} from '../../purchasing/purchasing.types'
 import type { PurchaseOrder } from '../../types/workflows'
 import type { StockBalance, StockMovement } from '../../types/stock-ledger'
-import type { AccessoryCard, FabricCard } from '../../types/textile-erp'
+import type { AccessoryCard, FabricCard, TextileProductCard } from '../../types/textile-erp'
+import type { UserAccountStatus, KeplerRole } from '../../platform/iam/types'
 import type { AggregateRoot, StreamRecord } from './persistence.types'
 
 /** Domain entity'ye persistence metadata ekler */
@@ -44,7 +53,10 @@ export type WithPersistenceMetadata<T extends { id: string }> = T &
 
 export type PersistedSalesOrder = WithPersistenceMetadata<SalesOrder>
 
-export type PersistedProductCard = WithPersistenceMetadata<ProductCard>
+/** @deprecated Legacy flat shape — runtime aggregate is TextileProductCard */
+export type PersistedLegacyProductCard = WithPersistenceMetadata<ProductCard>
+
+export type PersistedProductCard = WithPersistenceMetadata<TextileProductCard>
 
 export type PersistedProductionOrder = WithPersistenceMetadata<ProductionOrderLifecycleRecord>
 
@@ -70,6 +82,19 @@ export type PersistedApprovalWorkflow = WithPersistenceMetadata<ApprovalWorkflow
 export type PersistedEntityRevision = WithPersistenceMetadata<VersionedRecord>
 
 export type PersistedPurchaseOrder = WithPersistenceMetadata<PurchaseOrder>
+
+/** Phase 3 Module 3 — lifecycle PO aggregate */
+export type PersistedPurchaseOrderAggregate = WithPersistenceMetadata<PurchaseOrderAggregate>
+
+export type PersistedPurchaseRequest = WithPersistenceMetadata<PurchaseRequest>
+
+export type PersistedRequestForQuotation = WithPersistenceMetadata<RequestForQuotation>
+
+export type PersistedSupplierQuotation = WithPersistenceMetadata<SupplierQuotation>
+
+export type PersistedGoodsReceipt = WithPersistenceMetadata<GoodsReceipt>
+
+export type PersistedMrpRun = WithPersistenceMetadata<MrpRun>
 
 export type PersistedFabricCard = WithPersistenceMetadata<FabricCard>
 
@@ -114,6 +139,18 @@ export type PersistedAuditLogEntry = StreamRecord & AuditLogEntry
 export type PersistedOrderTimelineEntry = StreamRecord & TimelineEntry
 
 export type PersistedBrainDecisionMemory = StreamRecord & DecisionMemoryEntry
+
+/** Platform IAM — user account aggregate (credentials stored separately from DTO) */
+export type PersistedUserAccount = WithPersistenceMetadata<{
+  id: string
+  email: string
+  fullName: string
+  role: KeplerRole
+  factoryId: string
+  status: UserAccountStatus
+  passwordHash: string
+  passwordSalt: string
+}>
 
 /** Read model */
 export type WipPositionReadModelKey = string

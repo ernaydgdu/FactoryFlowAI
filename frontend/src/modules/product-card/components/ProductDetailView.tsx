@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ProductCardDetailDto } from '@/application/product-card/product-card.dto'
 
-type TabId = 'overview' | 'bom' | 'colors' | 'sizes' | 'technical' | 'relations' | 'documents' | 'timeline'
+type TabId = 'overview' | 'bom' | 'colors' | 'sizes' | 'technical' | 'revisions' | 'relations' | 'documents' | 'timeline'
 
 type Props = {
   product: ProductCardDetailDto
@@ -19,6 +19,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'colors', label: 'Renkler' },
   { id: 'sizes', label: 'Beden Seti' },
   { id: 'technical', label: 'Teknik' },
+  { id: 'revisions', label: 'Revizyonlar' },
   { id: 'relations', label: 'İlişkiler' },
   { id: 'documents', label: 'Dokümanlar' },
   { id: 'timeline', label: 'Timeline' },
@@ -112,6 +113,9 @@ export function ProductDetailView({ product, activeTab, onTabChange }: Props) {
             <Button variant="outline" size="sm" asChild>
               <Link to={`/products/${product.id}/bom`}>BOM Designer →</Link>
             </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/products/${product.id}/cost-sheet`}>Cost Sheet →</Link>
+            </Button>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <DataTable
@@ -185,6 +189,25 @@ export function ProductDetailView({ product, activeTab, onTabChange }: Props) {
               ['Operasyon Rotası', `${product.operationRouteCount} operasyon`],
               ['Kalite Planı', product.qualityPlanId],
             ]} />
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'revisions' && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Revizyon Geçmişi</CardTitle></CardHeader>
+          <CardContent className="overflow-x-auto">
+            <DataTable
+              rowKey={(r) => String(r.revisionNo)}
+              data={product.revisions}
+              columns={[
+                { key: 'no', header: 'Rev.', render: (r) => String(r.revisionNo) },
+                { key: 'status', header: 'Durum', render: (r) => r.status },
+                { key: 'at', header: 'Tarih', render: (r) => new Date(r.changedAt).toLocaleString('tr-TR') },
+                { key: 'by', header: 'Kullanıcı', render: (r) => r.changedBy },
+                { key: 'note', header: 'Not', render: (r) => r.changeNote },
+              ]}
+            />
           </CardContent>
         </Card>
       )}

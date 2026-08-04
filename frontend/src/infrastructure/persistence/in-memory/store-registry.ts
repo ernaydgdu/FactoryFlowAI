@@ -8,13 +8,24 @@ import type {
   PersistedEntityRevision,
   PersistedExecutionContext,
   PersistedExecutionEvent,
+  PersistedMrpRun,
   PersistedOperationDailyEntry,
   PersistedOperationWorkSession,
   PersistedOrderTimelineEntry,
   PersistedProductionDailyEntry,
   PersistedProductionOrder,
+  PersistedProductCard,
+  PersistedPurchaseOrderAggregate,
+  PersistedPurchaseRequest,
+  PersistedRequestForQuotation,
+  PersistedSupplierQuotation,
+  PersistedGoodsReceipt,
   PersistedQualityGateEvaluation,
+  PersistedSalesOrder,
   PersistedSplitExecution,
+  PersistedStockCard,
+  PersistedStockLedger,
+  PersistedStockMovement,
   PersistedWipTransfer,
   WipPositionReadModel,
 } from '@/domain/ports/persistence/persistence-aggregates'
@@ -40,6 +51,38 @@ export class InMemoryStoreRegistry {
 
   productionOrders: PersistedProductionOrder[] = []
   productionOrderCounter = 0
+
+  productCards: PersistedProductCard[] = []
+  productCardCounter = 0
+
+  salesOrders: PersistedSalesOrder[] = []
+  salesOrderCounter = 0
+
+  mrpRuns: PersistedMrpRun[] = []
+  mrpRunCounter = 0
+
+  purchaseOrders: PersistedPurchaseOrderAggregate[] = []
+  purchaseOrderCounter = 0
+
+  purchaseRequests: PersistedPurchaseRequest[] = []
+  purchaseRequestCounter = 0
+
+  rfqs: PersistedRequestForQuotation[] = []
+  rfqCounter = 0
+
+  supplierQuotations: PersistedSupplierQuotation[] = []
+  supplierQuotationCounter = 0
+
+  goodsReceipts: PersistedGoodsReceipt[] = []
+  goodsReceiptCounter = 0
+
+  stockCards: PersistedStockCard[] = []
+
+  stockLedgers: PersistedStockLedger[] = []
+  stockLedgerCounter = 0
+
+  stockMovements: PersistedStockMovement[] = []
+  stockMovementCounter = 0
 
   productionDailyEntries: PersistedProductionDailyEntry[] = []
   productionDailyEntryCounter = 0

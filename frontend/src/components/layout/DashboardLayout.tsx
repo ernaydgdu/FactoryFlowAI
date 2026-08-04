@@ -1,22 +1,35 @@
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 
+import { useAuth } from '@/application/platform/iam/auth-context'
+import { canAccessRoute } from '@/domain/platform/iam/permission-policy'
+import type { KeplerRole } from '@/domain/platform/iam/types'
 import { Navbar } from '@/components/layout/Navbar'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { AUTH_TOKEN_KEY } from '@/services/auth'
 
 export function DashboardLayout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { isAuthenticated, user, canAccess } = useAuth()
 
   useEffect(() => {
-    if (!localStorage.getItem(AUTH_TOKEN_KEY)) {
+    if (!isAuthenticated) {
       navigate('/login', { replace: true, state: { from: location.pathname } })
+      return
     }
-  }, [location.pathname, navigate, location])
 
-  if (!localStorage.getItem(AUTH_TOKEN_KEY)) {
+    const role = (user?.role ?? 'VIEWER') as KeplerRole
+    if (!canAccessRoute(role, location.pathname)) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [location.pathname, navigate, location, isAuthenticated, user?.role, canAccess])
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+  }
+
+  if (user && !canAccess(location.pathname)) {
+    return <Navigate to="/dashboard" replace />
   }
 
   return (

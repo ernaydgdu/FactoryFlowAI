@@ -65,7 +65,7 @@ export function buildProductCardRelations(productCardId: string): ProductCardRel
   const qualityPlanId = `qip-${card.refs.productGroupId.replace('pg-', '')}`
   relations.push(rel(productCardId, 'QUALITY_PLAN', qualityPlanId, 'HAS', 'Quality Plan'))
 
-  const costSheetId = `cost-pc-${productCardId}`
+  const costSheetId = card.costSheet?.id ?? `cost-pc-${productCardId}`
   relations.push(rel(productCardId, 'COST_SHEET', costSheetId, 'HAS', 'Cost Sheet'))
 
   relations.push(rel(productCardId, 'SAMPLE', `sample-${productCardId}`, 'REFERENCES', 'Sample History'))

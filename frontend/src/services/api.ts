@@ -1,5 +1,7 @@
 import axios, { isAxiosError } from 'axios'
 
+import { getRuntimeTenantContext } from '@/domain/platform/tenant/tenant-context.runtime'
+
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 export const api = axios.create({
@@ -15,6 +17,10 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.set('Authorization', `Bearer ${token}`)
   }
+
+  const { tenantId, factoryId } = getRuntimeTenantContext()
+  config.headers.set('X-Tenant-Id', tenantId)
+  config.headers.set('X-Factory-Id', factoryId)
 
   return config
 })

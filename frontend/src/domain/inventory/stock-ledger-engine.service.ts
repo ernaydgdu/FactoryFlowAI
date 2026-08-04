@@ -1,0 +1,164 @@
+/**
+ * Persisted stock ledger engine — repository-backed movement recording.
+ * Uses existing BR-10 rules from stock-ledger service logic.
+ */
+import { warehouseRepository } from '@/domain/master-data'
+import { queryStockCardById } from '@/domain/stock-card/stock-card-query.service'
+import type { StockCard } from '@/domain/types'
+import type {
+  StockBalance,
+  StockLedger,
+  StockMovement,
+  StockMovementType,
+  StockReferenceType,
+} from '@/domain/types/stock-ledger'
+
+import type { CreateMovementInput } from '@/domain/services/stock-ledger'
+
+export function createEmptyLedger(): StockLedger {
+  return { movements: [], balances: [], lastMovementNo: 0 }
+}
+
+function resolveStockCard(stockCardId: string): StockCard {
+  const card = queryStockCardById(stockCardId)
+  if (card) return card
+
+  if (stockCardId.startsWith('fg-')) {
+    const orderNo = stockCardId.replace('fg-', '')
+    return {
+      id: stockCardId,
+      code: stockCardId,
+      name: `Mamül — ${orderNo}`,
+      category: 'Koli',
+      unit: 'adet',
+      warehouseCode: 'MML-01',
+      warehouseName: 'Mamül Deposu',
+      supplier: '—',
+      leadTimeDays: 0,
+      minOrderQty: 0,
+      availableQty: 0,
+      attributes: { orderNo },
+    }
+  }
+
+  throw new Error(`Stok kartı bulunamadı: ${stockCardId}`)
+}
+
+function getOrCreateBalance(
+  ledger: StockLedger,
+  stockCardId: string,
+  warehouseCode: string,
+): StockBalance {
+  const existing = ledger.balances.find(
+    (b) => b.stockCardId === stockCardId && b.warehouseCode === warehouseCode,
+  )
+  if (existing) return existing
+
+  const card = resolveStockCard(stockCardId)
+  const wh = warehouseRepository.getByCode(warehouseCode)
+  const balance: StockBalance = {
+    stockCardId,
+    materialCode: card.code,
+    warehouseCode,
+    warehouseName: wh?.name ?? warehouseCode,
+    unit: card.unit,
+    onHand: 0,
+    reserved: 0,
+    available: 0,
+  }
+  ledger.balances.push(balance)
+  return balance
+}
+
+function syncAvailable(balance: StockBalance): void {
+  balance.available = Math.round((balance.onHand - balance.reserved) * 10000) / 10000
+}
+
+function nextMovementNo(ledger: StockLedger): string {
+  ledger.lastMovementNo += 1
+  return `STK-${String(ledger.lastMovementNo).padStart(6, '0')}`
+}
+
+export function recordPersistedMovement(
+  ledger: StockLedger,
+  input: CreateMovementInput,
+): StockMovement {
+  const card = resolveStockCard(input.stockCardId)
+  const wh = warehouseRepository.getByCode(input.warehouseCode)
+  if (!wh) throw new Error(`Depo bulunamadı: ${input.warehouseCode}`)
+  if (input.quantity <= 0) throw new Error('Hareket miktarı sıfırdan büyük olmalı')
+
+  const balance = getOrCreateBalance(ledger, input.stockCardId, input.warehouseCode)
+
+  switch (input.type) {
+    case 'RECEIPT':
+    case 'TRANSFER_IN':
+    case 'PRODUCTION_OUTPUT':
+      balance.onHand += input.quantity
+      break
+    case 'TRANSFER_OUT':
+    case 'CONSUMPTION':
+    case 'WASTE':
+    case 'SHIPMENT':
+      if (balance.onHand < input.quantity) {
+        throw new Error(
+          `${balance.materialCode} @ ${balance.warehouseName}: yetersiz stok (${balance.onHand} < ${input.quantity})`,
+        )
+      }
+      balance.onHand -= input.quantity
+      break
+    case 'RESERVATION':
+      if (balance.available < input.quantity) {
+        throw new Error(
+          `${balance.materialCode} @ ${balance.warehouseName}: rezerve için yetersiz serbest stok`,
+        )
+      }
+      balance.reserved += input.quantity
+      break
+    case 'RESERVATION_RELEASE':
+      if (balance.reserved < input.quantity) {
+        throw new Error(`${balance.materialCode}: rezerve çözüm miktarı fazla`)
+      }
+      balance.reserved -= input.quantity
+      break
+    case 'ADJUSTMENT':
+      balance.onHand += input.quantity
+      break
+    default:
+      throw new Error(`Desteklenmeyen hareket tipi: ${input.type as StockMovementType}`)
+  }
+
+  syncAvailable(balance)
+
+  const movement: StockMovement = {
+    id: `mov-${ledger.movements.length + 1}-${Date.now()}`,
+    movementNo: nextMovementNo(ledger),
+    type: input.type,
+    stockCardId: input.stockCardId,
+    materialCode: card.code,
+    materialName: card.name,
+    warehouseCode: wh.code,
+    warehouseName: wh.name,
+    quantity: input.quantity,
+    unit: card.unit,
+    referenceType: input.referenceType as StockReferenceType,
+    referenceId: input.referenceId,
+    referenceNo: input.referenceNo,
+    reason: input.reason,
+    createdAt: input.createdAt ?? new Date().toISOString(),
+    createdBy: input.createdBy,
+    linkedMovementId: input.linkedMovementId,
+    onHandAfter: balance.onHand,
+    reservedAfter: balance.reserved,
+  }
+
+  ledger.movements.push(movement)
+  return movement
+}
+
+export function ledgerFromBalances(
+  balances: StockBalance[],
+  lastMovementNo: number,
+): StockLedger {
+  return { movements: [], balances: balances.map((b) => ({ ...b })), lastMovementNo }
+}

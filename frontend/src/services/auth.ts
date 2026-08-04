@@ -1,4 +1,9 @@
-import { api } from '@/services/api'
+import {
+  coerceKeplerRole,
+  DEFAULT_FACTORY_ID,
+  normalizeKeplerRole,
+  type KeplerRole,
+} from '@/domain/platform/iam/types'
 
 export const AUTH_TOKEN_KEY = 'kepler_token'
 export const AUTH_USER_KEY = 'kepler_user'
@@ -7,7 +12,8 @@ export type AuthUser = {
   id: string
   email: string
   fullName: string
-  role: string
+  role: KeplerRole
+  factoryId: string
 }
 
 export type LoginResponse = {
@@ -27,21 +33,39 @@ export class LoginFailedError extends Error {
   }
 }
 
-export async function login(
-  credentials: LoginCredentials,
-): Promise<LoginResponse> {
-  const { data } = await api.post<LoginResponse>('/auth/login', credentials)
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 
-  if (!data?.access_token || !data?.user) {
-    throw new LoginFailedError()
+function normalizeStoredUser(raw: unknown): AuthUser | null {
+  if (!isRecord(raw)) {
+    return null
   }
 
-  return data
+  const id = typeof raw.id === 'string' ? raw.id.trim() : ''
+  const email = typeof raw.email === 'string' ? raw.email.trim() : ''
+  const fullName = typeof raw.fullName === 'string' ? raw.fullName.trim() : ''
+
+  if (!id || !email || !fullName) {
+    return null
+  }
+
+  const role = coerceKeplerRole(raw.role)
+  const factoryId =
+    typeof raw.factoryId === 'string' && raw.factoryId.trim()
+      ? raw.factoryId.trim()
+      : DEFAULT_FACTORY_ID
+
+  return { id, email, fullName, role, factoryId }
+}
+
+function persistStoredUser(user: AuthUser): void {
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
 }
 
 export function saveAuthSession(response: LoginResponse): void {
   localStorage.setItem(AUTH_TOKEN_KEY, response.access_token)
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user))
+  persistStoredUser(response.user)
 }
 
 export function getStoredUser(): AuthUser | null {
@@ -52,8 +76,31 @@ export function getStoredUser(): AuthUser | null {
   }
 
   try {
-    return JSON.parse(raw) as AuthUser
+    const parsed: unknown = JSON.parse(raw)
+    const normalized = normalizeStoredUser(parsed)
+
+    if (!normalized) {
+      clearAuthSession()
+      return null
+    }
+
+    if (isRecord(parsed)) {
+      const mappedRole = normalizeKeplerRole(parsed.role)
+      const rawFactoryId =
+        typeof parsed.factoryId === 'string' ? parsed.factoryId.trim() : undefined
+      const needsMigration =
+        parsed.role !== normalized.role ||
+        rawFactoryId !== normalized.factoryId ||
+        mappedRole === null
+
+      if (needsMigration) {
+        persistStoredUser(normalized)
+      }
+    }
+
+    return normalized
   } catch {
+    clearAuthSession()
     return null
   }
 }

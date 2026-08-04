@@ -1,7 +1,7 @@
 /** AR — PurchaseOrder aggregate port */
-import type { PersistedPurchaseOrder } from '../persistence-aggregates'
+import type { PersistedPurchaseOrderAggregate } from '../persistence-aggregates'
 import type { ICodedAggregateRepository } from '../repository.base'
 
-export interface IPurchaseOrderRepository extends ICodedAggregateRepository<PersistedPurchaseOrder> {
-  findByPurchaseOrderNo(tenantId: string, purchaseOrderNo: string): PersistedPurchaseOrder | null
+export interface IPurchaseOrderRepository extends ICodedAggregateRepository<PersistedPurchaseOrderAggregate> {
+  findByPurchaseOrderNo(tenantId: string, purchaseOrderNo: string): PersistedPurchaseOrderAggregate | null
 }

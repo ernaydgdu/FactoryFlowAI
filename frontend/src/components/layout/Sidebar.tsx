@@ -1,15 +1,30 @@
 import type { ComponentType, ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 
+import { useAuth } from '@/application/platform/iam/auth-context'
 import {
   appConfig,
   dashboardNavItem,
   footerNavItems,
   navGroups,
 } from '@/config/navigation'
+import { filterNavHref } from '@/domain/platform/iam/permission-policy'
+import type { KeplerRole } from '@/domain/platform/iam/types'
 import { cn } from '@/lib/utils'
 
 export function Sidebar() {
+  const { user } = useAuth()
+  const role = (user?.role ?? 'VIEWER') as KeplerRole
+
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => filterNavHref(role, item.href)),
+    }))
+    .filter((group) => group.items.length > 0)
+
+  const visibleFooter = footerNavItems.filter((item) => filterNavHref(role, item.href))
+
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
@@ -27,11 +42,13 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
-        <SidebarLink href={dashboardNavItem.href} icon={dashboardNavItem.icon}>
-          {dashboardNavItem.title}
-        </SidebarLink>
+        {filterNavHref(role, dashboardNavItem.href) ? (
+          <SidebarLink href={dashboardNavItem.href} icon={dashboardNavItem.icon}>
+            {dashboardNavItem.title}
+          </SidebarLink>
+        ) : null}
 
-        {navGroups.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.title} className="space-y-1">
             <div className="flex items-center gap-2 px-3 py-1.5">
               <group.icon className="size-3.5 shrink-0 text-sidebar-foreground/50" />
@@ -49,7 +66,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-sidebar-border px-3 py-4">
-        {footerNavItems.map((item) => (
+        {visibleFooter.map((item) => (
           <SidebarLink key={item.href} href={item.href} icon={item.icon}>
             {item.title}
           </SidebarLink>

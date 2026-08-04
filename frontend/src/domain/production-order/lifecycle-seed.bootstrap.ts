@@ -5,6 +5,7 @@
 import { SALES_ORDERS } from '../data/orders'
 import { getProductById } from '../data/products'
 import { getStockCardById } from '../data/stock-cards'
+import type { SalesOrderCommandContext } from '../catalog/command-context.types'
 import type { SalesOrder } from '../types'
 import { productionLineRepository, workshopRepository } from '../master-data'
 import { buildProductionTracking } from '../services/textile/production-tracking-service'
@@ -92,7 +93,8 @@ function seedSingleOrder(order: SalesOrder): void {
         production: order.production,
         exfDate: order.exfDate,
         terminRisk: order.terminRisk,
-      },
+        mrp: order.mrp,
+      } as unknown as SalesOrderCommandContext,
       {
         id: product.id,
         productCode: product.productCode,

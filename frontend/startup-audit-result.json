@@ -1,0 +1,434 @@
+{
+  "routeResults": [
+    {
+      "route": "/",
+      "ok": true,
+      "rootLen": 558,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/accessories/cards",
+      "ok": true,
+      "rootLen": 25112,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/accessories/stock",
+      "ok": true,
+      "rootLen": 25112,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/ai",
+      "ok": true,
+      "rootLen": 25104,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/cost",
+      "ok": true,
+      "rootLen": 25110,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/cutting",
+      "ok": true,
+      "rootLen": 25107,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/dashboard",
+      "ok": true,
+      "rootLen": 25097,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/dev/execution-demo",
+      "ok": true,
+      "rootLen": 25115,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/execution-platform",
+      "ok": true,
+      "rootLen": 25115,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/fabric/cards",
+      "ok": true,
+      "rootLen": 25109,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/fabric/movements",
+      "ok": true,
+      "rootLen": 25112,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/fabric/receipt",
+      "ok": true,
+      "rootLen": 25107,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/fabric/stock",
+      "ok": true,
+      "rootLen": 25109,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/login",
+      "ok": true,
+      "rootLen": 558,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/master-data",
+      "ok": true,
+      "rootLen": 25094,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/master-data/suppliers",
+      "ok": true,
+      "rootLen": 25095,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/merchandising",
+      "ok": true,
+      "rootLen": 25108,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/merchandising/1",
+      "ok": true,
+      "rootLen": 25124,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/orders",
+      "ok": true,
+      "rootLen": 25110,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/orders/1",
+      "ok": true,
+      "rootLen": 25118,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/orders/1/edit",
+      "ok": true,
+      "rootLen": 25118,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/orders/new",
+      "ok": true,
+      "rootLen": 25107,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/packaging",
+      "ok": true,
+      "rootLen": 25114,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/planning/mrp",
+      "ok": true,
+      "rootLen": 25098,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/planning/size-sets",
+      "ok": true,
+      "rootLen": 25108,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/production-order-lifecycle",
+      "ok": true,
+      "rootLen": 25115,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/production-planning",
+      "ok": true,
+      "rootLen": 25115,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/production/lines",
+      "ok": true,
+      "rootLen": 25117,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/production/operations",
+      "ok": true,
+      "rootLen": 25121,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/production/orders",
+      "ok": true,
+      "rootLen": 25120,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/production/sewing",
+      "ok": true,
+      "rootLen": 25117,
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/production/washing",
+      "ok": false,
+      "error": "locator.innerHTML: Target page, context or browser has been closed\nCall log:\n  - waiting for locator('#root')\n"
+    },
+    {
+      "route": "/products",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/products/1",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/products/1/bom",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/products/1/cost-sheet",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/products/1/edit",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/products/new",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/purchasing",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/purchasing/orders",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/purchasing/orders/1",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/quality",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/quality/final",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/quality/inline",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/quality/midline",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/reports",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/settings",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/settings/users",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/shipping",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/shipping/containers",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/warehouse/count",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/warehouse/inbound",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "/warehouse/outbound",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "brain",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "bundles",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "calendar",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "capacity",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "create",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "daily-entry",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "dashboard",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "lines",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "operations",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "orders",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "orders/UE-2026-0100",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "quality",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "schedule",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "split",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "timeline",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "wip",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "work-sessions",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "route": "workshops",
+      "ok": false,
+      "error": "page.goto: Target page, context or browser has been closed"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "rejections": [],
+  "critFails": [
+    "/products",
+    "/products/1/bom",
+    "/products/1/cost-sheet",
+    "/purchasing"
+  ],
+  "summary": {
+    "pass": 31,
+    "fail": 40
+  }
+}

@@ -14,11 +14,17 @@ import type { IFabricCardRepository } from './aggregates/fabric-card.repository'
 import type { IProductCardRepository } from './aggregates/product-card.repository'
 import type { IProductionLineRepository } from './aggregates/production-line.repository'
 import type { IProductionOrderRepository } from './aggregates/production-order.repository'
+import type { IMrpRunRepository } from './aggregates/mrp-run.repository'
 import type { IPurchaseOrderRepository } from './aggregates/purchase-order.repository'
+import type { IPurchaseRequestRepository } from './aggregates/purchase-request.repository'
+import type { IGoodsReceiptRepository } from './aggregates/goods-receipt.repository'
+import type { IRequestForQuotationRepository } from './aggregates/rfq.repository'
+import type { ISupplierQuotationRepository } from './aggregates/supplier-quotation.repository'
 import type { ISalesOrderRepository } from './aggregates/sales-order.repository'
 import type { ISplitExecutionRepository } from './aggregates/split-execution.repository'
 import type { IStockCardRepository } from './aggregates/stock-card.repository'
 import type { IStockLedgerRepository } from './aggregates/stock-ledger.repository'
+import type { IUserAccountRepository } from './aggregates/user-account.repository'
 import type { IWarehouseRepository } from './aggregates/warehouse.repository'
 import type { IWorkshopRepository } from './aggregates/workshop.repository'
 import type { IDomainEventOutboxRepository } from './outbox/domain-event-outbox.repository'
@@ -67,12 +73,18 @@ export interface IUnitOfWork {
   approvalWorkflows: IApprovalWorkflowRepository
   entityRevisions: IEntityRevisionRepository
   purchaseOrders: IPurchaseOrderRepository
+  purchaseRequests: IPurchaseRequestRepository
+  rfqs: IRequestForQuotationRepository
+  supplierQuotations: ISupplierQuotationRepository
+  goodsReceipts: IGoodsReceiptRepository
+  mrpRuns: IMrpRunRepository
   fabricCards: IFabricCardRepository
   accessoryCards: IAccessoryCardRepository
   warehouses: IWarehouseRepository
   workshops: IWorkshopRepository
   productionLines: IProductionLineRepository
   customers: ICustomerRepository
+  userAccounts: IUserAccountRepository
   brainConfigs: IBrainConfigRepository
 
   /** Master Data — lookup registry + enterprise config */

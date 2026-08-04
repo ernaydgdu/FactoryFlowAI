@@ -1,6 +1,9 @@
 import { ArrowLeft, Pencil } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
+import { useAuth } from '@/application/platform/iam/auth-context'
+import { salesOrderLifecycleBadge } from '@/application/sales-order/sales-order.dto'
+import { useSalesOrderDetail } from '@/application/sales-order/use-sales-order'
 import { PageHeader, StatusBadge } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,11 +13,14 @@ import { getSalesOrderById } from '@/domain/data/orders'
 import { getSizeSetById } from '@/domain/data/size-sets'
 import { getStockCardById } from '@/domain/data/stock-cards'
 
+import { OrderLifecyclePanel } from '../components/OrderLifecyclePanel'
 import { OrderProgressBar } from '../components/OrderProgressBar'
 import { productionStatusTone } from '../constants'
 
 export function OrderDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id = '' } = useParams<{ id: string }>()
+  const { user } = useAuth()
+  const { data: detail, refetch } = useSalesOrderDetail(id)
   const order = id ? getSalesOrderById(id) : undefined
 
   if (!order) {
@@ -60,6 +66,14 @@ export function OrderDetailPage() {
         </div>
       ) : null}
 
+      {detail && (
+        <OrderLifecyclePanel
+          order={detail}
+          actorUserId={user?.id ?? 'system'}
+          onSuccess={() => void refetch()}
+        />
+      )}
+
       <div className="flex flex-wrap gap-4 rounded-lg border border-border bg-card px-4 py-3">
         <Stat label="Toplam Adet" value={order.matrixTotals.grandTotal.toLocaleString('tr-TR')} />
         <Stat label="Üretim Emri" value={prod.workOrderNo} />
@@ -73,6 +87,12 @@ export function OrderDetailPage() {
           <p className="text-xs text-muted-foreground">Durum</p>
           <StatusBadge label={order.productionStatus} tone={productionStatusTone[order.productionStatus]} />
         </div>
+        {detail && (
+          <div>
+            <p className="text-xs text-muted-foreground">Lifecycle</p>
+            <StatusBadge {...salesOrderLifecycleBadge(detail.lifecycleStatus)} />
+          </div>
+        )}
       </div>
 
       <Card>

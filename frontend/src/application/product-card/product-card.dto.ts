@@ -1,4 +1,82 @@
-import type { KpiDto, StatusBadgeDto, StatusTone, DocumentItemDto, RelationItemDto, TimelineItemDto } from '../core/types'
+import type { ProductCardLifecycleStatus } from '@/domain/product-card/lifecycle-types'
+
+export type ProductCardCommandResult = {
+  id: string
+  productCode: string
+  status: ProductCardLifecycleStatus
+  version: number
+}
+
+export type CreateProductCardCommand = {
+  productCode: string
+  productName: string
+  customerModelNo?: string
+  internalModelNo?: string
+  pattern?: string
+  weight?: string
+  description?: string
+  customerId?: string
+  brandId?: string
+  buyerId?: string
+  seasonId?: string
+  collectionId?: string
+  sizeSetId?: string
+  actorUserId: string
+}
+
+export type UpdateProductCardCommand = {
+  id: string
+  expectedVersion: number
+  productCode?: string
+  productName?: string
+  customerModelNo?: string
+  internalModelNo?: string
+  pattern?: string
+  weight?: string
+  description?: string
+  customerId?: string
+  brandId?: string
+  seasonId?: string
+  sizeSetId?: string
+  actorUserId: string
+}
+
+export type ProductCardLifecycleCommand = {
+  id: string
+  expectedVersion: number
+  actorUserId: string
+  comment?: string
+  reason?: string
+}
+
+export type CreateRevisionCommand = ProductCardLifecycleCommand & {
+  reason: string
+}
+
+export function productCardLifecycleLabel(status: ProductCardLifecycleStatus): string {
+  const labels: Record<ProductCardLifecycleStatus, string> = {
+    Draft: 'Taslak',
+    'Under Review': 'İncelemede',
+    Approved: 'Onaylı',
+    'In Production': 'Üretimde',
+    Closed: 'Kapalı',
+    Archived: 'Arşiv',
+  }
+  return labels[status] ?? status
+}
+
+export function productCardStatusTone(status: ProductCardLifecycleStatus): import('../core/types').StatusTone {
+  if (status === 'Approved') return 'success'
+  if (status === 'In Production') return 'default'
+  if (status === 'Under Review') return 'warning'
+  if (status === 'Archived') return 'muted'
+  if (status === 'Closed') return 'muted'
+  return 'muted'
+}
+
+export function productCardStatusBadge(status: ProductCardLifecycleStatus): import('../core/types').StatusBadgeDto {
+  return { label: productCardLifecycleLabel(status), tone: productCardStatusTone(status) }
+}
 
 export type ProductCardListItemDto = {
   id: string
@@ -10,7 +88,11 @@ export type ProductCardListItemDto = {
   sizeSetName: string
   colorCount: number
   bomLineCount: number
-  status: StatusBadgeDto
+  status: import('../core/types').StatusBadgeDto
+  lifecycleStatus: ProductCardLifecycleStatus
+  version: number
+  editable: boolean
+  readOnly: boolean
 }
 
 export type ProductCardBomLineDto = {
@@ -54,7 +136,11 @@ export type ProductCardDetailDto = {
   productName: string
   customerModelNo: string
   internalModelNo: string
-  status: StatusBadgeDto
+  status: import('../core/types').StatusBadgeDto
+  lifecycleStatus: ProductCardLifecycleStatus
+  version: number
+  editable: boolean
+  readOnly: boolean
   header: {
     customer: string
     brand: string
@@ -87,23 +173,34 @@ export type ProductCardDetailDto = {
   colors: ProductCardColorDto[]
   sizeMatrix: ProductCardSizeMatrixDto
   revisions: ProductCardRevisionDto[]
-  relations: RelationItemDto[]
-  documents: DocumentItemDto[]
-  timeline: TimelineItemDto[]
+  relations: import('../core/types').RelationItemDto[]
+  documents: import('../core/types').DocumentItemDto[]
+  timeline: import('../core/types').TimelineItemDto[]
   operationRouteCount: number
   qualityPlanId: string
 }
 
 export type ProductCardKpisDto = {
-  items: KpiDto[]
+  items: import('../core/types').KpiDto[]
 }
 
-export function productCardStatusTone(status: string): StatusTone {
-  if (status === 'Onaylı') return 'success'
-  if (status === 'Üretimde') return 'default'
-  return 'muted'
+export type ProductCardFormDto = {
+  productCode: string
+  productName: string
+  customerModelNo: string
+  internalModelNo: string
+  pattern: string
+  weight: string
+  description: string
+  customerId: string
+  brandId: string
+  seasonId: string
+  sizeSetId: string
 }
 
-export function productCardStatusBadge(status: string): StatusBadgeDto {
-  return { label: status, tone: productCardStatusTone(status) }
+export type ProductCardEditDto = ProductCardFormDto & {
+  id: string
+  version: number
+  lifecycleStatus: ProductCardLifecycleStatus
+  editable: boolean
 }

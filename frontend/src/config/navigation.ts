@@ -123,8 +123,14 @@ export const navGroups: NavGroup[] = [
     title: 'Depo',
     icon: Warehouse,
     items: [
-      { title: 'Mal Giriş & Transfer', href: '/warehouse/inbound' },
+      { title: 'Envanter Dashboard', href: '/inventory' },
+      { title: 'Depo Yönetimi', href: '/warehouse' },
+      { title: 'Stok Sorgulama', href: '/inventory/stock-inquiry' },
+      { title: 'Stok Ledger', href: '/inventory/ledger' },
+      { title: 'Mal Kabul (GR)', href: '/warehouse/inbound' },
       { title: 'Mal Çıkış', href: '/warehouse/outbound' },
+      { title: 'Transfer', href: '/warehouse/transfer' },
+      { title: 'Rezervasyon', href: '/warehouse/reservation' },
       { title: 'Sayım', href: '/warehouse/count' },
     ],
   },
@@ -158,6 +164,11 @@ export const footerNavItems = [
     title: 'Ayarlar',
     href: '/settings',
     icon: Settings,
+  },
+  {
+    title: 'Master Data',
+    href: '/master-data',
+    icon: Layers,
   },
 ]
 
@@ -215,6 +226,18 @@ export const routeTitles: Record<string, string> = {
   '/reports': 'Raporlar',
   '/ai': 'Kepler AI',
   '/settings': 'Ayarlar',
+  '/settings/users': 'Kullanıcılar & Roller',
+  '/master-data': 'Master Data',
+  '/master-data/customers': 'Müşteriler',
+  '/master-data/suppliers': 'Tedarikçiler',
+  '/master-data/warehouses': 'Depolar',
+  '/master-data/workshops': 'Atölyeler',
+  '/master-data/production-lines': 'Üretim Hatları',
+  '/master-data/brands': 'Markalar',
+  '/master-data/seasons': 'Sezonlar',
+  '/master-data/collections': 'Koleksiyonlar',
+  '/master-data/color-cards': 'Renk Kartları',
+  '/master-data/size-sets': 'Beden Setleri',
 }
 
 export function getRouteTitle(pathname: string): string {

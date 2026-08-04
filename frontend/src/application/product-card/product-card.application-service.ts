@@ -1,20 +1,37 @@
-/**
- * Product Card Application Service — UI tek giriş noktası
- * Domain servislerini orchestrate eder; business logic içermez.
- */
-import { mapProductCardDetail, mapProductCardKpis, mapProductCardList } from './product-card.mapper'
-import type { ProductCardDetailDto, ProductCardKpisDto, ProductCardListItemDto } from './product-card.dto'
+import {
+  executeActivateProductCard,
+  executeApproveProductCard,
+  executeArchiveProductCard,
+  executeCreateProductCard,
+  executeCreateRevision,
+  executeDeactivateProductCard,
+  executeSubmitProductCardForReview,
+  executeUpdateProductCard,
+} from './product-card-command.mapper'
+import {
+  mapApprovedProductCardOptions,
+  mapProductCardDetail,
+  mapProductCardEditForm,
+  mapProductCardKpis,
+  mapProductCardList,
+} from './product-card.mapper'
 
 export const productCardApplicationService = {
-  getList(): ProductCardListItemDto[] {
-    return mapProductCardList()
+  query: {
+    list: mapProductCardList,
+    detail: mapProductCardDetail,
+    editForm: mapProductCardEditForm,
+    kpis: mapProductCardKpis,
+    approvedOptions: mapApprovedProductCardOptions,
   },
-
-  getDetail(id: string): ProductCardDetailDto | null {
-    return mapProductCardDetail(id)
-  },
-
-  getKpis(): ProductCardKpisDto {
-    return mapProductCardKpis()
+  command: {
+    create: executeCreateProductCard,
+    update: executeUpdateProductCard,
+    createRevision: executeCreateRevision,
+    approve: executeApproveProductCard,
+    submitForReview: executeSubmitProductCardForReview,
+    activate: executeActivateProductCard,
+    deactivate: executeDeactivateProductCard,
+    archive: executeArchiveProductCard,
   },
 }

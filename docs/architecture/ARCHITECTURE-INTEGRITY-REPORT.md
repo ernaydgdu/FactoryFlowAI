@@ -1,36 +1,49 @@
-# Architecture Integrity Report — Phase 3 Module 3
+# Architecture Integrity Report — Phase 3 Module 4
 
 **Date:** 2026-08-03  
-**Module:** Purchasing  
-**Build:** PASS
-
-## Chain Integrity
-
-| Link | Status |
-|------|--------|
-| MRP release → Purchase Request (not PO) | ✅ |
-| Purchase Request → RFQ → Quotation | ✅ |
-| Quotation select → Purchase Order | ✅ |
-| PO approve → Open status | ✅ |
-| Goods Receipt → PO line qty update | ✅ |
-| MRP engine → open PO from purchasing aggregate | ✅ |
-| UI `/purchasing` → application mutations | ✅ |
-| PO revision immutable (entity revision) | ✅ |
+**Verdict:** YES
 
 ## Constitution Compliance
 
-- Repository ports only (no findAll on domain)
-- Transaction via `runCommandInTransaction`
-- Audit + timeline + outbox on writes
-- No new parallel architecture — follows SO/MRP pattern
-- MRP release writes PR; PO lifecycle separate aggregate
+| Principle | Status |
+|-----------|--------|
+| Layer stack (UI → App → Domain → Ports → Infra) | PASS |
+| Stock Ledger single source of truth | PASS |
+| Repository ports only (no direct store access from UI) | PASS |
+| Transaction boundary via `runCommandInTransaction` | PASS |
+| Audit on every write | PASS |
+| Timeline on every write | PASS |
+| Outbox post-commit dispatch | PASS |
+| Immutable movement stream (append-only) | PASS |
+| No new parallel architecture | PASS |
+| Business rules unchanged (reuses BR-10 engine logic) | PASS |
 
-## Module Status
+## Bootstrap Chain
 
-| Module | Status |
-|--------|--------|
-| Phase 3 Module 1 — Sales Order | ✅ |
-| Phase 3 Module 2 — MRP (+ Hardening) | ✅ |
-| Phase 3 Module 3 — Purchasing | ✅ |
-| Phase 2 Module 3 — Cost Sheet | ✅ |
-| Phase 2 Module 2 — BOM | ✅ |
+```
+ensureMasterDataLookupsSeeded()
+ensureStockCardsSeeded()
+ensureSalesOrdersSeeded()
+ensureMrpRunsSeeded()
+  → ensurePurchasingSeeded()
+ensureInventorySeeded()
+  → opening balances from stock cards
+  → RECEIPT from seeded goods receipts
+ensureUserAccountsSeeded()
+```
+
+## Integration Points
+
+| Module | Integration |
+|--------|-------------|
+| Purchasing | GR posts RECEIPT to ledger |
+| Stock Card | Balance queries via `queryStockCardById` |
+| Master Data | Warehouse lookup via `warehouseRepository` |
+| Production | Issue/Reservation reference PRODUCTION |
+| Execution Platform | Outbox handler `wip-refresh` registered |
+
+## No Circular Imports
+
+Inventory domain depends on: ports, platform services, stock-card query, master-data, purchasing query (seed only).
+
+Purchasing depends on inventory CRUD for GR post — one-way command integration.

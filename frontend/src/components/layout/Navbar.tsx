@@ -12,19 +12,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { appConfig, getRouteTitle } from '@/config/navigation'
+import { KEPLER_ROLE_LABELS } from '@/domain/platform/iam/types'
 import { ERP_NOTIFICATIONS } from '@/domain/data/workflows'
-import { clearAuthSession, getStoredUser } from '@/services/auth'
+import { useAuth } from '@/application/platform/iam/auth-context'
 import { cn } from '@/lib/utils'
 
 export function Navbar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const user = getStoredUser()
+  const { user, logout } = useAuth()
   const title = getRouteTitle(pathname)
   const unread = ERP_NOTIFICATIONS.filter((n) => !n.read).length
 
   function handleLogout() {
-    clearAuthSession()
+    logout()
     navigate('/login')
   }
 
@@ -111,6 +112,11 @@ export function Navbar() {
                 <p className="text-xs text-muted-foreground">
                   {user?.email ?? '—'}
                 </p>
+                {user?.role ? (
+                  <p className="text-xs text-muted-foreground">
+                    {KEPLER_ROLE_LABELS[user.role]}
+                  </p>
+                ) : null}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

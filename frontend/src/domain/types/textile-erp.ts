@@ -64,6 +64,23 @@ export type MeasurementChart = {
 
 export type BomLineRequirement = 'Zorunlu' | 'Opsiyonel'
 
+export type BomLifecycleStatus =
+  | 'Draft'
+  | 'Under Review'
+  | 'Approved'
+  | 'Active'
+  | 'Archived'
+
+export type BomRevisionSnapshot = {
+  revisionNo: number
+  status: BomLifecycleStatus
+  changedAt: string
+  changedById: string
+  changeNote: string
+  lineCount: number
+  entityRevisionId?: string
+}
+
 export type BomLineDetail = {
   id: string
   stockCardId: string
@@ -88,8 +105,74 @@ export type BillOfMaterials = {
   id: string
   productCardId: string
   revisionNo: number
+  status: BomLifecycleStatus
   lines: BomLineDetail[]
   generatedAt: string
+  revisionHistory: BomRevisionSnapshot[]
+  activeRevisionRecordId?: string
+}
+
+// ─── Planned Cost Sheet ───────────────────────────────────────────
+
+export type CostSheetLifecycleStatus =
+  | 'Draft'
+  | 'Under Review'
+  | 'Approved'
+  | 'Active'
+  | 'Archived'
+
+export type CostSheetLineKey =
+  | 'fabric'
+  | 'accessory'
+  | 'thread'
+  | 'print'
+  | 'embroidery'
+  | 'washing'
+  | 'cutting'
+  | 'sewing'
+  | 'ironing'
+  | 'packaging'
+  | 'waste'
+  | 'logistics'
+  | 'overhead'
+  | 'profitMargin'
+
+export type CostSheetLineItem = {
+  key: CostSheetLineKey
+  label: string
+  amount: number
+  unitAmount: number
+  bomDerived: boolean
+  isManualOverride: boolean
+  notes?: string
+}
+
+export type CostSheetRevisionSnapshot = {
+  revisionNo: number
+  status: CostSheetLifecycleStatus
+  changedAt: string
+  changedById: string
+  changeNote: string
+  totalPlannedCost: number
+  entityRevisionId?: string
+}
+
+export type PlannedCostSheet = {
+  id: string
+  productCardId: string
+  revisionNo: number
+  status: CostSheetLifecycleStatus
+  lines: CostSheetLineItem[]
+  quantityBasis: number
+  totalPlannedCost: number
+  unitPlannedCost: number
+  fob: number
+  cm: number
+  profitMarginPercent: number
+  generatedAt: string
+  revisionHistory: CostSheetRevisionSnapshot[]
+  activeRevisionRecordId?: string
+  bomRevisionNo?: number
 }
 
 // ─── Fabric Card ──────────────────────────────────────────────────
@@ -284,9 +367,11 @@ export type TextileCostBreakdown = {
 
 // ─── Product Card (ERP center) ────────────────────────────────────
 
+import type { ProductCardLifecycleStatus } from '../product-card/lifecycle-types'
+
 export type ProductCardRevision = {
   revisionNo: number
-  status: 'Taslak' | 'Onaylı' | 'Üretimde' | 'Kapalı'
+  status: ProductCardLifecycleStatus
   changedAt: string
   changedById: string
   changeNote: string
@@ -353,6 +438,7 @@ export type TextileProductCard = {
   resolved: ProductCardResolvedView
   colorAssignments: ProductColorAssignment[]
   bom: BillOfMaterials
+  costSheet: PlannedCostSheet
   currentRevision: ProductCardRevision
   revisionHistory: ProductCardRevision[]
   status: ProductCardRevision['status']
@@ -365,6 +451,7 @@ export type TextileEntityKind =
   | 'COLOR_CARD'
   | 'SIZE_SET'
   | 'BOM'
+  | 'COST_SHEET'
   | 'FABRIC_CARD'
   | 'ACCESSORY_CARD'
   | 'WAREHOUSE_NODE'

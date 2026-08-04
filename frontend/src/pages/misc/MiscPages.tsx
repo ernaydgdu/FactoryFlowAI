@@ -1,5 +1,9 @@
-import { Bot, Download, Play, Settings } from 'lucide-react'
+import { Bot, Download, Play } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+
+import { useAuth } from '@/application/platform/iam/auth-context'
+import { PlatformApiStatusCard } from '@/modules/platform/components/PlatformApiStatusCard'
 
 import {
   DataTable,
@@ -243,16 +247,13 @@ export function KeplerAiPage() {
 }
 
 export function SettingsPage() {
+  const { canManageUsers } = useAuth()
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Ayarlar"
         description="Şirket, kullanıcı, fabrika ve entegrasyon yapılandırması."
-        actions={
-          <Button size="sm">
-            <Settings className="size-4" /> Değişiklikleri Kaydet
-          </Button>
-        }
       />
       <div className="grid gap-4 md:grid-cols-2">
         {settingsSections.map((section) => (
@@ -262,13 +263,24 @@ export function SettingsPage() {
               <CardDescription>{section.description}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" size="sm">
-                Yapılandır
-              </Button>
+              {section.id === 'users' && canManageUsers ? (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/settings/users">Kullanıcıları Yönet</Link>
+                </Button>
+              ) : section.id === 'users' ? (
+                <p className="text-sm text-muted-foreground">
+                  Kullanıcı yönetimi için ADMIN rolü gerekir.
+                </p>
+              ) : (
+                <Button variant="outline" size="sm" disabled>
+                  Phase 1 — yakında
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
+      <PlatformApiStatusCard />
       <Card>
         <CardHeader>
           <CardTitle>Genel Tercihler</CardTitle>

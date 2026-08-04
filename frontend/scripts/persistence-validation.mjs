@@ -33,6 +33,10 @@ const mdCommands = [
   'recordMasterDataCreate',
   'recordMasterDataUpdate',
   'setAttributeValue',
+  'persistCreateMasterDataEntity',
+  'persistUpdateMasterDataEntity',
+  'persistDeactivateMasterDataEntity',
+  'persistReactivateMasterDataEntity',
 ]
 const platformBom = [
   'platformSubmitBomApproval',
@@ -50,7 +54,9 @@ for (const fn of mdCommands) {
   const wrapped =
     (approvalSrc.includes(fn) && approvalSrc.includes('runDomainCommandInTransaction')) ||
     (auditSrc.includes(fn) && auditSrc.includes('runDomainCommandInTransaction')) ||
-    (attrSrc.includes(fn) && attrSrc.includes('runDomainCommandInTransaction'))
+    (attrSrc.includes(fn) && attrSrc.includes('runDomainCommandInTransaction')) ||
+    (read('src/domain/master-data/master-data-crud.service.ts').includes(fn) &&
+      read('src/application/master-data/master-data.mapper.ts').includes('runCommandInTransaction'))
   console.log(`[${wrapped ? 'PASS' : 'FAIL'}] MD command TX: ${fn}`)
 }
 

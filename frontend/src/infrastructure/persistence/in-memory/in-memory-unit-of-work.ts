@@ -1,17 +1,27 @@
 import type { IUnitOfWork, IUnitOfWorkFactory } from '@/domain/ports/persistence/unit-of-work.port'
 
 import {
+  ProductCardInMemoryRepository,
+} from './aggregates/product-card.in-memory.repository'
+import {
+  SalesOrderInMemoryRepository,
+} from './aggregates/sales-order.in-memory.repository'
+import {
+  StockCardInMemoryRepository,
+} from './aggregates/stock-card.in-memory.repository'
+import {
   AccessoryCardInMemoryRepository,
   BrainConfigInMemoryRepository,
   FabricCardInMemoryRepository,
-  ProductCardInMemoryRepository,
   ProductionOrderSnapshotInMemoryStreamRepository,
-  PurchaseOrderInMemoryRepository,
-  SalesOrderInMemoryRepository,
-  StockCardInMemoryRepository,
-  StockLedgerInMemoryRepository,
-  StockMovementInMemoryStreamRepository,
 } from './aggregates/catalog-empty-adapters'
+import { StockLedgerInMemoryRepository } from './aggregates/stock-ledger.in-memory.repository'
+import { MrpRunInMemoryRepository } from './aggregates/mrp-run.in-memory.repository'
+import { PurchaseOrderInMemoryRepository } from './aggregates/purchase-order.in-memory.repository'
+import { PurchaseRequestInMemoryRepository } from './aggregates/purchase-request.in-memory.repository'
+import { RfqInMemoryRepository } from './aggregates/rfq.in-memory.repository'
+import { SupplierQuotationInMemoryRepository } from './aggregates/supplier-quotation.in-memory.repository'
+import { GoodsReceiptInMemoryRepository } from './aggregates/goods-receipt.in-memory.repository'
 import { ApprovalWorkflowInMemoryRepository } from './aggregates/approval-workflow.in-memory.repository'
 import { BundleInMemoryRepository } from './aggregates/bundle.in-memory.repository'
 import { CodedAggregateFromLookupInMemoryRepository } from './aggregates/coded-aggregate-from-lookup.in-memory.repository'
@@ -19,6 +29,7 @@ import { EntityRevisionInMemoryRepository } from './aggregates/entity-revision.i
 import { ExecutionContextInMemoryRepository } from './aggregates/execution-context.in-memory.repository'
 import { masterDataApprovalInMemory } from './aggregates/master-data-approval.in-memory.repository'
 import { ProductionOrderInMemoryRepository } from './aggregates/production-order.in-memory.repository'
+import { userAccountInMemory } from './aggregates/user-account.in-memory.repository'
 import { SplitExecutionInMemoryRepository } from './aggregates/split-execution.in-memory.repository'
 import { aiMemoryCollectionInMemory } from './collections/ai-memory-collection.in-memory.repository'
 import { attachmentCollectionInMemory } from './collections/attachment-collection.in-memory.repository'
@@ -46,6 +57,7 @@ import { OperationWorkSessionInMemoryStreamRepository } from './streams/operatio
 import { OrderTimelineInMemoryStreamRepository } from './streams/order-timeline.in-memory.repository'
 import { ProductionDailyEntryInMemoryStreamRepository } from './streams/production-daily-entry.in-memory.stream.repository'
 import { QualityGateEvaluationInMemoryStreamRepository } from './streams/quality-gate-evaluation.in-memory.stream.repository'
+import { StockMovementInMemoryStreamRepository } from './streams/stock-movement.in-memory.stream.repository'
 import { WipTransferInMemoryStreamRepository } from './streams/wip-transfer.in-memory.stream.repository'
 
 export class InMemoryUnitOfWork implements IUnitOfWork {
@@ -84,17 +96,22 @@ export class InMemoryUnitOfWork implements IUnitOfWork {
     // Store restore handled by transaction-runtime snapshot rollback.
   }
 
-  salesOrders = new SalesOrderInMemoryRepository() as unknown as IUnitOfWork['salesOrders']
-  productCards = new ProductCardInMemoryRepository() as unknown as IUnitOfWork['productCards']
+  salesOrders = new SalesOrderInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['salesOrders']
+  productCards = new ProductCardInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['productCards']
   productionOrders = this.productionOrderRepo
   executionContexts = this.executionContextRepo
   bundles = this.bundleRepo
   splitExecutions = this.splitRepo
-  stockLedgers = new StockLedgerInMemoryRepository() as unknown as IUnitOfWork['stockLedgers']
-  stockCards = new StockCardInMemoryRepository() as unknown as IUnitOfWork['stockCards']
+  stockLedgers = new StockLedgerInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['stockLedgers']
+  stockCards = new StockCardInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['stockCards']
   approvalWorkflows = this.approvalRepo
   entityRevisions = this.revisionRepo
-  purchaseOrders = new PurchaseOrderInMemoryRepository() as unknown as IUnitOfWork['purchaseOrders']
+  purchaseOrders = new PurchaseOrderInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['purchaseOrders']
+  purchaseRequests = new PurchaseRequestInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['purchaseRequests']
+  rfqs = new RfqInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['rfqs']
+  supplierQuotations = new SupplierQuotationInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['supplierQuotations']
+  goodsReceipts = new GoodsReceiptInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['goodsReceipts']
+  mrpRuns = new MrpRunInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['mrpRuns']
   fabricCards = new FabricCardInMemoryRepository() as unknown as IUnitOfWork['fabricCards']
   accessoryCards = new AccessoryCardInMemoryRepository() as unknown as IUnitOfWork['accessoryCards']
   warehouses = new CodedAggregateFromLookupInMemoryRepository(this.mdLookups.warehouse) as IUnitOfWork['warehouses']
@@ -103,6 +120,7 @@ export class InMemoryUnitOfWork implements IUnitOfWork {
     this.mdLookups.productionLine,
   ) as IUnitOfWork['productionLines']
   customers = new CodedAggregateFromLookupInMemoryRepository(this.mdLookups.customer) as IUnitOfWork['customers']
+  userAccounts = userAccountInMemory
   brainConfigs = new BrainConfigInMemoryRepository() as unknown as IUnitOfWork['brainConfigs']
 
   masterDataLookups = this.mdLookups
@@ -118,7 +136,7 @@ export class InMemoryUnitOfWork implements IUnitOfWork {
   qualityGateEvaluations = this.qualityGateRepo
   wipTransfers = this.wipTransferRepo
   executionEvents = this.executionEventRepo
-  stockMovements = new StockMovementInMemoryStreamRepository() as unknown as IUnitOfWork['stockMovements']
+  stockMovements = new StockMovementInMemoryStreamRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['stockMovements']
   auditLog = this.auditRepo
   orderTimeline = this.timelineRepo
   brainDecisionMemory = this.brainDecisionRepo

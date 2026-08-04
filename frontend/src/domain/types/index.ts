@@ -98,7 +98,7 @@ export type ProductCard = {
   sizeSetId: string
   colors: ProductColor[]
   bom: BomLine[]
-  status: 'Taslak' | 'Onaylı' | 'Üretimde' | 'Kapalı'
+  status: import('./textile-erp').ProductCardRevision['status']
 }
 
 export type MrpLine = {
@@ -190,6 +190,8 @@ export type SalesOrderGeneral = {
   brand: string
   buyer: string
   merchandiser: string
+  season: string
+  collection: string
   poNo: string
   poDate: string
   orderDate: string
@@ -201,6 +203,23 @@ export type SalesOrderGeneral = {
   notes: string
 }
 
+export type SalesOrderLifecycleStatus =
+  | 'Draft'
+  | 'Under Review'
+  | 'Approved'
+  | 'Active'
+  | 'Cancelled'
+  | 'Closed'
+  | 'Archived'
+
+export type SalesOrderRevision = {
+  revisionNo: number
+  status: SalesOrderLifecycleStatus
+  changedAt: string
+  changedById: string
+  changeNote: string
+}
+
 export type SalesOrder = {
   id: string
   orderNo: string
@@ -209,6 +228,8 @@ export type SalesOrder = {
   sizeSetId: string
   matrix: ColorSizeMatrix
   matrixTotals: MatrixTotals
+  unitPrice: number
+  lineDeliveryDate?: string
   mrp: MaterialRequirementPlan
   production: ProductionOrderLink
   /** Sipariş 3+ atölyeye bölündüğünde child UE listesi */
@@ -222,6 +243,9 @@ export type SalesOrder = {
   terminRisk: boolean
   exfDate: string
   progress: number
+  status: SalesOrderLifecycleStatus
+  currentRevision: SalesOrderRevision
+  revisionHistory: SalesOrderRevision[]
 }
 
 export type WarehouseType =

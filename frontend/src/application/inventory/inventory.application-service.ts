@@ -1,0 +1,51 @@
+import {
+  mapGoodsReceiptList,
+  mapInventoryAdjustments,
+  mapInventoryBalanceList,
+  mapInventoryCycleCounts,
+  mapInventoryDashboard,
+  mapInventoryInbound,
+  mapInventoryKpis,
+  mapInventoryMovementList,
+  mapInventoryOutbound,
+  mapInventoryReservations,
+  mapInventoryTransfers,
+  mapMovementsByWarehouse,
+  mapWarehouseList,
+} from './inventory.mapper'
+import {
+  executeAdjustment,
+  executeCycleCount,
+  executeGoodsIssue,
+  executeGoodsReceipt,
+  executeReservation,
+  executeReservationRelease,
+  executeTransfer,
+} from './inventory-command.mapper'
+
+export const inventoryApplicationService = {
+  query: {
+    dashboard: mapInventoryDashboard,
+    kpis: mapInventoryKpis,
+    balances: mapInventoryBalanceList,
+    movements: mapInventoryMovementList,
+    inbound: mapInventoryInbound,
+    outbound: mapInventoryOutbound,
+    transfers: mapInventoryTransfers,
+    reservations: mapInventoryReservations,
+    adjustments: mapInventoryAdjustments,
+    cycleCounts: mapInventoryCycleCounts,
+    warehouses: mapWarehouseList,
+    goodsReceipts: mapGoodsReceiptList,
+    movementsByWarehouse: mapMovementsByWarehouse,
+  },
+  command: {
+    goodsReceipt: executeGoodsReceipt,
+    goodsIssue: executeGoodsIssue,
+    transfer: executeTransfer,
+    reservation: executeReservation,
+    reservationRelease: executeReservationRelease,
+    adjustment: executeAdjustment,
+    cycleCount: executeCycleCount,
+  },
+}

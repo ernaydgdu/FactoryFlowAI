@@ -97,6 +97,39 @@ export function countAuditCoverage(): { changes: number; withOldNewValues: numbe
   }
 }
 
+/** TX-safe append — caller must be inside runInTransaction. */
+export function appendMasterDataChangeRecord(
+  entityType: MasterDataEntityType,
+  action: 'CREATE' | 'UPDATE',
+  oldValue: Record<string, unknown> | null,
+  newValue: Record<string, unknown>,
+  context: AuditContext,
+): MasterDataChangeRecord {
+  const entityId = String(newValue.id ?? '')
+  const entityCode = String(newValue.code ?? '')
+
+  if (action === 'CREATE') {
+    logCreate(`MasterData:${entityType}`, entityId, context, newValue)
+  } else {
+    logUpdate(`MasterData:${entityType}`, entityId, context, oldValue ?? {}, newValue)
+  }
+
+  const record: MasterDataChangeRecord = {
+    id: changesRepo().nextChangeId(DEFAULT_TENANT_ID),
+    entityType,
+    entityId,
+    entityCode,
+    action,
+    oldValue,
+    newValue,
+    version: Number(newValue.version ?? 1),
+    changedBy: context.changedBy,
+    changedAt: new Date().toISOString(),
+  }
+  changesRepo().append(DEFAULT_TENANT_ID, record)
+  return record
+}
+
 export function seedMasterDataChanges(records: MasterDataChangeRecord[]): void {
   changesRepo().seedFromLegacy(DEFAULT_TENANT_ID, records)
 }

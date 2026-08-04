@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { useAuth } from '@/application/platform/iam/auth-context'
+import { UserAccountDomainError, useLoginMutation } from '@/application/platform/iam/use-iam'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -13,11 +15,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { appConfig } from '@/config/navigation'
-import { login, LoginFailedError, saveAuthSession } from '@/services/auth'
-import { isAxiosError } from '@/services/api'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
+  const loginMutation = useLoginMutation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -27,19 +29,14 @@ export function LoginPage() {
     setError('')
 
     try {
-      const response = await login({ email, password })
-      saveAuthSession(response)
+      const response = await loginMutation.mutateAsync({ email, password })
+      login(response.accessToken, response.user)
       navigate('/dashboard')
     } catch (err) {
-      if (
-        err instanceof LoginFailedError ||
-        (isAxiosError(err) && err.response?.status === 401)
-      ) {
+      if (err instanceof UserAccountDomainError || err instanceof Error) {
         setError('E-posta veya şifre hatalı.')
         return
       }
-
-      console.error('Login request failed:', err)
       setError('E-posta veya şifre hatalı.')
     }
   }
@@ -64,7 +61,7 @@ export function LoginPage() {
             <Input
               id="email"
               type="email"
-              placeholder="ornek@kepler-erp.com"
+              placeholder="admin@kepler-erp.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -83,14 +80,16 @@ export function LoginPage() {
             />
           </div>
 
-          {error ? (
-            <p className="text-sm text-destructive">{error}</p>
-          ) : null}
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <Button type="submit" className="w-full" size="lg">
-            Giriş Yap
+          <Button type="submit" className="w-full" size="lg" disabled={loginMutation.isPending}>
+            {loginMutation.isPending ? 'Giriş yapılıyor...' : 'Giriş Yap'}
           </Button>
         </form>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Pilot: admin@kepler-erp.com / Kepler2026!
+        </p>
       </CardContent>
 
       <CardFooter className="justify-center">

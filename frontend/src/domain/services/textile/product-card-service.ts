@@ -29,6 +29,7 @@ import {
 } from '../../master-data/textile-lookups'
 import { calcActualConsumption } from '../calculations'
 import { buildBillOfMaterials, toLegacyBomLines } from './bom-service'
+import { buildPlannedCostSheet } from './cost-sheet-service'
 import { buildProductColorAssignments, toLegacyProductColors } from './color-management-service'
 
 const MODEL_NAMES = [
@@ -114,9 +115,10 @@ export function buildTextileProductCard(index: number, sizeSetId: string): Texti
     ...l,
     actualConsumption: calcActualConsumption(l.consumption, l.wastePercent),
   }))
-  const bom = buildBillOfMaterials(id, legacyBom)
+  const bom = buildBillOfMaterials(id, legacyBom, 1, 'Active')
+  const costSheet = buildPlannedCostSheet(id, bom, 1, 'Active', 'system', 'Seed maliyet çizelgesi')
   const colorAssignments = buildProductColorAssignments(2 + (index % 3), index)
-  const status: ProductCardRevision['status'] = (['Onaylı', 'Üretimde', 'Taslak'] as const)[
+  const status: ProductCardRevision['status'] = (['Approved', 'In Production', 'Draft'] as const)[
     index % 3
   ]
   const revision = buildRevision(index, status)
@@ -156,6 +158,7 @@ export function buildTextileProductCard(index: number, sizeSetId: string): Texti
     },
     colorAssignments,
     bom,
+    costSheet,
     currentRevision: revision,
     revisionHistory: [revision],
     status,

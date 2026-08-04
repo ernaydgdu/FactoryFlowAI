@@ -71,6 +71,168 @@ export function scheduleMasterDataBrainChange(event: MasterDataBrainChangeEvent)
   )
 }
 
+/** Schedule BOM child entity change after commit. */
+export function scheduleBomChange(event: {
+  productCardId: string
+  bomId: string
+  revisionNo: number
+  status: string
+  changeType: string
+  occurredAt: string
+  actorUserId: string
+}): void {
+  enqueue(
+    {
+      aggregateType: 'BOM',
+      aggregateId: event.bomId,
+      eventType: 'BomChanged',
+      payload: event as unknown as Record<string, unknown>,
+      correlationId: event.productCardId,
+      createdAt: event.occurredAt,
+    },
+    ['brain', 'dashboard'],
+  )
+}
+
+/** Schedule sales order aggregate change after commit. */
+export function scheduleSalesOrderChange(event: {
+  salesOrderId: string
+  orderNo: string
+  status: string
+  productCardId: string
+  changeType: string
+  occurredAt: string
+  actorUserId: string
+}): void {
+  enqueue(
+    {
+      aggregateType: 'SalesOrder',
+      aggregateId: event.salesOrderId,
+      eventType: 'SalesOrderChanged',
+      payload: event as unknown as Record<string, unknown>,
+      correlationId: event.salesOrderId,
+      createdAt: event.occurredAt,
+    },
+    ['brain', 'dashboard'],
+  )
+}
+
+/** Schedule purchasing aggregate change after commit. */
+export function schedulePurchasingChange(event: {
+  entityType: string
+  entityId: string
+  entityNo: string
+  status: string
+  changeType: string
+  occurredAt: string
+  actorUserId: string
+}): void {
+  enqueue(
+    {
+      aggregateType: event.entityType,
+      aggregateId: event.entityId,
+      eventType: 'PurchasingChanged',
+      payload: event as unknown as Record<string, unknown>,
+      correlationId: event.entityId,
+      createdAt: event.occurredAt,
+    },
+    ['brain', 'dashboard'],
+  )
+}
+
+/** Schedule MRP run aggregate change after commit. */
+export function scheduleMrpChange(event: {
+  mrpRunId: string
+  runNo: string
+  status: string
+  revisionNo: number
+  changeType: string
+  occurredAt: string
+  actorUserId: string
+}): void {
+  enqueue(
+    {
+      aggregateType: 'MrpRun',
+      aggregateId: event.mrpRunId,
+      eventType: 'MrpChanged',
+      payload: event as unknown as Record<string, unknown>,
+      correlationId: event.mrpRunId,
+      createdAt: event.occurredAt,
+    },
+    ['brain', 'dashboard'],
+  )
+}
+
+/** Schedule inventory / stock movement change after commit. */
+export function scheduleInventoryChange(event: {
+  entityType: string
+  entityId: string
+  entityNo: string
+  warehouseCode: string
+  movementType: string
+  changeType: string
+  occurredAt: string
+  actorUserId: string
+}): void {
+  enqueue(
+    {
+      aggregateType: event.entityType,
+      aggregateId: event.entityId,
+      eventType: 'InventoryChanged',
+      payload: event as unknown as Record<string, unknown>,
+      correlationId: event.warehouseCode,
+      createdAt: event.occurredAt,
+    },
+    ['brain', 'dashboard', 'wip-refresh'],
+  )
+}
+
+/** Schedule cost sheet child entity change after commit. */
+export function scheduleCostSheetChange(event: {
+  productCardId: string
+  costSheetId: string
+  revisionNo: number
+  status: string
+  totalPlannedCost: number
+  changeType: string
+  occurredAt: string
+  actorUserId: string
+}): void {
+  enqueue(
+    {
+      aggregateType: 'CostSheet',
+      aggregateId: event.costSheetId,
+      eventType: 'CostSheetChanged',
+      payload: event as unknown as Record<string, unknown>,
+      correlationId: event.productCardId,
+      createdAt: event.occurredAt,
+    },
+    ['brain', 'dashboard'],
+  )
+}
+
+/** Schedule product card aggregate change after commit. */
+export function scheduleProductCardChange(event: {
+  productCardId: string
+  productCode: string
+  status: string
+  changeType: string
+  occurredAt: string
+  actorUserId: string
+}): void {
+  enqueue(
+    {
+      aggregateType: 'ProductCard',
+      aggregateId: event.productCardId,
+      eventType: 'ProductCardChanged',
+      payload: event as unknown as Record<string, unknown>,
+      correlationId: event.productCardId,
+      createdAt: event.occurredAt,
+    },
+    ['brain', 'dashboard'],
+  )
+}
+
 /** Schedule watcher notification after commit. */
 export function scheduleWatcherNotification(input: {
   entityType: string

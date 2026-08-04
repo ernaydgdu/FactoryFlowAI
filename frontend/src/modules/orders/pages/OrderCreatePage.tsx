@@ -2,6 +2,11 @@ import { Package, Save } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { useAuth } from '@/application/platform/iam/auth-context'
+import {
+  SalesOrderDomainError,
+  useCreateSalesOrderMutation,
+} from '@/application/sales-order/use-sales-order'
 import { PageHeader } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,35 +24,41 @@ import { useOrderCreate } from '../hooks/use-order-create'
 
 export function OrderCreatePage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const form = useOrderCreate()
+  const createMutation = useCreateSalesOrderMutation()
   const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
 
-  function handleSave() {
+  async function handleSave() {
     setError(null)
-    const result = form.save()
-    if (!result.success) {
-      setError(result.message)
+    const validation = form.validateForm()
+    if (!validation.success) {
+      setError(validation.message)
       return
     }
-    setSaving(true)
-    window.alert(result.message)
-    setTimeout(() => navigate('/orders'), 600)
+    try {
+      const result = await createMutation.mutateAsync(
+        form.toCreateCommand(user?.id ?? 'system'),
+      )
+      navigate(`/orders/${result.salesOrderId}`)
+    } catch (err) {
+      setError(err instanceof SalesOrderDomainError ? err.message : 'Kayıt başarısız.')
+    }
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Yeni Sipariş & Ürün Kartı"
-        description="PO oluşturma, ürün kartı tanımı, BOM ve renk-beden matrisi — tek ekranda profesyonel sipariş girişi."
+        title="Yeni Sipariş"
+        description="PO oluşturma — onaylı ürün kartı seçimi, BOM ve renk-beden matrisi."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => navigate('/orders')}>
               İptal
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving}>
+            <Button size="sm" onClick={handleSave} disabled={createMutation.isPending}>
               <Save className="size-4" />
-              {saving ? 'Kaydediliyor...' : 'Siparişi Kaydet'}
+              {createMutation.isPending ? 'Kaydediliyor...' : 'Siparişi Kaydet'}
             </Button>
           </>
         }
@@ -141,7 +152,7 @@ export function OrderCreatePage() {
         <Button variant="outline" onClick={() => navigate('/orders')}>
           İptal
         </Button>
-        <Button size="lg" onClick={handleSave} disabled={saving}>
+        <Button size="lg" onClick={handleSave} disabled={createMutation.isPending}>
           <Save className="size-4" />
           Siparişi Kaydet & Malzeme İhtiyacı Oluştur
         </Button>

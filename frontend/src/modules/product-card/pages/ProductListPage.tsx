@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 
 import { DataTable, ErpModuleShell, ErpToolbar, StatusBadge } from '@/components/erp'
+import { Button } from '@/components/ui/button'
 import { useProductCardKpis, useProductCardList } from '@/application/product-card/use-product-card'
 import { useDataList } from '@/hooks/use-data-list'
 
@@ -29,11 +31,16 @@ export function ProductListPage() {
       description="Kepler ERP referans ekranı — tekstil ürün kartı yönetimi."
       kpis={kpisData?.items ?? []}
       toolbar={
-        <ErpToolbar
-          searchPlaceholder="Ürün kodu, model, müşteri ara..."
-          searchValue={list.search}
-          onSearchChange={list.setSearch}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <ErpToolbar
+            searchPlaceholder="Ürün kodu, model, müşteri ara..."
+            searchValue={list.search}
+            onSearchChange={list.setSearch}
+          />
+          <Button size="sm" asChild>
+            <Link to="/products/new"><Plus className="size-4" /> Yeni Ürün Kartı</Link>
+          </Button>
+        </div>
       }
       pagination={{
         page: list.page,
@@ -65,6 +72,19 @@ export function ProductListPage() {
             { key: 'sizeSet', header: 'Beden Seti', render: (p) => p.sizeSetName },
             { key: 'colors', header: 'Renk', render: (p) => String(p.colorCount) },
             { key: 'bom', header: 'BOM', render: (p) => String(p.bomLineCount) },
+            {
+              key: 'actions',
+              header: '',
+              render: (p) =>
+                p.editable ? (
+                  <Link
+                    to={`/products/${p.id}/edit`}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Düzenle
+                  </Link>
+                ) : null,
+            },
             {
               key: 'status',
               header: 'Durum',

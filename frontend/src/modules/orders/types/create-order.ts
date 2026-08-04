@@ -35,6 +35,14 @@ export type OrderMilestone = {
 }
 
 export type OrderCreateForm = {
+  productCardId: string
+  selectedProductSummary: {
+    productCode: string
+    productName: string
+    customer: string
+    brand: string
+    season: string
+  } | null
   general: {
     customer: string
     brand: string

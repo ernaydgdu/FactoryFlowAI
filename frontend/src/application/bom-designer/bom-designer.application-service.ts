@@ -1,8 +1,29 @@
-import { mapBomDesigner } from './bom-designer.mapper'
-import type { BomDesignerViewDto } from './bom-designer.dto'
+import {
+  executeActivateBomRevision,
+  executeApproveBom,
+  executeArchiveBom,
+  executeCreateBom,
+  executeCreateBomRevision,
+  executeDeleteBomLine,
+  executeSubmitBomForReview,
+  executeUpdateBom,
+} from './bom-command.mapper'
+import { mapBomDesigner, mapBomRevisionCompare, mapStockCardOptions } from './bom-designer.mapper'
 
 export const bomDesignerApplicationService = {
-  getByProduct(productId: string, orderQty?: number): BomDesignerViewDto | null {
-    return mapBomDesigner(productId, orderQty)
+  query: {
+    byProduct: mapBomDesigner,
+    stockOptions: mapStockCardOptions,
+    revisionCompare: mapBomRevisionCompare,
+  },
+  command: {
+    create: executeCreateBom,
+    update: executeUpdateBom,
+    deleteLine: executeDeleteBomLine,
+    approve: executeApproveBom,
+    createRevision: executeCreateBomRevision,
+    activateRevision: executeActivateBomRevision,
+    archive: executeArchiveBom,
+    submitForReview: executeSubmitBomForReview,
   },
 }

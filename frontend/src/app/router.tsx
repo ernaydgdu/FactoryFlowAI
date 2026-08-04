@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { RequireRole } from '@/components/auth/RequireRole'
 import { LazyRoute, lazyPage } from '@/performance/lazy-route'
 
 const LoginPage = lazyPage(() => import('@/pages/LoginPage'), 'LoginPage')
@@ -12,8 +13,14 @@ const OrderCreatePage = lazyPage(() => import('@/pages/orders/OrderCreatePage'),
 const OrderEditPage = lazyPage(() => import('@/pages/orders/OrderEditPage'), 'OrderEditPage')
 const OrderDetailPage = lazyPage(() => import('@/modules/orders/pages/OrderDetailPage'), 'OrderDetailPage')
 const ProductListPage = lazyPage(() => import('@/pages/catalog/ProductPages'), 'ProductListPage')
+const ProductCreatePage = lazyPage(() => import('@/pages/catalog/ProductPages'), 'ProductCreatePage')
+const ProductEditRoute = lazyPage(() => import('@/pages/catalog/ProductEditRoute'), 'ProductEditRoute')
 const ProductDetailRoute = lazyPage(() => import('@/pages/catalog/ProductDetailRoute'), 'ProductDetailRoute')
 const BomDesignerPage = lazyPage(() => import('@/modules/bom-designer/pages/BomDesignerPage'), 'BomDesignerPage')
+const CostSheetDesignerPage = lazyPage(
+  () => import('@/modules/cost-sheet-designer/pages/CostSheetDesignerPage'),
+  'CostSheetDesignerPage',
+)
 const MrpPage = lazyPage(() => import('@/pages/planning/PlanningPages'), 'MrpPage')
 const SizeSetsPage = lazyPage(() => import('@/pages/planning/PlanningPages'), 'SizeSetsPage')
 const FabricCardsPage = lazyPage(() => import('@/pages/fabric/FabricPages'), 'FabricCardsPage')
@@ -33,9 +40,16 @@ const InlineQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'),
 const MidlineQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'), 'MidlineQualityPage')
 const FinalQualityPage = lazyPage(() => import('@/pages/quality/QualityPages'), 'FinalQualityPage')
 const PackagingPage = lazyPage(() => import('@/pages/packaging/PackagingPages'), 'PackagingPage')
-const WarehouseInboundPage = lazyPage(() => import('@/pages/warehouse/WarehousePages'), 'WarehouseInboundPage')
-const WarehouseOutboundPage = lazyPage(() => import('@/pages/warehouse/WarehousePages'), 'WarehouseOutboundPage')
-const WarehouseCountPage = lazyPage(() => import('@/pages/warehouse/WarehousePages'), 'WarehouseCountPage')
+const WarehouseInboundPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'GoodsReceiptPage')
+const WarehouseOutboundPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'GoodsIssuePage')
+const WarehouseCountPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'CycleCountPage')
+const InventoryHubPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'InventoryHubPage')
+const InventoryDashboardPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'InventoryDashboardPage')
+const StockInquiryPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'StockInquiryPage')
+const StockLedgerPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'StockLedgerPage')
+const WarehouseDashboardPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'WarehouseDashboardPage')
+const TransferPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'TransferPage')
+const ReservationPage = lazyPage(() => import('@/pages/inventory/InventoryPages'), 'ReservationPage')
 const MerchandisingListPage = lazyPage(() => import('@/pages/merchandising/MerchandisingPages'), 'MerchandisingListPage')
 const MerchandisingDetailRoute = lazyPage(() => import('@/pages/merchandising/MerchandisingPages'), 'MerchandisingDetailRoute')
 const PurchasingPage = lazyPage(() => import('@/pages/purchasing/PurchasingPages'), 'PurchasingPage')
@@ -46,6 +60,18 @@ const CostAnalysisPage = lazyPage(() => import('@/pages/misc/MiscPages'), 'CostA
 const ReportsPage = lazyPage(() => import('@/pages/misc/MiscPages'), 'ReportsPage')
 const KeplerAiPage = lazyPage(() => import('@/pages/misc/MiscPages'), 'KeplerAiPage')
 const SettingsPage = lazyPage(() => import('@/pages/misc/MiscPages'), 'SettingsPage')
+const UserManagementPage = lazyPage(
+  () => import('@/modules/platform/pages/UserManagementPage'),
+  'UserManagementPage',
+)
+const MasterDataHubPage = lazyPage(
+  () => import('@/modules/master-data/pages/MasterDataHubPage'),
+  'MasterDataHubPage',
+)
+const MasterDataRoutePage = lazyPage(
+  () => import('@/modules/master-data/pages/MasterDataRoutePage'),
+  'MasterDataRoutePage',
+)
 
 const ProductionPlanningLayout = lazyPage(
   () => import('@/modules/production-planning/layout/ProductionPlanningLayout'),
@@ -195,8 +221,11 @@ export function AppRouter() {
         <Route path="/purchasing/orders/:poId" element={<L><PurchaseOrderDetailRoute /></L>} />
 
         <Route path="/products" element={<L><ProductListPage /></L>} />
+        <Route path="/products/new" element={<L><ProductCreatePage /></L>} />
+        <Route path="/products/:id/edit" element={<L><ProductEditRoute /></L>} />
         <Route path="/products/:id" element={<L><ProductDetailRoute /></L>} />
         <Route path="/products/:productId/bom" element={<L><BomDesignerPage /></L>} />
+        <Route path="/products/:productId/cost-sheet" element={<L><CostSheetDesignerPage /></L>} />
         <Route path="/planning/mrp" element={<L><MrpPage /></L>} />
         <Route path="/planning/size-sets" element={<L><SizeSetsPage /></L>} />
 
@@ -259,8 +288,16 @@ export function AppRouter() {
 
         <Route path="/packaging" element={<L><PackagingPage /></L>} />
 
+        <Route path="/inventory" element={<L><InventoryHubPage /></L>} />
+        <Route path="/inventory/dashboard" element={<L><InventoryDashboardPage /></L>} />
+        <Route path="/inventory/stock-inquiry" element={<L><StockInquiryPage /></L>} />
+        <Route path="/inventory/ledger" element={<L><StockLedgerPage /></L>} />
+
+        <Route path="/warehouse" element={<L><WarehouseDashboardPage /></L>} />
         <Route path="/warehouse/inbound" element={<L><WarehouseInboundPage /></L>} />
         <Route path="/warehouse/outbound" element={<L><WarehouseOutboundPage /></L>} />
+        <Route path="/warehouse/transfer" element={<L><TransferPage /></L>} />
+        <Route path="/warehouse/reservation" element={<L><ReservationPage /></L>} />
         <Route path="/warehouse/count" element={<L><WarehouseCountPage /></L>} />
 
         <Route path="/shipping" element={<L><ShippingPage /></L>} />
@@ -269,6 +306,18 @@ export function AppRouter() {
         <Route path="/reports" element={<L><ReportsPage /></L>} />
         <Route path="/ai" element={<L><KeplerAiPage /></L>} />
         <Route path="/settings" element={<L><SettingsPage /></L>} />
+        <Route path="/master-data" element={<L><MasterDataHubPage /></L>} />
+        <Route path="/master-data/:entityPath" element={<L><MasterDataRoutePage /></L>} />
+        <Route
+          path="/settings/users"
+          element={
+            <L>
+              <RequireRole permission="users.manage">
+                <UserManagementPage />
+              </RequireRole>
+            </L>
+          }
+        />
         <Route path="/dev/execution-demo" element={<L><ExecutionDemoDevPage /></L>} />
       </Route>
 

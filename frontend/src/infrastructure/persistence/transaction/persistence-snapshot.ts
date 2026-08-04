@@ -17,6 +17,7 @@ import { masterDataChangeStreamInMemory } from '../in-memory/streams/master-data
 import { productionCalendarInMemory } from '../in-memory/read-models/production-calendar.in-memory.read-model'
 import { createStoreSnapshot, restoreStoreSnapshot, type StoreSnapshot } from './store-snapshot'
 import { inMemoryStoreRegistry } from '../in-memory/in-memory-unit-of-work'
+import { userAccountInMemory } from '../in-memory/aggregates/user-account.in-memory.repository'
 
 export type PersistenceSnapshot = {
   store: StoreSnapshot
@@ -35,6 +36,7 @@ export type PersistenceSnapshot = {
   aiMemory: ReturnType<typeof aiMemoryCollectionInMemory.captureSnapshot>
   humanFeedback: ReturnType<typeof humanFeedbackCollectionInMemory.captureSnapshot>
   enterpriseTimeline: ReturnType<typeof enterpriseTimelineCollectionInMemory.captureSnapshot>
+  userAccounts: ReturnType<typeof userAccountInMemory.captureSnapshot>
 }
 
 export function createPersistenceSnapshot(): PersistenceSnapshot {
@@ -55,6 +57,7 @@ export function createPersistenceSnapshot(): PersistenceSnapshot {
     aiMemory: aiMemoryCollectionInMemory.captureSnapshot(),
     humanFeedback: humanFeedbackCollectionInMemory.captureSnapshot(),
     enterpriseTimeline: enterpriseTimelineCollectionInMemory.captureSnapshot(),
+    userAccounts: userAccountInMemory.captureSnapshot(),
   }
 }
 
@@ -75,4 +78,5 @@ export function restorePersistenceSnapshot(snapshot: PersistenceSnapshot): void 
   aiMemoryCollectionInMemory.restoreSnapshot(snapshot.aiMemory)
   humanFeedbackCollectionInMemory.restoreSnapshot(snapshot.humanFeedback)
   enterpriseTimelineCollectionInMemory.restoreSnapshot(snapshot.enterpriseTimeline)
+  userAccountInMemory.restoreSnapshot(snapshot.userAccounts)
 }

@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
 
+import { queryProductCardById } from '@/domain/product-card/product-card-crud.service'
+import { toLegacyBomLines } from '@/domain/services/textile/bom-service'
+import { toLegacyProductColors } from '@/domain/services/textile/color-management-service'
+import { getSizeSetSizes } from '@/domain/data/size-sets'
 import {
   EMBROIDERY_TYPES,
   FABRIC_TYPES,
@@ -23,7 +27,6 @@ import {
 import {
   calculateMaterialRequirements,
   createDefaultBomLines,
-  formatRequirementSummary,
 } from '@/modules/core/utils/bom-calculator'
 
 import type {
@@ -78,6 +81,8 @@ function createDefaultMilestones(): OrderMilestone[] {
 
 function createInitialForm(): OrderCreateForm {
   return {
+    productCardId: '',
+    selectedProductSummary: null,
     general: {
       customer: '',
       brand: '',
@@ -148,7 +153,6 @@ function computeMatrixTotals(
 
 export function useOrderCreate() {
   const [form, setForm] = useState<OrderCreateForm>(createInitialForm)
-  const [savedSummary, setSavedSummary] = useState<string | null>(null)
 
   const totals = useMemo(
     () => computeMatrixTotals(form.colors, form.sizes, form.matrix),
@@ -175,6 +179,52 @@ export function useOrderCreate() {
       setForm((prev) => ({
         ...prev,
         product: { ...prev.product, [field]: value },
+      }))
+    },
+    [],
+  )
+
+  const selectProductCard = useCallback(
+    (
+      productCardId: string,
+      summary: OrderCreateForm['selectedProductSummary'],
+    ) => {
+      const pc = queryProductCardById(productCardId)
+      if (!pc) return
+      const colors = toLegacyProductColors(pc.colorAssignments).map((c) => ({
+        id: c.id,
+        code: c.internalCode,
+        pantone: c.pantone ?? '',
+        description: c.name,
+        active: c.active,
+      }))
+      const sizes = getSizeSetSizes(pc.refs.sizeSetId)
+      const bom = toLegacyBomLines(pc.bom)
+      setForm((prev) => ({
+        ...prev,
+        productCardId,
+        selectedProductSummary: summary,
+        colors,
+        sizes,
+        bom,
+        matrix: {},
+        general: {
+          ...prev.general,
+          customer: pc.resolved.customer,
+          brand: pc.resolved.brand,
+          buyer: pc.resolved.buyer,
+          merchandiser: pc.resolved.merchandiser,
+          season: pc.resolved.season,
+          collection: pc.resolved.collection,
+        },
+        product: {
+          ...prev.product,
+          productCode: pc.productCode,
+          modelCode: pc.internalModelNo,
+          modelName: pc.productName,
+          productGroup: pc.resolved.productGroup,
+          subGroup: pc.resolved.subGroup,
+        },
       }))
     },
     [],
@@ -357,39 +407,37 @@ export function useOrderCreate() {
     }))
   }, [])
 
-  function save(): { success: boolean; message: string } {
+  function validateForm(): { success: boolean; message: string } {
     if (!form.general.customer) {
       return { success: false, message: 'Müşteri seçimi zorunludur.' }
+    }
+    if (!form.productCardId) {
+      return { success: false, message: 'Onaylı ürün kartı seçimi zorunludur.' }
     }
     if (totals.grandTotal <= 0) {
       return { success: false, message: 'Renk x beden matrisinde en az bir adet girilmelidir.' }
     }
-    if (form.bom.some((l) => !l.stockCardId)) {
-      return { success: false, message: 'BOM satırlarında stok kartı seçimi zorunludur.' }
+    return { success: true, message: '' }
+  }
+
+  function toCreateCommand(actorUserId: string) {
+    return {
+      productCardId: form.productCardId,
+      general: form.general,
+      matrix: form.matrix,
+      unitPrice: 12.5,
+      lineDeliveryDate: form.general.exf || undefined,
+      actorUserId,
     }
-
-    const summary = [
-      `Sipariş kaydedildi (mock)`,
-      `PO: ${form.general.poNo || '—'}`,
-      `Toplam Adet: ${totals.grandTotal.toLocaleString('tr-TR')}`,
-      '',
-      'Malzeme İhtiyaçları:',
-      formatRequirementSummary(materialRequirements),
-      '',
-      'Üretim emri ve stok rezervasyonu otomatik oluşturulacak (mock).',
-    ].join('\n')
-
-    setSavedSummary(summary)
-    return { success: true, message: summary }
   }
 
   return {
     form,
     totals,
     materialRequirements,
-    savedSummary,
     updateGeneral,
     updateProduct,
+    selectProductCard,
     addColor,
     updateColor,
     removeColor,
@@ -402,7 +450,8 @@ export function useOrderCreate() {
     updateMilestone,
     addDocument,
     removeDocument,
-    save,
+    validateForm,
+    toCreateCommand,
   }
 }
 

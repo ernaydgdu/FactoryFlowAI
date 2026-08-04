@@ -8,7 +8,7 @@ import type {
   SalesOrder,
 } from '../types'
 import type { StockCard } from '../types'
-import { getStockCardById } from '../data/stock-cards'
+import { queryStockCardById } from '../stock-card/stock-card-query.service'
 
 export function calcActualConsumption(
   consumption: number,
@@ -56,7 +56,7 @@ export function generateMrp(
   const lines: MrpLine[] = []
 
   for (const line of bom) {
-    const card = getStockCardById(line.stockCardId)
+    const card = queryStockCardById(line.stockCardId)
     if (!card || line.consumption <= 0) continue
 
     const actual = calcActualConsumption(line.consumption, line.wastePercent)
@@ -93,7 +93,7 @@ export function calculateConsumptions(
   return bom
     .filter((l) => l.stockCardId && l.consumption > 0)
     .map((line) => {
-      const card = getStockCardById(line.stockCardId)!
+      const card = queryStockCardById(line.stockCardId)!
       const actual = calcActualConsumption(line.consumption, line.wastePercent)
       const totalConsumed = Math.round(actual * producedQty * 100) / 100
       const issued = Math.round(actual * (producedQty + 60) * 100) / 100

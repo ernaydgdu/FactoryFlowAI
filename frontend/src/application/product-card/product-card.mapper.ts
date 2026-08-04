@@ -1,23 +1,31 @@
-import { getTextileProductById, TEXTILE_PRODUCT_CARDS } from '@/domain/data/products'
 import { sizeSetRepository } from '@/domain/master-data'
 import { buildProductCardRelations } from '@/domain/enterprise/relations/product-card-relations'
 import { getEnterpriseDocuments } from '@/domain/enterprise/collaboration-service'
 import { getEnterpriseTimeline } from '@/domain/enterprise/enterprise-timeline-service'
+import {
+  isProductCardEditable,
+  isProductCardReadOnly,
+} from '@/domain/product-card/lifecycle-types'
 import { toSizeSetEntity } from '@/domain/services/textile/size-matrix-service'
 import { toColorCardEntity } from '@/domain/services/textile/color-management-service'
+import type { ProductColorAssignment, TextileProductCard } from '@/domain/types/textile-erp'
 
-import type { ProductColorAssignment } from '@/domain/types/textile-erp'
-
+import {
+  queryProductCard,
+  queryProductCards,
+  queryProductCardAggregateVersion,
+} from './product-card-command.mapper'
 import type {
   ProductCardBomLineDto,
   ProductCardColorDto,
   ProductCardDetailDto,
+  ProductCardEditDto,
   ProductCardKpisDto,
   ProductCardListItemDto,
   ProductCardRevisionDto,
   ProductCardSizeMatrixDto,
 } from './product-card.dto'
-import { productCardStatusBadge } from './product-card.dto'
+import { productCardLifecycleLabel, productCardStatusBadge } from './product-card.dto'
 
 function mapSizeMatrix(sizeSetId: string): ProductCardSizeMatrixDto {
   const entity = sizeSetRepository.getById(sizeSetId)
@@ -42,17 +50,17 @@ function mapColors(colorAssignments: ProductColorAssignment[]): ProductCardColor
   })
 }
 
-function mapRevisions(history: NonNullable<ReturnType<typeof getTextileProductById>>['revisionHistory']): ProductCardRevisionDto[] {
+function mapRevisions(history: TextileProductCard['revisionHistory']): ProductCardRevisionDto[] {
   return history.map((r) => ({
     revisionNo: r.revisionNo,
-    status: r.status,
+    status: productCardLifecycleLabel(r.status),
     changedAt: r.changedAt,
     changedBy: r.changedById,
     changeNote: r.changeNote,
   }))
 }
 
-export function mapProductCardListItem(card: NonNullable<ReturnType<typeof getTextileProductById>>): ProductCardListItemDto {
+export function mapProductCardListItem(card: TextileProductCard): ProductCardListItemDto {
   const sizeSet = sizeSetRepository.getById(card.refs.sizeSetId)
   return {
     id: card.id,
@@ -65,11 +73,15 @@ export function mapProductCardListItem(card: NonNullable<ReturnType<typeof getTe
     colorCount: card.colorAssignments.length,
     bomLineCount: card.bom.lines.length,
     status: productCardStatusBadge(card.status),
+    lifecycleStatus: card.status,
+    version: queryProductCardAggregateVersion(card.id),
+    editable: isProductCardEditable(card.status),
+    readOnly: isProductCardReadOnly(card.status),
   }
 }
 
 export function mapProductCardDetail(id: string): ProductCardDetailDto | null {
-  const card = getTextileProductById(id)
+  const card = queryProductCard(id)
   if (!card) return null
 
   const relations = buildProductCardRelations(id)
@@ -96,6 +108,10 @@ export function mapProductCardDetail(id: string): ProductCardDetailDto | null {
     customerModelNo: card.customerModelNo,
     internalModelNo: card.internalModelNo,
     status: productCardStatusBadge(card.status),
+    lifecycleStatus: card.status,
+    version: queryProductCardAggregateVersion(card.id),
+    editable: isProductCardEditable(card.status),
+    readOnly: isProductCardReadOnly(card.status),
     header: {
       customer: card.resolved.customer,
       brand: card.resolved.brand,
@@ -154,9 +170,9 @@ export function mapProductCardDetail(id: string): ProductCardDetailDto | null {
 }
 
 export function mapProductCardKpis(): ProductCardKpisDto {
-  const cards = TEXTILE_PRODUCT_CARDS
-  const approved = cards.filter((c) => c.status === 'Onaylı').length
-  const inProduction = cards.filter((c) => c.status === 'Üretimde').length
+  const cards = queryProductCards()
+  const approved = cards.filter((c) => c.status === 'Approved').length
+  const inProduction = cards.filter((c) => c.status === 'In Production').length
   const sizeSetCount = sizeSetRepository.getActive().length
 
   return {
@@ -170,5 +186,41 @@ export function mapProductCardKpis(): ProductCardKpisDto {
 }
 
 export function mapProductCardList(): ProductCardListItemDto[] {
-  return TEXTILE_PRODUCT_CARDS.map(mapProductCardListItem)
+  return queryProductCards().map(mapProductCardListItem)
+}
+
+export function mapProductCardEditForm(id: string): ProductCardEditDto | null {
+  const card = queryProductCard(id)
+  if (!card) return null
+  return {
+    id: card.id,
+    version: queryProductCardAggregateVersion(card.id),
+    lifecycleStatus: card.status,
+    editable: isProductCardEditable(card.status),
+    productCode: card.productCode,
+    productName: card.productName,
+    customerModelNo: card.customerModelNo,
+    internalModelNo: card.internalModelNo,
+    pattern: card.pattern,
+    weight: card.weight,
+    description: card.description,
+    customerId: card.refs.customerId,
+    brandId: card.refs.brandId,
+    seasonId: card.refs.seasonId,
+    sizeSetId: card.refs.sizeSetId,
+  }
+}
+
+export function mapApprovedProductCardOptions() {
+  return queryProductCards()
+    .filter((c) => c.status === 'Approved')
+    .map((c) => ({
+      id: c.id,
+      productCode: c.productCode,
+      productName: c.productName,
+      customer: c.resolved.customer,
+      brand: c.resolved.brand,
+      season: c.resolved.season,
+      label: `${c.productCode} — ${c.productName}`,
+    }))
 }
