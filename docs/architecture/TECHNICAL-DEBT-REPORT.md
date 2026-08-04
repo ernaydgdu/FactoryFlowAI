@@ -14,7 +14,8 @@
 | TD-PG-01 | PostgreSQL cutover for aggregates (incl. packingLists, shipments) | Sprint 7 — Persistence | Adapters exist / stub; live SQL + UoW factory wiring |
 | TD-PRINT-01 | Print infrastructure (binary PDF + ZPL/label printers) | Print platform | Packing list / package label payloads already exist |
 | TD-EDI-01 | ASN / EDI 856 (buyer ASN) | Commercial / EDI | Depends on Shipment + Packing List SSOT |
-| TD-DOC-01 | Commercial Documents (Invoice, B/L, COO) | Phase 6 Export Docs | Qty/weight SSOT from PackingList + Shipment |
+| TD-DOC-01 | Commercial Documents (Invoice, B/L, COO) | Phase 6 Export Docs | **Closed in-module** — see COMMERCIAL-DOCUMENTS-REPORT; PDF/EDI remain open |
+| TD-DOC-PDF | Binary PDF commercial templates | Print platform | Linked to TD-PRINT-01 |
 
 ## Barcode / Mobile (prior)
 

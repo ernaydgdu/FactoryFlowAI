@@ -91,6 +91,7 @@ function normalizeRouteParams(route) {
     .replace(':ncrId', 'NCR-1')
     .replace(':packingListId', 'pl-1')
     .replace(':shipmentId', 'sh-1')
+    .replace(':documentSetId', 'eds-1')
 }
 
 function extractRoutes() {

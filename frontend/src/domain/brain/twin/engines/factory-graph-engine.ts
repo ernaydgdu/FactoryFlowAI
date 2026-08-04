@@ -18,6 +18,7 @@ import {
 import { getAllTimelineEntries } from '../../../platform/services/timeline-service'
 import { buildEnterpriseRelationGraph } from '../../../enterprise/relation-graph-service'
 import { queryPackingListsBySalesOrderId } from '../../../packaging/packing-list-query.service'
+import { queryAllExportDocumentSets } from '../../../commercial-documents/commercial-documents-query.service'
 import type { BrainContext, BrainKnowledgeSnapshot } from '../../types'
 import type {
   FactoryGraph,
@@ -300,6 +301,28 @@ export function buildFactoryGraph(
         addEdge(`packing-${pl.id}`, shipmentId, 'SHIPS_TO', 'WORKFLOW')
       }
     }
+
+    const docSets = queryAllExportDocumentSets()
+      .filter((d) => d.salesOrderId === order.id)
+      .slice(0, 5)
+    for (const eds of docSets) {
+      const edsId = addNode({
+        id: `export-docs-${eds.id}`,
+        type: 'EXPORT_DOCUMENT_SET',
+        label: `${eds.documentSetNo} / ${eds.commercialInvoice.invoiceNo}`,
+        entityId: eds.id,
+        sourceId: 'WORKFLOW',
+        attributes: {
+          status: eds.status,
+          shipmentNo: eds.shipmentNo,
+          totalQty: eds.commercialInvoice.totalQty,
+          totalAmount: eds.commercialInvoice.totalAmount,
+        },
+        dataQuality: eds.status === 'Issued' ? 'COMPLETE' : 'PARTIAL',
+      })
+      addEdge(orderId, edsId, 'CONTAINS', 'WORKFLOW')
+      addEdge(`shipment-${order.id}`, edsId, 'SHIPS_TO', 'WORKFLOW')
+    }
   }
 
   for (const card of STOCK_CARDS.slice(0, 5)) {
@@ -388,6 +411,7 @@ function mapEnterpriseTypeToFactory(entityType: string): FactoryGraphNode['type'
     PRODUCTION_ORDER: 'PRODUCTION_ORDER',
     PURCHASE_ORDER: 'PURCHASE_ORDER',
     PACKING_LIST: 'PACKING_LIST',
+    EXPORT_DOCUMENT_SET: 'EXPORT_DOCUMENT_SET',
     CUSTOMER: 'CUSTOMER',
     SUPPLIER: 'SUPPLIER',
     BOM: 'BOM',

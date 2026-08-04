@@ -20,6 +20,7 @@ import type { IPurchaseRequestRepository } from './aggregates/purchase-request.r
 import type { IGoodsReceiptRepository } from './aggregates/goods-receipt.repository'
 import type { IPackingListRepository } from './aggregates/packing-list.repository'
 import type { IShipmentRepository } from './aggregates/shipment.repository'
+import type { IExportDocumentSetRepository } from './aggregates/export-document-set.repository'
 import type { IRequestForQuotationRepository } from './aggregates/rfq.repository'
 import type { ISupplierQuotationRepository } from './aggregates/supplier-quotation.repository'
 import type { ISalesOrderRepository } from './aggregates/sales-order.repository'
@@ -81,6 +82,7 @@ export interface IUnitOfWork {
   goodsReceipts: IGoodsReceiptRepository
   packingLists: IPackingListRepository
   shipments: IShipmentRepository
+  exportDocumentSets: IExportDocumentSetRepository
   mrpRuns: IMrpRunRepository
   fabricCards: IFabricCardRepository
   accessoryCards: IAccessoryCardRepository

@@ -24,6 +24,7 @@ import { SupplierQuotationInMemoryRepository } from './aggregates/supplier-quota
 import { GoodsReceiptInMemoryRepository } from './aggregates/goods-receipt.in-memory.repository'
 import { PackingListInMemoryRepository } from './aggregates/packing-list.in-memory.repository'
 import { ShipmentInMemoryRepository } from './aggregates/shipment.in-memory.repository'
+import { ExportDocumentSetInMemoryRepository } from './aggregates/export-document-set.in-memory.repository'
 import { ApprovalWorkflowInMemoryRepository } from './aggregates/approval-workflow.in-memory.repository'
 import { BundleInMemoryRepository } from './aggregates/bundle.in-memory.repository'
 import { CodedAggregateFromLookupInMemoryRepository } from './aggregates/coded-aggregate-from-lookup.in-memory.repository'
@@ -115,6 +116,9 @@ export class InMemoryUnitOfWork implements IUnitOfWork {
   goodsReceipts = new GoodsReceiptInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['goodsReceipts']
   packingLists = new PackingListInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['packingLists']
   shipments = new ShipmentInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['shipments']
+  exportDocumentSets = new ExportDocumentSetInMemoryRepository(
+    inMemoryStoreRegistry,
+  ) as unknown as IUnitOfWork['exportDocumentSets']
   mrpRuns = new MrpRunInMemoryRepository(inMemoryStoreRegistry) as unknown as IUnitOfWork['mrpRuns']
   fabricCards = new FabricCardInMemoryRepository() as unknown as IUnitOfWork['fabricCards']
   accessoryCards = new AccessoryCardInMemoryRepository() as unknown as IUnitOfWork['accessoryCards']

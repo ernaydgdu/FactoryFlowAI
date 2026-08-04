@@ -284,6 +284,27 @@ const ShipmentContainersPage = lazyPage(
   'ShipmentContainersPage',
 )
 
+const CommercialDocumentsLayout = lazyPage(
+  () => import('@/modules/commercial-documents/layout/CommercialDocumentsLayout'),
+  'CommercialDocumentsLayout',
+)
+const CommercialInvoiceListPage = lazyPage(
+  () => import('@/modules/commercial-documents/pages/CommercialDocumentsPages'),
+  'CommercialInvoiceListPage',
+)
+const ExportDocumentSetListPage = lazyPage(
+  () => import('@/modules/commercial-documents/pages/CommercialDocumentsPages'),
+  'ExportDocumentSetListPage',
+)
+const ExportDocumentSetDetailPage = lazyPage(
+  () => import('@/modules/commercial-documents/pages/CommercialDocumentsPages'),
+  'ExportDocumentSetDetailPage',
+)
+const CommercialDocumentsIssueWizardPage = lazyPage(
+  () => import('@/modules/commercial-documents/pages/CommercialDocumentsPages'),
+  'CommercialDocumentsIssueWizardPage',
+)
+
 const BarcodeMobileLayout = lazyPage(
   () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
   'BarcodeMobileLayout',
@@ -558,6 +579,14 @@ export function AppRouter() {
           <Route path="shipments/:shipmentId" element={<L><ShipmentDetailPage /></L>} />
           <Route path="containers" element={<L><ShipmentContainersPage /></L>} />
           <Route path="station" element={<L><ShipmentStationPage /></L>} />
+        </Route>
+
+        <Route path="/commercial-documents" element={<L><CommercialDocumentsLayout /></L>}>
+          <Route index element={<Navigate to="/commercial-documents/invoices" replace />} />
+          <Route path="invoices" element={<L><CommercialInvoiceListPage /></L>} />
+          <Route path="sets" element={<L><ExportDocumentSetListPage /></L>} />
+          <Route path="sets/:documentSetId" element={<L><ExportDocumentSetDetailPage /></L>} />
+          <Route path="issue" element={<L><CommercialDocumentsIssueWizardPage /></L>} />
         </Route>
         <Route path="/cost" element={<L><CostAnalysisPage /></L>} />
         <Route path="/reports" element={<L><ReportsPage /></L>} />

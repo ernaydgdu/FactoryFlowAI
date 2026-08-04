@@ -22,6 +22,7 @@ import type {
   PersistedGoodsReceipt,
   PersistedPackingList,
   PersistedShipmentRecord,
+  PersistedExportDocumentSet,
   PersistedQualityGateEvaluation,
   PersistedSalesOrder,
   PersistedSplitExecution,
@@ -84,6 +85,10 @@ export class InMemoryStoreRegistry {
 
   shipments: PersistedShipmentRecord[] = []
   shipmentCounter = 0
+
+  exportDocumentSets: PersistedExportDocumentSet[] = []
+  exportDocumentSetCounter = 0
+  commercialInvoiceCounter = 0
 
   stockCards: PersistedStockCard[] = []
 

@@ -1,92 +1,97 @@
-# Commercial Documents Report — GAP Analysis
+# COMMERCIAL-DOCUMENTS-REPORT.md — Phase 6 Module 2
 
-**Generated:** 2026-08-03
+**Updated:** 2026-08-04
 
----
+## Status
 
-## Executive Summary
-
-Kepler'de **ticari doküman modülü yok**. Enterprise layer'da invoice relation stub, attachment engine tip tanımları ve PRD/API spec referansları var; **hiçbir export dokümanı create/issue/lifecycle ile yönetilmiyor**.
+**Implemented (In-Memory Runtime)** — Commercial Invoice + Export Document Set domain replaces stub/gap report.
 
 ---
 
-## Mevcut Durum
+## Architecture Decision Record (ADR)
 
-| Doküman | Kepler | Konum |
-|---------|--------|-------|
-| Proforma Invoice | ❌ | — |
-| Commercial Invoice | ⚠️ Stub ID | `sales-order-relations.ts` |
-| Packing List | ❌ (operational) | Packaging demo ≠ doc |
-| Certificate of Origin | ❌ | — |
-| Inspection Certificate | ❌ | — |
-| Bill of Lading | ❌ | — |
-| Air Waybill | ❌ | — |
-| ASN | ❌ | — |
-| Export Document Bundle | ❌ | — |
+**Decision:** `ExportDocumentSet` is the **persistence aggregate root**; `CommercialInvoice` is the **logical commercial AR** nested inside the set.
 
-**Platform support (partial):**
-- `AttachmentEntityType` includes SalesOrder, ProductCard
-- `AttachmentFileType`: Teknik Föy, Ölçü Tablosu — production docs, not commercial
-- PRD Module 1: Order attachments
-- API Spec Module 6: document links on shipment
+**Why:** Single transactional write path for invoice + COO + Inspection + B/L ref + Export Declaration + revisions/approvals; avoids duplicate repositories and split consistency. Meets Freeze: reuse Shipment/PackingList **queries** only; inventory writes untouched.
+
+**PostgreSQL-ready:** `IExportDocumentSetRepository` + counters (`nextDocumentSetCounter`, `nextInvoiceCounter`); cutover tracked as `TD-PG-01`.
 
 ---
 
-## Dokümanların ERP Lifecycle'daki Yeri
+## Delivered
 
-```mermaid
-flowchart TB
-  SO[Sales Order Confirmed] --> PI[Proforma Invoice]
-  PI --> PO[Production]
-  PO --> PL[Packing List]
-  PL --> CI[Commercial Invoice]
-  CI --> COO[Certificate of Origin]
-  CI --> IC[Inspection Certificate]
-  PL --> BL[Bill of Lading / AWB]
-  BL --> ASN[ASN to Buyer]
-  ASN --> CLOSE[Style Close]
-```
+| Capability | Implementation |
+|------------|----------------|
+| Commercial Invoice | Nested entity; lines from PL matrix; amounts |
+| Packing List Reference | Embedded snapshot from PackingList |
+| COO / Inspection / B/L / Export Decl | Embedded entities; numbers stamped on Issue |
+| Attachments / Revision / Approval | Embedded collections; revisions immutable |
+| Lifecycle | Draft → UnderReview → Approved → Issued → Archived |
+| TX / Audit / Timeline / Outbox / Idempotency | All mutations |
+| IAM | `shipping.write` in command guard; actor from `useAuth` |
+| Brain read model | `queryCommercialDocumentsBrainReadModel` |
+| Twin | `EXPORT_DOCUMENT_SET` nodes |
+| AI validation surface | Deterministic checks (no LLM mutate) |
+| UI | Invoices, Sets, Detail (approval+revision), Issue Wizard |
 
-| Aşama | Doküman | SSOT | Kepler |
-|-------|---------|------|--------|
-| Pre-production | Proforma | Finance/SO | ❌ |
-| Pre-ship | Packing List | Logistics | ❌ |
-| Ship | B/L, AWB | Logistics | ❌ |
-| Export | COO, Inspection Cert | Compliance | ❌ |
-| Revenue | Commercial Invoice | Finance | ❌ |
-| Buyer EDI | ASN | Integration | ❌ |
-| Close gate | All docs Complete | Closing checklist | ❌ |
+## Business rules enforced
 
----
-
-## Tier-1 Document Requirements
-
-| Özellik | SAP F&R / D365 Fashion | Kepler |
-|---------|------------------------|--------|
-| Document numbering | Series per doc type | ❌ |
-| Revision / void | Audit trail | ❌ |
-| PDF generation | Template engine | ❌ |
-| Weight/qty from PL | SSOT chain | ❌ |
-| Incoterm / payment term | SO header | ⚠️ Order form |
-| Multi-currency | CI line | ⚠️ Currency field |
-| Electronic submission | EDI/API | ❌ |
+1. Create only from Shipment status Booked+ (Approved logistics)
+2. Packing List must exist on shipment
+3. Invoice qty = Packing List totals
+4. Weight/CBM reconcile with Shipment totals
+5. Only Approved → Issued; Issued read-only (Archive only)
+6. Revisions preserve immutable `snapshotJson` history
 
 ---
 
-## Öncelik
+## Technical Debt
 
-| ID | Gap | P |
-|----|-----|---|
-| CD-P0-01 | Commercial Invoice entity + issue | P0 |
-| CD-P0-02 | Packing List as commercial doc | P0 |
-| CD-P0-03 | B/L + AWB | P0 |
-| CD-P1-01 | Proforma Invoice | P1 |
-| CD-P1-02 | Certificate of Origin + Inspection | P1 |
-| CD-P1-03 | ASN | P1 |
-| CD-P2-01 | Export document bundle + e-submission | P2 |
+| ID | Item | Notes |
+|----|------|-------|
+| TD-PG-01 | Postgres cutover | Shared with Sprint 7 |
+| TD-PRINT-01 | Binary PDF templates | Payload/read models only |
+| TD-EDI-01 | ASN/EDI submit | Placeholder doc link only |
+| TD-DOC-PROFORMA | Proforma Invoice | Out of this module |
+
+## Performance Review
+
+- Dashboard/list: single cursor page (bounded by `PERSISTENCE_CURSOR_MAX_LIMIT`)
+- Create: O(1) counters; PL/Shipment by id (no full scan)
+- RQ invalidation scoped to `commercialDocuments.*` keys
+- Twin: max 5 doc sets per order
+
+## Security Review
+
+- Write path: `assertCommercialDocumentsWritePermission` → `shipping.write`
+- Route: `shipping.read`
+- Actor from IAM session (no hardcoded pilot-user)
+- Tenant via `DEFAULT_TENANT_ID` / UoW (multi-tenant ready metadata)
+
+## AI Readiness Review
+
+- Brain read model exposed
+- Twin `EXPORT_DOCUMENT_SET` nodes linked Order→Docs←Shipment
+- Outbox SO change events on transitions
+- AI validation surface: deterministic `checks[]` (Brain may advise; domain decides)
+
+## Tier-1 GAP Review (SAP/Oracle/Infor/D365)
+
+| Capability | Status |
+|------------|--------|
+| Commercial Invoice lifecycle | ✅ |
+| Export document bundle | ✅ |
+| Qty/weight SSOT from PL/Shipment | ✅ |
+| Revision / approval / issue lock | ✅ |
+| Binary PDF / e-signature | ❌ roadmap print |
+| EDI ASN submit | ❌ `TD-EDI-01` |
+| Proforma / multi-currency FX engine | ❌ partial (currency field) |
+| Customs filing integration | ❌ declaration stub only |
 
 ---
 
-## Sonuç
+## Gates
 
-Commercial documents **9/9 doküman tipi eksik** (1 stub). Style close'un **Financial/Document Complete** gate'leri bu modül olmadan çalışamaz.
+`validate:commercial-documents` in build pipeline.
+
+**Freeze:** Packaging & Shipment modules not rewritten.
