@@ -241,6 +241,43 @@ const QualityTimelinePage = lazyPage(
   'QualityTimelinePage',
 )
 
+const BarcodeMobileLayout = lazyPage(
+  () => import('@/modules/barcode-mobile/layout/BarcodeMobileLayout'),
+  'BarcodeMobileLayout',
+)
+const BarcodeDashboardPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'BarcodeDashboardPage',
+)
+const MobileOperatorPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'MobileOperatorPage',
+)
+const ScannerScreenPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'ScannerScreenPage',
+)
+const BundleScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'BundleScanPage',
+)
+const MaterialScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'MaterialScanPage',
+)
+const FinishedGoodsScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'FinishedGoodsScanPage',
+)
+const QualityScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'QualityScanPage',
+)
+const WarehouseScanPage = lazyPage(
+  () => import('@/modules/barcode-mobile/pages/BarcodeMobilePages'),
+  'WarehouseScanPage',
+)
+
 const ExecutionPlatformLayout = lazyPage(
   () => import('@/modules/execution-platform/layout/ExecutionPlatformLayout'),
   'ExecutionPlatformLayout',
@@ -405,6 +442,18 @@ export function AppRouter() {
           <Route path="hold" element={<L><QualityHoldQueuePage /></L>} />
           <Route path="timeline" element={<L><QualityTimelinePage /></L>} />
           <Route path="ncr/:ncrId" element={<L><QualityNcrDetailPage /></L>} />
+        </Route>
+
+        <Route path="/barcode-mobile" element={<L><BarcodeMobileLayout /></L>}>
+          <Route index element={<Navigate to="/barcode-mobile/dashboard" replace />} />
+          <Route path="dashboard" element={<L><BarcodeDashboardPage /></L>} />
+          <Route path="operator" element={<L><MobileOperatorPage /></L>} />
+          <Route path="scanner" element={<L><ScannerScreenPage /></L>} />
+          <Route path="bundle" element={<L><BundleScanPage /></L>} />
+          <Route path="material" element={<L><MaterialScanPage /></L>} />
+          <Route path="finished-goods" element={<L><FinishedGoodsScanPage /></L>} />
+          <Route path="quality" element={<L><QualityScanPage /></L>} />
+          <Route path="warehouse" element={<L><WarehouseScanPage /></L>} />
         </Route>
 
         <Route path="/quality" element={<L><QualityHubPage /></L>} />

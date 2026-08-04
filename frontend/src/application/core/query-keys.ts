@@ -52,6 +52,11 @@ export const applicationQueryKeys = {
     finishedGoodsWarehouses: () =>
       [...applicationQueryKeys.warehouseManagement.all, 'fg-warehouses'] as const,
   },
+  barcodeMobile: {
+    all: ['barcode-mobile'] as const,
+    dashboard: () => [...applicationQueryKeys.barcodeMobile.all, 'dashboard'] as const,
+    offlineQueue: () => [...applicationQueryKeys.barcodeMobile.all, 'offline-queue'] as const,
+  },
   quality: {
     all: ['quality-management'] as const,
     dashboard: () => [...applicationQueryKeys.quality.all, 'dashboard'] as const,

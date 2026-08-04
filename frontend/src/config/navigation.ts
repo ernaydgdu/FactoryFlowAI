@@ -120,6 +120,18 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    title: 'Barcode & Mobile',
+    icon: Factory,
+    items: [
+      { title: 'Barcode Dashboard', href: '/barcode-mobile/dashboard' },
+      { title: 'Mobile Operator', href: '/barcode-mobile/operator' },
+      { title: 'Scanner', href: '/barcode-mobile/scanner' },
+      { title: 'Bundle Scan', href: '/barcode-mobile/bundle' },
+      { title: 'Material Scan', href: '/barcode-mobile/material' },
+      { title: 'Finished Goods Scan', href: '/barcode-mobile/finished-goods' },
+    ],
+  },
+  {
     title: 'Shop Floor (MES)',
     icon: Factory,
     items: [
@@ -256,6 +268,14 @@ export const routeTitles: Record<string, string> = {
   '/quality-management/rework': 'Rework Queue',
   '/quality-management/hold': 'Hold Queue',
   '/quality-management/timeline': 'Quality Timeline',
+  '/barcode-mobile/dashboard': 'Barcode Dashboard',
+  '/barcode-mobile/operator': 'Mobile Operator',
+  '/barcode-mobile/scanner': 'Scanner Screen',
+  '/barcode-mobile/bundle': 'Bundle Scan',
+  '/barcode-mobile/material': 'Material Scan',
+  '/barcode-mobile/finished-goods': 'Finished Goods Scan',
+  '/barcode-mobile/quality': 'Quality Scan',
+  '/barcode-mobile/warehouse': 'Warehouse Scan',
   '/execution-platform/bundles': 'Bundle Board',
   '/execution-platform/operations': 'Operasyon Board',
   '/execution-platform/work-sessions': 'Work Session Monitor',

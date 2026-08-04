@@ -1,0 +1,18 @@
+{
+  "name": "KEPLER ERP Mobile",
+  "short_name": "KEPLER",
+  "description": "FactoryFlowAI barcode & shop-floor operator PWA skeleton",
+  "start_url": "/barcode-mobile/operator",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
