@@ -5,518 +5,689 @@
       "ok": true,
       "rootLen": 558,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/accessories/cards",
       "ok": true,
       "rootLen": 26317,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/accessories/stock",
       "ok": true,
       "rootLen": 26317,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/ai",
       "ok": true,
       "rootLen": 26309,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/cost",
       "ok": true,
       "rootLen": 26315,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/cutting",
       "ok": true,
       "rootLen": 26312,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/dashboard",
       "ok": true,
       "rootLen": 26302,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/dev/execution-demo",
       "ok": true,
       "rootLen": 26320,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/execution-platform",
       "ok": true,
       "rootLen": 26320,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/brain",
+      "ok": true,
+      "rootLen": 26313,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/bundles",
+      "ok": true,
+      "rootLen": 26312,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/calendar",
+      "ok": true,
+      "rootLen": 26319,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/daily-entry",
+      "ok": true,
+      "rootLen": 26322,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/dashboard",
+      "ok": true,
+      "rootLen": 26319,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/operations",
+      "ok": true,
+      "rootLen": 26315,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/quality",
+      "ok": true,
+      "rootLen": 26320,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/split",
+      "ok": true,
+      "rootLen": 26316,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/timeline",
+      "ok": true,
+      "rootLen": 26318,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/wip",
+      "ok": true,
+      "rootLen": 26311,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/execution-platform/work-sessions",
+      "ok": true,
+      "rootLen": 26320,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/fabric/cards",
       "ok": true,
       "rootLen": 26314,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/fabric/movements",
       "ok": true,
       "rootLen": 26317,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/fabric/receipt",
       "ok": true,
       "rootLen": 26312,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/fabric/stock",
       "ok": true,
       "rootLen": 26314,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/inventory",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/inventory/dashboard",
       "ok": true,
       "rootLen": 26320,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/inventory/ledger",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/inventory/stock-inquiry",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/login",
       "ok": true,
       "rootLen": 558,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/master-data",
       "ok": true,
       "rootLen": 26299,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/master-data/suppliers",
       "ok": true,
       "rootLen": 26300,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/merchandising",
       "ok": true,
       "rootLen": 26313,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/merchandising/1",
       "ok": true,
       "rootLen": 26329,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/orders",
       "ok": true,
       "rootLen": 26315,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/orders/1",
       "ok": true,
       "rootLen": 26323,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/orders/1/edit",
       "ok": true,
       "rootLen": 26323,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/orders/new",
       "ok": true,
       "rootLen": 26312,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/packaging",
       "ok": true,
       "rootLen": 26319,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/planning/mrp",
       "ok": true,
       "rootLen": 26303,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/planning/size-sets",
       "ok": true,
       "rootLen": 26313,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/production-order-lifecycle",
       "ok": true,
       "rootLen": 26320,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-order-lifecycle/create",
+      "ok": true,
+      "rootLen": 26321,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-order-lifecycle/daily-entry",
+      "ok": true,
+      "rootLen": 26316,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-order-lifecycle/orders",
+      "ok": true,
+      "rootLen": 26325,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-order-lifecycle/orders/UE-2026-0100",
+      "ok": true,
+      "rootLen": 26327,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/production-planning",
       "ok": true,
       "rootLen": 26320,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/calendar",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/capacity",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/daily-entry",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/dashboard",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/lines",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/operations",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/orders",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/schedule",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/timeline",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
+    },
+    {
+      "route": "/production-planning/workshops",
+      "ok": true,
+      "rootLen": 26310,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/production/lines",
       "ok": true,
       "rootLen": 26322,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/production/operations",
       "ok": true,
       "rootLen": 26326,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/production/orders",
       "ok": true,
       "rootLen": 26325,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/production/sewing",
       "ok": true,
       "rootLen": 26322,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/production/washing",
       "ok": true,
       "rootLen": 26323,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/products",
       "ok": true,
       "rootLen": 26313,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/products/1",
       "ok": true,
       "rootLen": 26326,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/products/1/bom",
       "ok": true,
       "rootLen": 26326,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/products/1/cost-sheet",
       "ok": true,
       "rootLen": 26326,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/products/1/edit",
       "ok": true,
       "rootLen": 26326,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/products/new",
       "ok": true,
       "rootLen": 26326,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/purchasing",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/purchasing/orders",
       "ok": true,
       "rootLen": 26320,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/purchasing/orders/1",
       "ok": true,
       "rootLen": 26329,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/quality",
       "ok": true,
       "rootLen": 26324,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/quality/final",
       "ok": true,
       "rootLen": 26326,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/quality/inline",
       "ok": true,
       "rootLen": 26327,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/quality/midline",
       "ok": true,
       "rootLen": 26328,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/reports",
       "ok": true,
       "rootLen": 26308,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/settings",
       "ok": true,
       "rootLen": 26295,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/settings/users",
       "ok": true,
       "rootLen": 26313,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/shipping",
       "ok": true,
       "rootLen": 26308,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/shipping/containers",
       "ok": true,
       "rootLen": 26315,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/warehouse",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/warehouse/count",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/warehouse/inbound",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/warehouse/outbound",
       "ok": true,
       "rootLen": 26309,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/warehouse/reservation",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
+      "consoleErrors": [],
+      "boundaryTriggered": false
     },
     {
       "route": "/warehouse/transfer",
       "ok": true,
       "rootLen": 26310,
       "pageErrors": [],
-      "consoleErrors": []
-    },
-    {
-      "route": "brain",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173brain\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "bundles",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173bundles\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "calendar",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173calendar\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "capacity",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173capacity\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "create",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173create\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "daily-entry",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173daily-entry\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "dashboard",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173dashboard\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "lines",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173lines\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "operations",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173operations\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "orders",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173orders\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "orders/UE-2026-0100",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173orders/UE-2026-0100\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "quality",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173quality\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "schedule",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173schedule\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "split",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173split\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "timeline",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173timeline\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "wip",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173wip\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "work-sessions",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173work-sessions\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "route": "workshops",
-      "ok": false,
-      "error": "page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n  - navigating to \"http://localhost:5173workshops\", waiting until \"domcontentloaded\"\n"
+      "consoleErrors": [],
+      "boundaryTriggered": false
     }
   ],
   "pageErrors": [],
   "consoleErrors": [],
   "rejections": [],
+  "errorBoundaryHits": [],
   "critFails": [],
   "summary": {
-    "pass": 60,
-    "fail": 18
+    "pass": 85,
+    "fail": 0
   }
 }

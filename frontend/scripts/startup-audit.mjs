@@ -13,11 +13,68 @@ const BASE = process.env.STARTUP_AUDIT_BASE ?? 'http://localhost:5200'
 
 const ROUTER = fs.readFileSync(path.join(ROOT, 'src/app/router.tsx'), 'utf8')
 
+/**
+ * Tokenizes <Route ...>, <Route ... />, </Route> tags in document order,
+ * respecting {} brace depth so `>` characters inside `element={<L>...</L>}`
+ * do not prematurely terminate the tag, and respecting multi-line tags
+ * (e.g. path="..." on its own line).
+ */
+function tokenizeRouteTags(text) {
+  const tokens = []
+  let i = 0
+  while (i < text.length) {
+    if (text.startsWith('</Route>', i)) {
+      tokens.push({ type: 'close' })
+      i += '</Route>'.length
+      continue
+    }
+    if (text.startsWith('<Route', i) && /[\s>]/.test(text[i + 6] ?? '')) {
+      let j = i + 6
+      let depth = 0
+      let selfClosing = false
+      while (j < text.length) {
+        const ch = text[j]
+        if (ch === '{') depth++
+        else if (ch === '}') depth--
+        else if (depth === 0 && ch === '>') {
+          selfClosing = text[j - 1] === '/'
+          j += 1
+          break
+        }
+        j += 1
+      }
+      const tagText = text.slice(i, j)
+      const pathMatch = tagText.match(/path="([^"]+)"/)
+      tokens.push({ type: selfClosing ? 'self' : 'open', path: pathMatch?.[1] })
+      i = j
+      continue
+    }
+    i += 1
+  }
+  return tokens
+}
+
 function extractRoutes() {
+  const tokens = tokenizeRouteTags(ROUTER)
+  const stack = []
   const routes = new Set()
-  for (const m of ROUTER.matchAll(/path="([^"]+)"/g)) routes.add(m[1])
+
+  const resolve = (raw) => (raw.startsWith('/') ? raw : [...stack, raw].join('/').replace(/\/{2,}/g, '/'))
+
+  for (const t of tokens) {
+    if (t.type === 'self') {
+      if (t.path && !t.path.includes('*')) routes.add(resolve(t.path))
+    } else if (t.type === 'open') {
+      // Route blocks that wrap a layout always carry a path; index/pathless
+      // opens (none in this router) would push an empty marker — guard anyway.
+      stack.push(t.path ? resolve(t.path) : (stack.at(-1) ?? ''))
+      if (t.path && !t.path.includes('*')) routes.add(resolve(t.path))
+    } else if (t.type === 'close') {
+      stack.pop()
+    }
+  }
+
   return [...routes]
-    .filter((r) => !r.includes('*'))
     .map((r) =>
       r
         .replace(':productionOrderNo', 'UE-2026-0100')
@@ -91,6 +148,9 @@ async function main() {
   await waitRoot(page, 500, 15000)
   console.log('[PASS] Login → Dashboard')
 
+  const ERROR_BOUNDARY_TEXT = 'Bir hata oluştu'
+  const errorBoundaryHits = []
+
   const routeResults = []
   for (const route of routes) {
     const beforeP = pageErrors.length
@@ -100,10 +160,17 @@ async function main() {
       const rootLen = await waitRoot(page, route === '/login' ? 100 : 200, 20000)
       const rej = await page.evaluate(() => window.__startupRejections ?? [])
       for (const r of rej) rejections.push({ route, message: r })
+      const boundaryTriggered = await page
+        .locator(`text=${ERROR_BOUNDARY_TEXT}`)
+        .first()
+        .isVisible()
+        .catch(() => false)
+      if (boundaryTriggered) errorBoundaryHits.push({ route })
       const newP = pageErrors.slice(beforeP)
       const newC = consoleErrors.slice(beforeC)
-      const ok = newP.length === 0 && newC.length === 0 && rootLen >= (route === '/login' ? 100 : 200)
-      routeResults.push({ route, ok, rootLen, pageErrors: newP, consoleErrors: newC })
+      const ok =
+        newP.length === 0 && newC.length === 0 && !boundaryTriggered && rootLen >= (route === '/login' ? 100 : 200)
+      routeResults.push({ route, ok, rootLen, pageErrors: newP, consoleErrors: newC, boundaryTriggered })
     } catch (e) {
       routeResults.push({ route, ok: false, error: e.message })
     }
@@ -120,6 +187,7 @@ async function main() {
       console.log(`[FAIL] ${r.route} root=${r.rootLen ?? 0}`)
       if (r.pageErrors?.[0]) console.log(`  page: ${r.pageErrors[0].message}`)
       if (r.consoleErrors?.[0]) console.log(`  console: ${r.consoleErrors[0].text}`)
+      if (r.boundaryTriggered) console.log(`  error-boundary: triggered ("${ERROR_BOUNDARY_TEXT}" visible)`)
       if (r.error) console.log(`  nav: ${r.error}`)
     }
   }
@@ -130,8 +198,17 @@ async function main() {
   console.log(`Page errors: ${pageErrors.length}`)
   console.log(`Console errors: ${consoleErrors.length}`)
   console.log(`Unhandled rejections: ${rejections.length}`)
+  console.log(`Error boundary triggers: ${errorBoundaryHits.length}`)
 
-  const out = { routeResults, pageErrors, consoleErrors, rejections, critFails, summary: { pass, fail } }
+  const out = {
+    routeResults,
+    pageErrors,
+    consoleErrors,
+    rejections,
+    errorBoundaryHits,
+    critFails,
+    summary: { pass, fail },
+  }
   fs.writeFileSync(path.join(ROOT, 'startup-audit-result.json'), JSON.stringify(out, null, 2))
 
   const clean =
@@ -140,6 +217,7 @@ async function main() {
     pageErrors.length === 0 &&
     consoleErrors.length === 0 &&
     rejections.length === 0 &&
+    errorBoundaryHits.length === 0 &&
     critFails.length === 0
   process.exit(clean ? 0 : 1)
 }
