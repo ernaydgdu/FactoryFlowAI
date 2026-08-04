@@ -12,18 +12,40 @@ alwaysApply: true
 3. **Yalnızca yeni eklenen route'ların smoke testi**
 4. **Commit** (1–3 PASS olduktan sonra)
 
-Smoke kriteri: yeni route'larda `#root` render, console error 0, unhandled rejection 0, error boundary 0.
+### Smoke nasıl çalıştırılır
+
+Default smoke (`frontend/scripts/startup-audit.mjs`):
+
+```bash
+STARTUP_AUDIT_BASE=http://localhost:5173 \
+STARTUP_AUDIT_PREFIX=/barcode-mobile \
+node scripts/startup-audit.mjs
+```
+
+veya açık liste:
+
+```bash
+STARTUP_AUDIT_BASE=http://localhost:5173 \
+STARTUP_AUDIT_ROUTES=/a,/b,/c \
+node scripts/startup-audit.mjs
+```
+
+Smoke kriteri: login → dashboard → module routes; `#root` render; console/page error 0; error boundary 0; **ilk hatada dur**.
 
 ## Full Startup Regression Audit
 
-Yalnızca şu durumlarda çalıştır:
+Yalnızca:
 
 - Sprint sonunda
 - Release öncesinde
 - Kullanıcı özellikle isterse
 
+```bash
+STARTUP_AUDIT_FULL=true STARTUP_AUDIT_BASE=http://localhost:5173 node scripts/startup-audit.mjs
+```
+
 ## Yasaklar
 
-- Her modülde full startup regression çalıştırma
+- Her modülde full startup (`STARTUP_AUDIT_FULL=true`) çalıştırma
 - 10 dakikayı aşan audit'i tekrar etme
 - Gate PASS olmadan commit / sonraki modüle geçme
