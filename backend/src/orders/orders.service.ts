@@ -27,10 +27,19 @@ export class OrdersService {
   constructor(private prisma: PrismaService) {}
 
   async getOrders(tenantId?: string) {
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: tenantId ? { tenantId } : undefined,
       include: { materials: true },
       orderBy: { createdAt: 'desc' },
+    });
+
+    return orders.map((order) => {
+      const suggestion = this.computeAiSuggestion(order);
+      return {
+        ...order,
+        productType: suggestion.productType,
+        materialWarning: suggestion.warning !== null,
+      };
     });
   }
 
@@ -82,6 +91,14 @@ export class OrdersService {
       throw new NotFoundException('Sipariş bulunamadı');
     }
 
+    return this.computeAiSuggestion(order);
+  }
+
+  private computeAiSuggestion(order: {
+    productName: string;
+    totalQuantity: number;
+    materials: { materialType: string; orderedQuantity: number }[];
+  }): OrderAiSuggestion {
     const match = findProductType(order.productName);
     if (!match) {
       return {

@@ -88,6 +88,27 @@ export function OrderDataTable({ orders, list, onDeleteRow }: OrderDataTableProp
         ),
     },
     {
+      id: 'material',
+      label: 'Malzeme',
+      render: (o) =>
+        o.productType === null ? (
+          <span
+            title="Ürün tipi tanınmıyor, kumaş yeterliliği hesaplanamadı"
+            className="text-base text-muted-foreground"
+          >
+            —
+          </span>
+        ) : o.materialWarning ? (
+          <span title="Kumaş Yetersiz" className="text-base">
+            📦⚠️
+          </span>
+        ) : (
+          <span title="Kumaş miktarı yeterli görünüyor" className="text-base grayscale">
+            📦
+          </span>
+        ),
+    },
+    {
       id: 'customer',
       label: 'Müşteri',
       sortKey: 'customer',

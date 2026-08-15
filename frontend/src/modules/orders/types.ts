@@ -37,6 +37,8 @@ export type Order = {
   progress: number
   planner: string
   terminRisk: boolean
+  productType: string | null
+  materialWarning: boolean
 }
 
 export type OrderSortKey = keyof Pick<

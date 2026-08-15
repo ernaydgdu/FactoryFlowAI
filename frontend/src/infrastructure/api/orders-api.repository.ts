@@ -35,6 +35,8 @@ type ApiOrder = {
   createdAt: string
   updatedAt: string
   materials: ApiMaterial[]
+  productType: string | null
+  materialWarning: boolean
 }
 
 export type ApiOrderDetail = ApiOrder
@@ -90,6 +92,8 @@ function mapOrder(raw: ApiOrder): Order {
     progress: 0,
     planner: '',
     terminRisk: computeTerminRisk(raw),
+    productType: raw.productType ?? null,
+    materialWarning: raw.materialWarning ?? false,
   }
 }
 
