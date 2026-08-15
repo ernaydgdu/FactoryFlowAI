@@ -4,11 +4,14 @@ export type ConsumptionRate = {
   min: number;
   max: number;
   avg: number;
+  // Bazı ürün tipleri için aralık yerine fabrikaya özel sabit bir değer kullanılır.
+  sabit?: number;
 };
 
 export const STANDARD_CONSUMPTION_RATES: Record<string, ConsumptionRate> = {
   TISORT: { min: 1.2, max: 1.5, avg: 1.35 },
-  GOMLEK: { min: 1.8, max: 2.2, avg: 2.0 },
+  // Fabrikaya özel sabit değer: 1.5 m/adet
+  GOMLEK: { min: 1.5, max: 1.5, avg: 1.5, sabit: 1.5 },
   PANTOLON: { min: 1.3, max: 1.6, avg: 1.45 },
   CEKET: { min: 2.0, max: 2.5, avg: 2.25 },
   ELBISE: { min: 1.6, max: 2.0, avg: 1.8 },
@@ -59,6 +62,14 @@ export function findProductType(text: string): ProductTypeMatch | null {
   return match
     ? { label: match.label, rate: STANDARD_CONSUMPTION_RATES[match.type] }
     : null;
+}
+
+// Sabit değeri varsa onu, yoksa aralık + ortalamayı okunabilir metne çevirir.
+export function formatConsumptionRate(rate: ConsumptionRate): string {
+  if (rate.sabit !== undefined) {
+    return `sabit ${rate.sabit.toFixed(1)} m/adet`;
+  }
+  return `${rate.min.toFixed(1)}-${rate.max.toFixed(1)} m/adet, ortalama ${rate.avg.toFixed(1)} m/adet`;
 }
 
 export function calculateFabricNeed(

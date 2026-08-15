@@ -8,6 +8,7 @@ import {
   FABRIC_WIDTH_ADVICE,
   findConsumptionRate,
   findProductType,
+  formatConsumptionRate,
   GOOD_EFFICIENCY_THRESHOLD,
   recommendCuttingOrderType,
   recommendWarehouseMethod,
@@ -446,7 +447,7 @@ export class DashboardService {
 
     const totalNeed = calculateFabricNeed(order.totalQuantity, rate.avg);
 
-    return `${order.orderNo} siparişi (${order.productName}, ${order.totalQuantity} adet) için tahmini kumaş ihtiyacı ${totalNeed.toFixed(1)} metre. (Sarfiyat oranı: ${rate.min}-${rate.max} m/adet, ortalama ${rate.avg} m/adet + %3 fire dahil.)`;
+    return `${order.orderNo} siparişi (${order.productName}, ${order.totalQuantity} adet) için tahmini kumaş ihtiyacı ${totalNeed.toFixed(1)} metre. (Sarfiyat oranı: ${formatConsumptionRate(rate)} + %3 fire dahil.)`;
   }
 
   private answerGenericConsumptionRate(question: string): string {
@@ -456,7 +457,7 @@ export class DashboardService {
     }
 
     const { label, rate } = productType;
-    return `${label} için standart sarfiyat ${rate.min.toFixed(1)}-${rate.max.toFixed(1)} m/adet, ortalama ${rate.avg.toFixed(1)} m/adet kullanılır.`;
+    return `${label} için standart sarfiyat ${formatConsumptionRate(rate)} kullanılır.`;
   }
 
   private answerTerminStatus(order: OrderWithMaterials | null): string {
