@@ -38,12 +38,24 @@ const PRODUCT_NAME_KEYWORDS: Array<{
 // Ortalama fire oranı: %3
 export const WASTE_RATE_MULTIPLIER = 1.03;
 
+// Türkçe İ/I/ı harflerinin tr-TR locale'de düz ASCII "i" ile tutarsız
+// eşleşmesini önler (örn. "T-SHIRT" → tr-TR'de "t-shırt" olur ve "t-shirt"
+// anahtar kelimesiyle eşleşmez). Karşılaştırmadan önce tüm İ/I/ı varyantları
+// düz "i"ye indirgenir, ardından tr-TR ile küçük harfe çevrilir.
+function normalizeText(text: string): string {
+  return text
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'i')
+    .replace(/ı/g, 'i')
+    .toLocaleLowerCase('tr-TR');
+}
+
 export function findConsumptionRate(
   productName: string,
 ): ConsumptionRate | null {
-  const normalized = productName.toLocaleLowerCase('tr-TR');
+  const normalized = normalizeText(productName);
   const match = PRODUCT_NAME_KEYWORDS.find(({ keyword }) =>
-    normalized.includes(keyword),
+    normalized.includes(normalizeText(keyword)),
   );
   return match ? STANDARD_CONSUMPTION_RATES[match.type] : null;
 }
@@ -55,9 +67,9 @@ export type ProductTypeMatch = {
 
 // Serbest metin içinde ürün tipi kelimesi arar (sipariş bağlamı olmadan)
 export function findProductType(text: string): ProductTypeMatch | null {
-  const normalized = text.toLocaleLowerCase('tr-TR');
+  const normalized = normalizeText(text);
   const match = PRODUCT_NAME_KEYWORDS.find(({ keyword }) =>
-    normalized.includes(keyword),
+    normalized.includes(normalizeText(keyword)),
   );
   return match
     ? { label: match.label, rate: STANDARD_CONSUMPTION_RATES[match.type] }
