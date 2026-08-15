@@ -2,8 +2,15 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  calculateFabricEfficiency,
   calculateFabricNeed,
+  calculateTopUsage,
+  FABRIC_WIDTH_ADVICE,
   findConsumptionRate,
+  GOOD_EFFICIENCY_THRESHOLD,
+  recommendCuttingOrderType,
+  recommendWarehouseMethod,
+  type TeslimSekli,
 } from '../knowledge/textile-knowledge';
 import type { MaterialModel, OrderModel } from '../../generated/prisma/models';
 
@@ -28,12 +35,16 @@ function formatDateTR(d: Date): string {
   return new Date(d).toLocaleDateString('tr-TR');
 }
 
+function extractNumbers(text: string): number[] {
+  const matches = text.match(/\d+(?:[.,]\d+)?/g);
+  if (!matches) return [];
+  return matches.map((match) => parseFloat(match.replace(',', '.')));
+}
+
 type OrderWithMaterials = OrderModel & { materials: MaterialModel[] };
 
 export type DashboardAlertType =
-  | 'MATERIAL_DELAY'
-  | 'MATERIAL_PENDING'
-  | 'NO_PRODUCTION';
+  'MATERIAL_DELAY' | 'MATERIAL_PENDING' | 'NO_PRODUCTION';
 
 export type DashboardAlertSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -68,7 +79,8 @@ export class DashboardService {
       order.materials.some(
         (material) =>
           material.expectedArrival &&
-          dateOnlyUTC(material.expectedArrival) > dateOnlyUTC(order.shipmentDate),
+          dateOnlyUTC(material.expectedArrival) >
+            dateOnlyUTC(order.shipmentDate),
       ),
     ).length;
 
@@ -238,21 +250,153 @@ export class DashboardService {
 
   async answerQuestion(question: string, tenantId?: string): Promise<string> {
     const q = question.toLocaleLowerCase('tr-TR');
-    const order = await this.findOrderFromQuestion(question, tenantId);
 
-    if (q.includes('kumaş') && (q.includes('kaç metre') || q.includes('ne kadar'))) {
+    if (
+      q.includes('neler sorabilirim') ||
+      q.includes('ne yapabilirsin') ||
+      q.includes('yardım')
+    ) {
+      return this.answerCapabilities();
+    }
+
+    if (
+      q.includes('kumaş') &&
+      (q.includes('kaç metre') || q.includes('ne kadar'))
+    ) {
+      const order = await this.findOrderFromQuestion(question, tenantId);
       return this.answerFabricQuantity(order);
     }
 
+    if (
+      (q.includes('top') && q.includes('pastal')) ||
+      q.includes('kaç pastal')
+    ) {
+      return this.answerTopUsage(question);
+    }
+
+    if (
+      q.includes('verimlilik') ||
+      q.includes('faydalanma') ||
+      q.includes('pastal verimi')
+    ) {
+      return this.answerFabricEfficiency(question);
+    }
+
+    if (q.includes('kesim maliyeti') || q.includes('işçilik maliyeti')) {
+      return this.answerCuttingCostHelp();
+    }
+
+    if (
+      q.includes('depo') &&
+      (q.includes('fifo') ||
+        q.includes('lifo') ||
+        (q.includes('hangi') && q.includes('yöntem')))
+    ) {
+      return this.answerWarehouseMethod(question);
+    }
+
+    if (
+      q.includes('kesim emri') &&
+      (q.includes('nasıl') || q.includes('kaç beden'))
+    ) {
+      return this.answerCuttingOrderType(question);
+    }
+
     if (q.includes('termin') || q.includes('gecikme')) {
+      const order = await this.findOrderFromQuestion(question, tenantId);
       return this.answerTerminStatus(order);
     }
 
     if (q.includes('durum') || q.includes('ne durumda')) {
+      const order = await this.findOrderFromQuestion(question, tenantId);
       return this.answerProductionStatus(order);
     }
 
-    return 'Bu soruyu şu an anlayamadım. Şunları sorabilirsin: kumaş miktarı, termin durumu, üretim durumu';
+    return 'Bu soruyu şu an anlayamadım. Şunları sorabilirsin: kumaş miktarı, termin durumu, üretim durumu. Tüm yeteneklerimi görmek için "neler sorabilirim?" diye sorabilirsiniz.';
+  }
+
+  private answerCapabilities(): string {
+    return [
+      'Şu konularda yardımcı olabilirim:',
+      '• Kumaş ihtiyacı hesaplama — örn: "1040 için kumaş ne kadar gerekir?"',
+      '• Top/pastal hesaplama — örn: "35 metre topdan 5.1 metre pastal ile kaç pastal çıkar?"',
+      '• Kumaş verimliliği / pastal verimi — örn: "12 m² şablon, 1.5 en, 10 boy ile verimlilik nedir?"',
+      '• Kesim işçilik maliyeti hesaplama — örn: "kesim maliyeti nasıl hesaplanır?"',
+      '• Depo yönetimi (FIFO/LIFO) önerisi — örn: "3 renk 4 beden parçalı teslimat, hangi depo yöntemi?"',
+      '• Kesim emri türü önerisi — örn: "2 beden 1 renk için nasıl kesim emri açmalıyım?"',
+      '• Sipariş termin durumu — örn: "1040 termin durumu nedir?"',
+      '• Sipariş üretim durumu — örn: "1040 ne durumda?"',
+    ].join('\n');
+  }
+
+  private answerTopUsage(question: string): string {
+    const numbers = extractNumbers(question);
+    if (numbers.length < 2) {
+      return 'Top uzunluğu ve pastal uzunluğunu birlikte belirtir misiniz? Örn: "35 metre topdan 5.1 metre pastal ile kaç pastal çıkar?"';
+    }
+
+    const [topBoyu, pastalBoyu] = numbers;
+    const result = calculateTopUsage(topBoyu, pastalBoyu);
+
+    return `${topBoyu}m topdan ${pastalBoyu}m'lik pastal ile ${result.pastalAdedi} adet pastal çıkar (${topBoyu}/${pastalBoyu}=${(topBoyu / pastalBoyu).toFixed(2)}, tam sayıya yuvarlanır — kalan kısım kullanılamaz). ${result.kullanılanKumaş.toFixed(1)}m kumaş kullanılır, ${result.kalanMetre.toFixed(1)}m artar.`;
+  }
+
+  private answerFabricEfficiency(question: string): string {
+    const numbers = extractNumbers(question);
+    if (numbers.length < 3) {
+      return 'Verimlilik hesaplamak için toplam şablon alanını (m²), kumaş enini (m) ve kumaş boyunu (m) belirtir misiniz? Örn: "12 m² şablon, 1.5 en, 10 boy ile pastal verimi nedir?"';
+    }
+
+    const [sablonAlani, kumasEni, kumasBoyu] = numbers;
+    const result = calculateFabricEfficiency(sablonAlani, kumasEni, kumasBoyu);
+    const widthTip =
+      result.verimlilikYuzdesi < GOOD_EFFICIENCY_THRESHOLD
+        ? ` İpucu: ${FABRIC_WIDTH_ADVICE}`
+        : '';
+
+    return `Pastal verimi %${result.verimlilikYuzdesi.toFixed(1)} (${sablonAlani}m² şablon / (${kumasEni}m × ${kumasBoyu}m kumaş) × 100). Döküntü oranı %${result.dokuntuYuzdesi.toFixed(1)}. ${result.degerlendirme}${widthTip}`;
+  }
+
+  private answerCuttingCostHelp(): string {
+    return 'Kesim işçilik maliyetini iki yöntemle hesaplayabilirim: 1) Oran yöntemi — serim, pastal hazırlama, kaba/ince kesim ve masa temizleme sürelerini (dk) ve günlük işçilik ücretini paylaşın; toplamSüre/480 × günlükÜcret ile hesaplanır. 2) Formül yöntemi — masa boyu, birim kumaş gideri, kat/beden sayısı, süre bileşenleri ve ek zaman yüzdesini paylaşın; bu yöntem birim başı maliyeti de verir. Hangi yöntemle devam etmek istersiniz?';
+  }
+
+  private answerWarehouseMethod(question: string): string {
+    const renkMatch = question.match(/(\d+)\s*renk/i);
+    const bedenMatch = question.match(/(\d+)\s*beden/i);
+    const parcaliTeslimat = /parçalı|parçali|kısmi|kismi/i.test(question);
+
+    if (!renkMatch || !bedenMatch) {
+      return 'Depo yöntemi önerebilmem için renk sayısını ve beden sayısını belirtir misiniz (teslimatın parçalı mı, tam mı olduğunu da ekleyin)? Örn: "3 renk 4 beden, parçalı teslimat, hangi depo yöntemini kullanmalıyım?"';
+    }
+
+    const renkSayisi = parseInt(renkMatch[1], 10);
+    const bedenSayisi = parseInt(bedenMatch[1], 10);
+    const teslimSekli: TeslimSekli = parcaliTeslimat ? 'PARCALI' : 'TAM';
+
+    const recommendation = recommendWarehouseMethod(
+      renkSayisi,
+      bedenSayisi,
+      teslimSekli,
+    );
+
+    return `${renkSayisi} renk, ${bedenSayisi} beden, ${teslimSekli === 'PARCALI' ? 'parçalı' : 'tam'} teslimat için önerilen yöntem: ${recommendation.yontem}. ${recommendation.aciklama}`;
+  }
+
+  private answerCuttingOrderType(question: string): string {
+    const renkMatch = question.match(/(\d+)\s*renk/i);
+    const bedenMatch = question.match(/(\d+)\s*beden/i);
+
+    if (!bedenMatch) {
+      return 'Kesim emri türünü önerebilmem için beden sayısını (ve varsa renk sayısını) belirtir misiniz? Örn: "2 beden 1 renk için nasıl kesim emri açmalıyım?"';
+    }
+
+    const bedenSayisi = parseInt(bedenMatch[1], 10);
+    const renkSayisi = renkMatch ? parseInt(renkMatch[1], 10) : 1;
+
+    const recommendation = recommendCuttingOrderType(bedenSayisi, renkSayisi);
+
+    return `${bedenSayisi} beden, ${renkSayisi} renk için önerilen kesim emri türü: ${recommendation.tur}. ${recommendation.aciklama}`;
   }
 
   private async findOrderFromQuestion(
