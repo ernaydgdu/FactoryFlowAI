@@ -7,11 +7,13 @@ import {
   calculateTopUsage,
   FABRIC_WIDTH_ADVICE,
   findConsumptionRate,
+  findProductType,
   GOOD_EFFICIENCY_THRESHOLD,
   recommendCuttingOrderType,
   recommendWarehouseMethod,
   type TeslimSekli,
 } from '../knowledge/textile-knowledge';
+import { searchKnowledgeLibrary } from '../knowledge/textile-library';
 import type { MaterialModel, OrderModel } from '../../generated/prisma/models';
 
 function dateOnlyUTC(d: Date): number {
@@ -260,6 +262,13 @@ export class DashboardService {
     }
 
     if (
+      q.includes('sarfiyat') &&
+      (q.includes('ne kadar') || q.includes('kaç'))
+    ) {
+      return this.answerGenericConsumptionRate(question);
+    }
+
+    if (
       q.includes('kumaş') &&
       (q.includes('kaç metre') || q.includes('ne kadar'))
     ) {
@@ -310,6 +319,11 @@ export class DashboardService {
     if (q.includes('durum') || q.includes('ne durumda')) {
       const order = await this.findOrderFromQuestion(question, tenantId);
       return this.answerProductionStatus(order);
+    }
+
+    const libraryMatch = searchKnowledgeLibrary(question);
+    if (libraryMatch) {
+      return `📚 ${libraryMatch.card.baslik}\n\n${libraryMatch.card.icerik}`;
     }
 
     return 'Bu soruyu şu an anlayamadım. Şunları sorabilirsin: kumaş miktarı, termin durumu, üretim durumu. Tüm yeteneklerimi görmek için "neler sorabilirim?" diye sorabilirsiniz.';
@@ -433,6 +447,16 @@ export class DashboardService {
     const totalNeed = calculateFabricNeed(order.totalQuantity, rate.avg);
 
     return `${order.orderNo} siparişi (${order.productName}, ${order.totalQuantity} adet) için tahmini kumaş ihtiyacı ${totalNeed.toFixed(1)} metre. (Sarfiyat oranı: ${rate.min}-${rate.max} m/adet, ortalama ${rate.avg} m/adet + %3 fire dahil.)`;
+  }
+
+  private answerGenericConsumptionRate(question: string): string {
+    const productType = findProductType(question);
+    if (!productType) {
+      return 'Hangi ürün tipi için sorduğunuzu belirtir misiniz? (tişört, gömlek, pantolon, ceket, elbise, etek)';
+    }
+
+    const { label, rate } = productType;
+    return `${label} için standart sarfiyat ${rate.min.toFixed(1)}-${rate.max.toFixed(1)} m/adet, ortalama ${rate.avg.toFixed(1)} m/adet kullanılır.`;
   }
 
   private answerTerminStatus(order: OrderWithMaterials | null): string {

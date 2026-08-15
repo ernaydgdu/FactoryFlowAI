@@ -18,17 +18,18 @@ export const STANDARD_CONSUMPTION_RATES: Record<string, ConsumptionRate> = {
 const PRODUCT_NAME_KEYWORDS: Array<{
   keyword: string;
   type: keyof typeof STANDARD_CONSUMPTION_RATES;
+  label: string;
 }> = [
-  { keyword: 'tişört', type: 'TISORT' },
-  { keyword: 'tisort', type: 'TISORT' },
-  { keyword: 't-shirt', type: 'TISORT' },
-  { keyword: 'tshirt', type: 'TISORT' },
-  { keyword: 'gömlek', type: 'GOMLEK' },
-  { keyword: 'gomlek', type: 'GOMLEK' },
-  { keyword: 'pantolon', type: 'PANTOLON' },
-  { keyword: 'ceket', type: 'CEKET' },
-  { keyword: 'elbise', type: 'ELBISE' },
-  { keyword: 'etek', type: 'ETEK' },
+  { keyword: 'tişört', type: 'TISORT', label: 'Tişört' },
+  { keyword: 'tisort', type: 'TISORT', label: 'Tişört' },
+  { keyword: 't-shirt', type: 'TISORT', label: 'Tişört' },
+  { keyword: 'tshirt', type: 'TISORT', label: 'Tişört' },
+  { keyword: 'gömlek', type: 'GOMLEK', label: 'Gömlek' },
+  { keyword: 'gomlek', type: 'GOMLEK', label: 'Gömlek' },
+  { keyword: 'pantolon', type: 'PANTOLON', label: 'Pantolon' },
+  { keyword: 'ceket', type: 'CEKET', label: 'Ceket' },
+  { keyword: 'elbise', type: 'ELBISE', label: 'Elbise' },
+  { keyword: 'etek', type: 'ETEK', label: 'Etek' },
 ];
 
 // Ortalama fire oranı: %3
@@ -42,6 +43,22 @@ export function findConsumptionRate(
     normalized.includes(keyword),
   );
   return match ? STANDARD_CONSUMPTION_RATES[match.type] : null;
+}
+
+export type ProductTypeMatch = {
+  label: string;
+  rate: ConsumptionRate;
+};
+
+// Serbest metin içinde ürün tipi kelimesi arar (sipariş bağlamı olmadan)
+export function findProductType(text: string): ProductTypeMatch | null {
+  const normalized = text.toLocaleLowerCase('tr-TR');
+  const match = PRODUCT_NAME_KEYWORDS.find(({ keyword }) =>
+    normalized.includes(keyword),
+  );
+  return match
+    ? { label: match.label, rate: STANDARD_CONSUMPTION_RATES[match.type] }
+    : null;
 }
 
 export function calculateFabricNeed(
