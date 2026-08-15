@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, Plus, Sparkles } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import {
   createMaterial,
   createProductionEntry,
+  fetchAiSuggestion,
   fetchMaterials,
   fetchOrderById,
   fetchProductionEntries,
@@ -138,14 +139,18 @@ export function OrderDetailPage() {
             </TabsList>
 
             <TabsContent value="general">
-              <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <Field label="Müşteri" value={order.buyerName} />
-                <Field label="Ürün" value={order.productName} />
-                <Field label="Toplam Miktar" value={order.totalQuantity.toLocaleString('tr-TR')} />
-                <Field label="EXF Tarihi" value={formatDate(order.shipmentDate)} />
-                <Field label="Durum" value={ORDER_STATUS_LABEL[order.status] ?? order.status} />
-                <Field label="Oluşturulma" value={formatDate(order.createdAt)} />
-              </dl>
+              <div className="space-y-4">
+                <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <Field label="Müşteri" value={order.buyerName} />
+                  <Field label="Ürün" value={order.productName} />
+                  <Field label="Toplam Miktar" value={order.totalQuantity.toLocaleString('tr-TR')} />
+                  <Field label="EXF Tarihi" value={formatDate(order.shipmentDate)} />
+                  <Field label="Durum" value={ORDER_STATUS_LABEL[order.status] ?? order.status} />
+                  <Field label="Oluşturulma" value={formatDate(order.createdAt)} />
+                </dl>
+
+                <OrderAiSuggestionCard orderId={id} />
+              </div>
             </TabsContent>
 
             <TabsContent value="purchase">
@@ -167,6 +172,36 @@ function Field({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="mt-0.5 text-sm font-medium">{value}</dd>
+    </div>
+  )
+}
+
+function OrderAiSuggestionCard({ orderId }: { orderId: string }) {
+  const suggestionQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.aiSuggestion(orderId),
+    queryFn: () => fetchAiSuggestion(orderId),
+    enabled: !!orderId,
+  })
+
+  const suggestion = suggestionQuery.data
+  if (!suggestion || suggestion.productType === null) {
+    return null
+  }
+
+  return (
+    <div className="rounded-lg border border-border p-4">
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+        <Sparkles className="size-4" /> AI Önerisi
+      </p>
+      {suggestion.warning ? (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+          ⚠️ {suggestion.warning}
+        </div>
+      ) : (
+        <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+          ✓ Kumaş miktarı yeterli görünüyor
+        </div>
+      )}
     </div>
   )
 }

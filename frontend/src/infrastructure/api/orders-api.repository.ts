@@ -123,6 +123,18 @@ export async function fetchOrderById(id: string): Promise<ApiOrderDetail> {
   return data
 }
 
+export type OrderAiSuggestion = {
+  productType: string | null
+  estimatedNeed: number | null
+  warning: string | null
+  ok: boolean
+}
+
+export async function fetchAiSuggestion(orderId: string): Promise<OrderAiSuggestion> {
+  const { data } = await api.get<OrderAiSuggestion>(`/orders/${orderId}/ai-suggestion`)
+  return data
+}
+
 export type CreateMaterialInput = {
   materialName: string
   materialType: string

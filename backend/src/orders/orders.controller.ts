@@ -13,7 +13,10 @@ import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser, type JwtPayloadUser } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type JwtPayloadUser,
+} from '../auth/decorators/current-user.decorator';
 import type {
   CreateMaterialDto,
   CreateOrderDto,
@@ -47,6 +50,11 @@ export class OrdersController {
   @Get(':id')
   async getOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.getOrderById(id);
+  }
+
+  @Get(':id/ai-suggestion')
+  async getAiSuggestion(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.getAiSuggestion(id);
   }
 
   @Get(':id/materials')

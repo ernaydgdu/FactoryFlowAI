@@ -18,6 +18,8 @@ export const applicationQueryKeys = {
     detail: (id: string) => [...applicationQueryKeys.orderRecord.all, 'detail', id] as const,
     materials: (id: string) => [...applicationQueryKeys.orderRecord.all, 'materials', id] as const,
     production: (id: string) => [...applicationQueryKeys.orderRecord.all, 'production', id] as const,
+    aiSuggestion: (id: string) =>
+      [...applicationQueryKeys.orderRecord.all, 'ai-suggestion', id] as const,
   },
   // Real backend GET /api/dashboard summary
   dashboardSummary: {

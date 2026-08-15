@@ -4,12 +4,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  calculateFabricNeed,
+  findProductType,
+} from '../knowledge/textile-knowledge';
 import type {
   CreateMaterialDto,
   CreateOrderDto,
   CreateProductionEntryDto,
   UpdateMaterialStatusDto,
 } from './dto/order.dto';
+
+export type OrderAiSuggestion = {
+  productType: string | null;
+  estimatedNeed: number | null;
+  warning: string | null;
+  ok: boolean;
+};
 
 @Injectable()
 export class OrdersService {
@@ -60,6 +71,61 @@ export class OrdersService {
       throw new NotFoundException('Sipariş bulunamadı');
     }
     return order;
+  }
+
+  async getAiSuggestion(orderId: number): Promise<OrderAiSuggestion> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { materials: true },
+    });
+    if (!order) {
+      throw new NotFoundException('Sipariş bulunamadı');
+    }
+
+    const match = findProductType(order.productName);
+    if (!match) {
+      return {
+        productType: null,
+        estimatedNeed: null,
+        warning: null,
+        ok: true,
+      };
+    }
+
+    const estimatedNeed = calculateFabricNeed(
+      order.totalQuantity,
+      match.rate.avg,
+    );
+
+    const fabricMaterials = order.materials.filter(
+      (material) =>
+        material.materialType.toLocaleLowerCase('tr-TR') === 'kumaş',
+    );
+
+    if (fabricMaterials.length === 0) {
+      return {
+        productType: match.label,
+        estimatedNeed,
+        warning: `Bu sipariş için henüz kumaş girilmemiş, tahmini ihtiyaç: ${estimatedNeed.toFixed(1)} metre`,
+        ok: false,
+      };
+    }
+
+    const totalOrderedFabric = fabricMaterials.reduce(
+      (sum, material) => sum + material.orderedQuantity,
+      0,
+    );
+
+    if (totalOrderedFabric < estimatedNeed) {
+      return {
+        productType: match.label,
+        estimatedNeed,
+        warning: `Girilen kumaş miktarı (${totalOrderedFabric.toFixed(1)} m) tahmini ihtiyacın (${estimatedNeed.toFixed(1)} m) altında, eksik olabilir`,
+        ok: false,
+      };
+    }
+
+    return { productType: match.label, estimatedNeed, warning: null, ok: true };
   }
 
   async getMaterials(orderId: number) {
