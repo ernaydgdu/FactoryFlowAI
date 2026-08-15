@@ -17,4 +17,13 @@ export class DashboardController {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
     return this.dashboardService.getDashboard(scope);
   }
+
+  @Get('alerts')
+  async getAlerts(
+    @CurrentUser() user: JwtPayloadUser,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
+    return this.dashboardService.getAlerts(scope);
+  }
 }

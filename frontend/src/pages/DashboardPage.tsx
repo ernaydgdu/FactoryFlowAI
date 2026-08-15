@@ -18,8 +18,18 @@ import {
   quickActions,
 } from '@/config/dashboard'
 import { OPERATIONAL_DASHBOARD } from '@/domain/data/workflows'
-import { fetchDashboard } from '@/infrastructure/api/dashboard-api.repository'
+import {
+  fetchDashboard,
+  fetchDashboardAlerts,
+  type DashboardAlertSeverity,
+} from '@/infrastructure/api/dashboard-api.repository'
 import { cn } from '@/lib/utils'
+
+const ALERT_SEVERITY_STYLE: Record<DashboardAlertSeverity, string> = {
+  HIGH: 'border-destructive/30 bg-destructive/5 text-destructive',
+  MEDIUM: 'border-amber-500/30 bg-amber-500/5 text-amber-700',
+  LOW: 'border-blue-500/30 bg-blue-500/5 text-blue-700',
+}
 
 const ops = OPERATIONAL_DASHBOARD
 
@@ -27,6 +37,11 @@ export function DashboardPage() {
   const dashboardQuery = useQuery({
     queryKey: applicationQueryKeys.dashboardSummary.summary(),
     queryFn: fetchDashboard,
+  })
+
+  const alertsQuery = useQuery({
+    queryKey: applicationQueryKeys.dashboardSummary.alerts(),
+    queryFn: fetchDashboardAlerts,
   })
 
   const stats = dashboardQuery.data
@@ -98,6 +113,34 @@ export function DashboardPage() {
           ))
         )}
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Akıllı Uyarılar</CardTitle>
+          <CardDescription>Kural tabanlı termin ve üretim uyarıları</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {alertsQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+          ) : alertsQuery.isError ? (
+            <p className="text-sm text-destructive">Uyarılar yüklenemedi.</p>
+          ) : alertsQuery.data && alertsQuery.data.length > 0 ? (
+            alertsQuery.data.map((alert) => (
+              <div
+                key={alert.id}
+                className={cn(
+                  'rounded-lg border px-4 py-3 text-sm font-medium',
+                  ALERT_SEVERITY_STYLE[alert.severity],
+                )}
+              >
+                {alert.message}
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Şu anda aktif uyarı yok.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <OpsListCard title="Bugün Kesilecek" description="Kesim emri bekleyen siparişler" items={ops.todayCutting.map((i) => ({ primary: i.orderNo, secondary: i.style, value: `${i.qty} adet` }))} />

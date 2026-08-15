@@ -23,6 +23,7 @@ export const applicationQueryKeys = {
   dashboardSummary: {
     all: ['dashboard-summary'] as const,
     summary: () => [...applicationQueryKeys.dashboardSummary.all, 'summary'] as const,
+    alerts: () => [...applicationQueryKeys.dashboardSummary.all, 'alerts'] as const,
   },
   fabricCard: {
     all: ['fabric-card'] as const,
