@@ -19,6 +19,11 @@ export const applicationQueryKeys = {
     materials: (id: string) => [...applicationQueryKeys.orderRecord.all, 'materials', id] as const,
     production: (id: string) => [...applicationQueryKeys.orderRecord.all, 'production', id] as const,
   },
+  // Real backend GET /api/dashboard summary
+  dashboardSummary: {
+    all: ['dashboard-summary'] as const,
+    summary: () => [...applicationQueryKeys.dashboardSummary.all, 'summary'] as const,
+  },
   fabricCard: {
     all: ['fabric-card'] as const,
     list: () => [...applicationQueryKeys.fabricCard.all, 'list'] as const,

@@ -1,14 +1,7 @@
-import { useMemo } from 'react'
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Minus,
-  Package,
-  Scissors,
-  Shirt,
-  Truck,
-} from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Package, Scissors, Shirt, Truck } from 'lucide-react'
 
+import { applicationQueryKeys } from '@/application/core/query-keys'
 import {
   Card,
   CardContent,
@@ -24,14 +17,45 @@ import {
   productionLines,
   quickActions,
 } from '@/config/dashboard'
-import { getDashboardStatCards } from '@/domain/services/dashboard-service'
 import { OPERATIONAL_DASHBOARD } from '@/domain/data/workflows'
+import { fetchDashboard } from '@/infrastructure/api/dashboard-api.repository'
 import { cn } from '@/lib/utils'
 
 const ops = OPERATIONAL_DASHBOARD
 
 export function DashboardPage() {
-  const dashboardStats = useMemo(() => getDashboardStatCards(), [])
+  const dashboardQuery = useQuery({
+    queryKey: applicationQueryKeys.dashboardSummary.summary(),
+    queryFn: fetchDashboard,
+  })
+
+  const stats = dashboardQuery.data
+  const dashboardStats = stats
+    ? [
+        { label: 'Toplam Sipariş', value: String(stats.totalOrders), hint: 'Aktif portföy' },
+        {
+          label: 'Termin Riski',
+          value: String(stats.terminRiskOrders),
+          hint: "Malzeme EXF'den geç geliyor",
+        },
+        {
+          label: 'Bugünkü Üretim',
+          value: stats.totalProduction.toLocaleString('tr-TR'),
+          hint: 'Tüm aşamalar toplamı',
+        },
+        {
+          label: 'Bugün Kesilen',
+          value: stats.cuttingToday.toLocaleString('tr-TR'),
+          hint: 'Kesim aşaması',
+        },
+        {
+          label: 'Bugün Dikilen',
+          value: stats.sewingToday.toLocaleString('tr-TR'),
+          hint: 'Dikim aşaması',
+        },
+      ]
+    : []
+
   const todayActual = dailyProductionKpis[4]?.actual ?? 0
   const todayPlanned = dailyProductionKpis[4]?.planned ?? 1
   const todayRate = Math.round((todayActual / todayPlanned) * 100)
@@ -47,23 +71,32 @@ export function DashboardPage() {
         </p>
       </div>
 
+      {dashboardQuery.isError ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          Kontrol paneli verileri yüklenemedi.
+        </div>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {dashboardStats.map((stat) => (
-          <Card key={stat.label}>
-            <CardHeader className="pb-2">
-              <CardDescription>{stat.label}</CardDescription>
-              <CardTitle className="text-2xl font-bold tabular-nums xl:text-3xl">
-                {stat.value}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <TrendIcon trend={stat.trend} />
-                <span>{stat.change}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {dashboardQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground sm:col-span-2 xl:col-span-5">
+            Yükleniyor...
+          </p>
+        ) : (
+          dashboardStats.map((stat) => (
+            <Card key={stat.label}>
+              <CardHeader className="pb-2">
+                <CardDescription>{stat.label}</CardDescription>
+                <CardTitle className="text-2xl font-bold tabular-nums xl:text-3xl">
+                  {stat.value}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">{stat.hint}</p>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -412,18 +445,6 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-sm font-semibold tabular-nums">{value}</p>
     </div>
   )
-}
-
-function TrendIcon({ trend }: { trend: 'up' | 'down' | 'neutral' }) {
-  if (trend === 'up') {
-    return <ArrowUpRight className="size-3.5 text-emerald-600" />
-  }
-
-  if (trend === 'down') {
-    return <ArrowDownRight className="size-3.5 text-amber-600" />
-  }
-
-  return <Minus className={cn('size-3.5 text-muted-foreground')} />
 }
 
 function RiskBadge({ level }: { level: 'Yüksek' | 'Orta' | 'Düşük' }) {
