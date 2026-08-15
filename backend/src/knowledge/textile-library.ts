@@ -92,7 +92,6 @@ export const TEXTILE_KNOWLEDGE_LIBRARY: KnowledgeCard[] = [
     anahtarKelimeler: [
       'fifo',
       'lifo',
-      'ne',
       'zaman',
       'kullanılır',
       'depo düzenleme',
@@ -364,7 +363,6 @@ export const TEXTILE_KNOWLEDGE_LIBRARY: KnowledgeCard[] = [
       'hat dengeleme',
       'darboğaz',
       'darboğaz operasyon',
-      'bant sistemi nasıl çalışır',
     ],
     icerik:
       'Dikim hattı (bant sistemi), bir ürünün dikilmesi için gereken tüm işlemlerin (operasyonların) küçük parçalara bölünüp her operatöre yalnızca bir veya birkaç işlemin atandığı üretim düzenidir. Operasyon bölme mantığında ürün, omuz dikişi, kol takma, yan dikiş gibi bağımsız işlemlere ayrılır; her operatör kendi istasyonunda sürekli aynı işlemi tekrarlayarak uzmanlaşır ve hız kazanır. Yarı mamul (kesilmiş/kısmen dikilmiş parça), bant veya taşıma sistemiyle bir operatörden diğerine aktarılır. Hat dengeleme (line balancing), her operasyonun süresinin birbirine yakın olacak şekilde iş yükünün dağıtılmasıdır; amaç hiçbir istasyonun diğerlerinden çok daha yavaş kalmamasıdır. Darboğaz (bottleneck) operasyon, hattaki en uzun süren işlemdir; hattın toplam üretim hızı bu en yavaş operasyonun hızıyla sınırlıdır, çünkü önündeki istasyonlar üretime devam etse bile ürün darboğazın önünde birikir.',
@@ -395,10 +393,6 @@ export const TEXTILE_KNOWLEDGE_LIBRARY: KnowledgeCard[] = [
     anahtarKelimeler: [
       'hat verimliliği',
       'verimlilik',
-      'verimliliği',
-      'nasıl',
-      'hesaplanır',
-      'hesaplama',
       'formül',
       'hedef üretim',
       'gerçekleşen üretim',
@@ -579,8 +573,25 @@ export type KnowledgeCardMatch = {
   score: number;
 };
 
-// Sorudaki her kelimeyi kartların anahtarKelimeler listesiyle karşılaştırır,
-// her eşleşen kelime için +1 puan verir ve en yüksek skorlu kartı döndürür.
+const EXACT_MATCH_SCORE = 1;
+const STEM_MATCH_SCORE = 0.5;
+// Türkçe çekim ekleri (nasıl→nasıldı, hesaplama→hesaplanır vb.) genellikle
+// kelimenin ilk birkaç harfini değiştirmez; bu eşik altındaki kelimeler için
+// kök eşleştirmesi devre dışı bırakılır (kısa kelimelerde yanlış pozitif riski yüksek).
+const MIN_STEM_LENGTH = 5;
+
+// İki kelime, ikisi de MIN_STEM_LENGTH'ten uzunsa ve ilk MIN_STEM_LENGTH
+// karakterleri aynıysa aynı köke sahip kabul edilir (ör. "hesaplanır" ~ "hesaplama").
+function sharesStem(a: string, b: string): boolean {
+  if (a.length < MIN_STEM_LENGTH || b.length < MIN_STEM_LENGTH) return false;
+  return a.slice(0, MIN_STEM_LENGTH) === b.slice(0, MIN_STEM_LENGTH);
+}
+
+// Sorudaki her kelimeyi kartın anahtarKelimeler + baslik kelimeleriyle karşılaştırır.
+// Tam eşleşme +1, kök (ilk MIN_STEM_LENGTH karakter) eşleşmesi +0.5 puan verir;
+// bu sayede "hesaplama" ~ "hesaplanır", "paketleme" ~ "paketlemede" gibi çekimli
+// hâller de -tek tek karta özel bir liste tutmadan- yakalanır. En yüksek skorlu
+// kart döndürülür.
 export function searchKnowledgeLibrary(
   question: string,
 ): KnowledgeCardMatch | null {
@@ -588,14 +599,19 @@ export function searchKnowledgeLibrary(
   let best: KnowledgeCardMatch | null = null;
 
   for (const card of TEXTILE_KNOWLEDGE_LIBRARY) {
-    const keywordWords = new Set(
-      card.anahtarKelimeler.flatMap((keyword) => tokenize(keyword)),
-    );
+    const keywordWords = new Set([
+      ...card.anahtarKelimeler.flatMap((keyword) => tokenize(keyword)),
+      ...tokenize(card.baslik),
+    ]);
 
     let score = 0;
     for (const word of questionWords) {
       if (keywordWords.has(word)) {
-        score += 1;
+        score += EXACT_MATCH_SCORE;
+      } else if (
+        [...keywordWords].some((keyword) => sharesStem(word, keyword))
+      ) {
+        score += STEM_MATCH_SCORE;
       }
     }
 
