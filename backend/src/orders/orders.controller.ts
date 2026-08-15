@@ -17,6 +17,7 @@ import { CurrentUser, type JwtPayloadUser } from '../auth/decorators/current-use
 import type {
   CreateMaterialDto,
   CreateOrderDto,
+  CreateProductionEntryDto,
   UpdateMaterialStatusDto,
 } from './dto/order.dto';
 
@@ -70,5 +71,19 @@ export class OrdersController {
     @Body() body: UpdateMaterialStatusDto,
   ) {
     return this.ordersService.updateMaterialStatus(id, materialId, body);
+  }
+
+  @Get(':id/production')
+  async getProductionEntries(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.getProductionEntries(id);
+  }
+
+  @Post(':id/production')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER', 'SHOP_FLOOR_OPERATOR')
+  async addProductionEntry(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateProductionEntryDto,
+  ) {
+    return this.ordersService.addProductionEntry(id, body);
   }
 }

@@ -41,6 +41,7 @@ model Order {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   materials     Material[]
+  productionEntries ProductionEntry[]
 }
 
 model Material {
@@ -62,4 +63,17 @@ model Material {
   notes            String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+}
+
+model ProductionEntry {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  stage       String   // CUTTING, SEWING, IRONING, PACKING, SHIPPING
+  quantity    Int
+  date        DateTime @default(now())
+  lineNo      String?  // hat numarası
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

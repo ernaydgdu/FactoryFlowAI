@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type {
   CreateMaterialDto,
   CreateOrderDto,
+  CreateProductionEntryDto,
   UpdateMaterialStatusDto,
 } from './dto/order.dto';
 
@@ -114,6 +115,29 @@ export class OrdersService {
     return this.prisma.material.update({
       where: { id: materialId },
       data: updateData,
+    });
+  }
+
+  async getProductionEntries(orderId: number) {
+    await this.findOrderOrThrow(orderId);
+    return this.prisma.productionEntry.findMany({
+      where: { orderId },
+      orderBy: { date: 'asc' },
+    });
+  }
+
+  async addProductionEntry(orderId: number, data: CreateProductionEntryDto) {
+    await this.findOrderOrThrow(orderId);
+
+    return this.prisma.productionEntry.create({
+      data: {
+        orderId,
+        stage: data.stage.trim(),
+        quantity: data.quantity,
+        date: data.date ? new Date(data.date) : undefined,
+        lineNo: data.lineNo,
+        notes: data.notes,
+      },
     });
   }
 }

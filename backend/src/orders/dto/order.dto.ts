@@ -27,3 +27,11 @@ export class UpdateMaterialStatusDto {
   arrivedQuantity?: number;
   notes?: string;
 }
+
+export class CreateProductionEntryDto {
+  stage!: string;
+  quantity!: number;
+  date?: string;
+  lineNo?: string;
+  notes?: string;
+}

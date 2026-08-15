@@ -13,13 +13,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import {
   createMaterial,
+  createProductionEntry,
   fetchMaterials,
   fetchOrderById,
+  fetchProductionEntries,
   updateMaterialStatus,
   type ApiMaterial,
+  type ApiProductionEntry,
   type CreateMaterialInput,
+  type CreateProductionEntryInput,
   type MaterialStatusValue,
+  type ProductionStage,
 } from '@/infrastructure/api/orders-api.repository'
+
+import { OrderProgressBar } from '../components/OrderProgressBar'
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PLANNING: 'Beklemede',
@@ -40,6 +47,20 @@ const MATERIAL_STATUS_TONE: Record<MaterialStatusValue, 'muted' | 'success' | 'w
   PENDING: 'muted',
   ARRIVED: 'success',
   PARTIAL: 'warning',
+}
+
+const PRODUCTION_STAGES: ProductionStage[] = ['CUTTING', 'SEWING', 'IRONING', 'PACKING', 'SHIPPING']
+
+const STAGE_LABEL: Record<ProductionStage, string> = {
+  CUTTING: 'Kesim',
+  SEWING: 'Dikim',
+  IRONING: 'Ütü',
+  PACKING: 'Paket',
+  SHIPPING: 'Sevkiyat',
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -113,6 +134,7 @@ export function OrderDetailPage() {
             <TabsList className="mb-4">
               <TabsTrigger value="general">Genel</TabsTrigger>
               <TabsTrigger value="purchase">Satın Alma</TabsTrigger>
+              <TabsTrigger value="production">Üretim</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
@@ -128,6 +150,10 @@ export function OrderDetailPage() {
 
             <TabsContent value="purchase">
               <MaterialsPanel orderId={id} exfDate={order.shipmentDate} />
+            </TabsContent>
+
+            <TabsContent value="production">
+              <ProductionPanel orderId={id} totalQuantity={order.totalQuantity} />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -473,6 +499,247 @@ function MaterialRow({
           </select>
         </div>
       </td>
+    </tr>
+  )
+}
+
+type ProductionFormState = {
+  stage: ProductionStage
+  quantity: string
+  lineNo: string
+  date: string
+  notes: string
+}
+
+function initialProductionForm(): ProductionFormState {
+  return {
+    stage: 'CUTTING',
+    quantity: '',
+    lineNo: '',
+    date: todayIso(),
+    notes: '',
+  }
+}
+
+function ProductionPanel({
+  orderId,
+  totalQuantity,
+}: {
+  orderId: string
+  totalQuantity: number
+}) {
+  const queryClient = useQueryClient()
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<ProductionFormState>(initialProductionForm)
+  const [error, setError] = useState<string | null>(null)
+
+  const productionQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.production(orderId),
+    queryFn: () => fetchProductionEntries(orderId),
+    enabled: !!orderId,
+  })
+
+  const addMutation = useMutation({
+    mutationFn: (input: CreateProductionEntryInput) => createProductionEntry(orderId, input),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.production(orderId),
+        refetchType: 'all',
+      }),
+  })
+
+  function updateField(field: keyof ProductionFormState, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleAddEntry(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const quantity = Number(form.quantity)
+    if (!form.quantity || Number.isNaN(quantity) || quantity <= 0) {
+      setError('Miktar geçerli bir sayı olmalıdır.')
+      return
+    }
+
+    try {
+      await addMutation.mutateAsync({
+        stage: form.stage,
+        quantity,
+        date: form.date || undefined,
+        lineNo: form.lineNo.trim() || undefined,
+        notes: form.notes.trim() || undefined,
+      })
+      setForm(initialProductionForm())
+      setShowForm(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Üretim girişi eklenemedi.')
+    }
+  }
+
+  const entries = productionQuery.data ?? []
+
+  const stageTotals = PRODUCTION_STAGES.reduce(
+    (acc, stage) => {
+      acc[stage] = entries
+        .filter((e) => e.stage === stage)
+        .reduce((sum, e) => sum + e.quantity, 0)
+      return acc
+    },
+    {} as Record<ProductionStage, number>,
+  )
+
+  const shippedQuantity = stageTotals.SHIPPING
+  const progressPercent =
+    totalQuantity > 0 ? Math.round((shippedQuantity / totalQuantity) * 100) : 0
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border p-4">
+        <div className="mb-2 flex items-center justify-between text-sm">
+          <span className="font-medium">Sevkiyat İlerlemesi</span>
+          <span className="text-muted-foreground tabular-nums">
+            {shippedQuantity.toLocaleString('tr-TR')} / {totalQuantity.toLocaleString('tr-TR')} adet
+          </span>
+        </div>
+        <OrderProgressBar value={progressPercent} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {PRODUCTION_STAGES.map((stage) => (
+          <div key={stage} className="rounded-lg border border-border p-3">
+            <p className="text-xs text-muted-foreground">{STAGE_LABEL[stage]}</p>
+            <p className="text-lg font-bold tabular-nums">
+              {stageTotals[stage].toLocaleString('tr-TR')}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Siparişe ait üretim girişleri</p>
+        <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
+          <Plus className="size-4" /> Yeni Üretim Girişi
+        </Button>
+      </div>
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      {showForm ? (
+        <form
+          onSubmit={handleAddEntry}
+          className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2 lg:grid-cols-5"
+        >
+          <div className="grid gap-1.5">
+            <Label htmlFor="stage">Aşama</Label>
+            <select
+              id="stage"
+              value={form.stage}
+              onChange={(e) => updateField('stage', e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              {PRODUCTION_STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {STAGE_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="quantity">Miktar</Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              value={form.quantity}
+              onChange={(e) => updateField('quantity', e.target.value)}
+              placeholder="100"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="lineNo">Hat No</Label>
+            <Input
+              id="lineNo"
+              value={form.lineNo}
+              onChange={(e) => updateField('lineNo', e.target.value)}
+              placeholder="HAT-3"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="date">Tarih</Label>
+            <Input
+              id="date"
+              type="date"
+              value={form.date}
+              onChange={(e) => updateField('date', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="notes">Notlar</Label>
+            <Input
+              id="notes"
+              value={form.notes}
+              onChange={(e) => updateField('notes', e.target.value)}
+              placeholder="—"
+            />
+          </div>
+          <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-5">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
+              İptal
+            </Button>
+            <Button type="submit" size="sm" disabled={addMutation.isPending}>
+              {addMutation.isPending ? 'Ekleniyor...' : 'Ekle'}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2">Aşama</th>
+              <th className="px-3 py-2">Miktar</th>
+              <th className="px-3 py-2">Hat No</th>
+              <th className="px-3 py-2">Tarih</th>
+              <th className="px-3 py-2">Notlar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {productionQuery.isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
+                  Yükleniyor...
+                </td>
+              </tr>
+            ) : entries.length > 0 ? (
+              entries.map((entry) => <ProductionRow key={entry.id} entry={entry} />)
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
+                  Henüz üretim girişi eklenmedi.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ProductionRow({ entry }: { entry: ApiProductionEntry }) {
+  return (
+    <tr className="border-b border-border/60">
+      <td className="px-3 py-2 font-medium">{STAGE_LABEL[entry.stage] ?? entry.stage}</td>
+      <td className="px-3 py-2 tabular-nums">{entry.quantity.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2">{entry.lineNo ?? '—'}</td>
+      <td className="px-3 py-2">{formatDate(entry.date)}</td>
+      <td className="px-3 py-2">{entry.notes ?? '—'}</td>
     </tr>
   )
 }

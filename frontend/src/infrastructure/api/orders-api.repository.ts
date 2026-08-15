@@ -159,3 +159,38 @@ export async function updateMaterialStatus(
   )
   return data
 }
+
+export type ProductionStage = 'CUTTING' | 'SEWING' | 'IRONING' | 'PACKING' | 'SHIPPING'
+
+export type ApiProductionEntry = {
+  id: number
+  orderId: number
+  stage: ProductionStage
+  quantity: number
+  date: string
+  lineNo: string | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type CreateProductionEntryInput = {
+  stage: ProductionStage
+  quantity: number
+  date?: string
+  lineNo?: string
+  notes?: string
+}
+
+export async function fetchProductionEntries(orderId: string): Promise<ApiProductionEntry[]> {
+  const { data } = await api.get<ApiProductionEntry[]>(`/orders/${orderId}/production`)
+  return data
+}
+
+export async function createProductionEntry(
+  orderId: string,
+  input: CreateProductionEntryInput,
+): Promise<ApiProductionEntry> {
+  const { data } = await api.post<ApiProductionEntry>(`/orders/${orderId}/production`, input)
+  return data
+}

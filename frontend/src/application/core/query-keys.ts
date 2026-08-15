@@ -17,6 +17,7 @@ export const applicationQueryKeys = {
     list: () => [...applicationQueryKeys.orderRecord.all, 'list'] as const,
     detail: (id: string) => [...applicationQueryKeys.orderRecord.all, 'detail', id] as const,
     materials: (id: string) => [...applicationQueryKeys.orderRecord.all, 'materials', id] as const,
+    production: (id: string) => [...applicationQueryKeys.orderRecord.all, 'production', id] as const,
   },
   fabricCard: {
     all: ['fabric-card'] as const,
