@@ -64,6 +64,12 @@ export function OrderListPage() {
         description="Profesyonel sipariş portföyü — filtreleme, sıralama, termin takibi ve üretim ilerlemesi."
       />
 
+      {list.isError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          Siparişler yüklenemedi: {list.error instanceof Error ? list.error.message : 'Bilinmeyen hata'}
+        </div>
+      )}
+
       <OrderKpiBar kpis={computeOrderKpis(list.allOrders)} />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">

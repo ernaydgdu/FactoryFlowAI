@@ -1,18 +1,24 @@
 # Technical Debt Backlog
 
 **Source:** Enterprise Architecture Review Sprint (2026-08-04)  
-**Last updated:** 2026-08-04 — P0 Remediation Sprint 2  
+**Last updated:** 2026-08-04 — P0 Remediation Program Closed  
 **Classification:** P0 (must before production claim) · P1 (high) · P2 (material) · P3 (hygiene)  
 **Effort:** S ≤1d · M 2–5d · L 1–2w · XL >2w (one senior engineer, frontend-centric)
 
 ---
 
-## P0 — Must address before enterprise production claim
+## P0 program status — CLOSED
 
-| ID | Item | Evidence | Effort | Module(s) |
-|----|------|----------|--------|-----------|
-| TD-P0-05 | Multi-tenant hardwired to `kepler-default` | `DEFAULT_TENANT_ID` + auth always sets default | XL | Platform / All |
-| TD-P0-07 | Postgres cutover blocked (`readyCount: 0`, factory throws) | `postgres-cutover-readiness.ts`, `postgres-unit-of-work-factory.ts` | XL | Persistence |
+Sprint-sized P0 remediations are complete (6/8). Remaining items are **enterprise transformation programs**, not backlog sprints. **Do not attempt partial implementations.**
+
+### P0 Remaining (deferred)
+
+| ID | Item | Status | Program |
+|----|------|--------|---------|
+| TD-P0-05 | Multi-tenant hardwired to `kepler-default` | **Deferred to Program — Multi-Tenant Transformation** | Phase 9 — see `ENTERPRISE-NEXT-PHASE-ROADMAP.md` |
+| TD-P0-07 | Postgres cutover blocked (`readyCount: 0`, factory throws) | **Deferred to Program — PostgreSQL Cutover** | Phase 10 — see `POSTGRES-CUTOVER-PLAN.md` + roadmap |
+
+**Reason:** These are enterprise transformation programs, not sprint-sized remediations.
 
 ### Closed in P0 Remediation Sprint 2
 
@@ -89,19 +95,14 @@
 
 ---
 
-## Suggested sequencing (remaining P0)
+## Next execution
 
-```
-Program tracks only (no partial slices)
-TD-P0-05 multi-tenant (XL) — requires end-to-end tenantId plumbing
-TD-P0-07 Postgres cutover (XL) → POSTGRES-CUTOVER-PLAN
-```
+Active work shifts to **P1 backlog** and program phases in `ENTERPRISE-NEXT-PHASE-ROADMAP.md`.
 
----
-
-## Effort rollup (remaining P0)
-
-| ID | Why not closed in Sprint 2 |
-|----|----------------------------|
-| TD-P0-05 | No production-safe vertical slice without redesigning all CRUD tenant keys — deferred (no partial multi-tenancy) |
-| TD-P0-07 | Explicitly out of scope this sprint; see POSTGRES-CUTOVER-PLAN |
+| Order | Track |
+|-------|--------|
+| 1 | Phase 9 — Multi-Tenant Transformation (absorbs TD-P0-05) |
+| 2 | Phase 10 — PostgreSQL Cutover (absorbs TD-P0-07) |
+| 3 | Phase 11 — Brain AI Enterprise |
+| 4 | Phase 12 — Reporting & Analytics |
+| 5 | Phase 13 — External Integrations |

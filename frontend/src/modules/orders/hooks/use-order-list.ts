@@ -1,6 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 
-import { mockOrders } from '../data/mock-orders'
+import { applicationQueryKeys } from '@/application/core/query-keys'
+import { fetchOrders } from '@/infrastructure/api/orders-api.repository'
+
 import type {
   ColumnFilterKey,
   ColumnFilters,
@@ -93,10 +96,20 @@ export function useOrderList() {
   const [pageSize, setPageSize] = useState(10)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-  const kpis = useMemo(() => computeOrderKpis(mockOrders), [])
+  const {
+    data: orders = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.list(),
+    queryFn: fetchOrders,
+  })
+
+  const kpis = useMemo(() => computeOrderKpis(orders), [orders])
 
   const filtered = useMemo(() => {
-    let rows = applyQuickFilter(mockOrders, quickFilter)
+    let rows = applyQuickFilter(orders, quickFilter)
     rows = applyColumnFilters(rows, columnFilters)
     rows = filterBySearch(rows, search, [
       (r) => r.orderNo,
@@ -109,7 +122,7 @@ export function useOrderList() {
       (r) => r.sizeSet,
     ])
     return sortOrders(rows, sort.key, sort.direction)
-  }, [search, quickFilter, columnFilters, sort])
+  }, [orders, search, quickFilter, columnFilters, sort])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -199,7 +212,10 @@ export function useOrderList() {
     toggleSelect,
     toggleSelectAll,
     clearSelection,
-    allOrders: mockOrders,
+    allOrders: orders,
+    isLoading,
+    isError,
+    error,
   }
 }
 

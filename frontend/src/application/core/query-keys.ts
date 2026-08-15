@@ -11,6 +11,13 @@ export const applicationQueryKeys = {
     detail: (id: string) => [...applicationQueryKeys.salesOrder.all, 'detail', id] as const,
     kpis: () => [...applicationQueryKeys.salesOrder.all, 'kpis'] as const,
   },
+  // Real backend Order/Material REST resource — separate namespace from the in-memory salesOrder above
+  orderRecord: {
+    all: ['order-record'] as const,
+    list: () => [...applicationQueryKeys.orderRecord.all, 'list'] as const,
+    detail: (id: string) => [...applicationQueryKeys.orderRecord.all, 'detail', id] as const,
+    materials: (id: string) => [...applicationQueryKeys.orderRecord.all, 'materials', id] as const,
+  },
   fabricCard: {
     all: ['fabric-card'] as const,
     list: () => [...applicationQueryKeys.fabricCard.all, 'list'] as const,

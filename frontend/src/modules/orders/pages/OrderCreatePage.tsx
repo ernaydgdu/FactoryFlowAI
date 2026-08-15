@@ -1,48 +1,81 @@
-import { Package, Save } from 'lucide-react'
-import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Save } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { useAuth } from '@/application/platform/iam/auth-context'
-import {
-  SalesOrderDomainError,
-  useCreateSalesOrderMutation,
-} from '@/application/sales-order/use-sales-order'
+import { applicationQueryKeys } from '@/application/core/query-keys'
 import { PageHeader } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { createOrder } from '@/infrastructure/api/orders-api.repository'
 
-import { BomTab } from '../components/create/BomTab'
-import { ColorsTab } from '../components/create/ColorsTab'
-import { DocumentsTab } from '../components/create/DocumentsTab'
-import { GeneralTab } from '../components/create/GeneralTab'
-import { OperationsTab } from '../components/create/OperationsTab'
-import { ProductTab } from '../components/create/ProductTab'
-import { SizesMatrixTab } from '../components/create/SizesMatrixTab'
-import { TerminTab } from '../components/create/TerminTab'
-import { useOrderCreate } from '../hooks/use-order-create'
+type FormState = {
+  orderNo: string
+  buyerName: string
+  productName: string
+  totalQuantity: string
+  shipmentDate: string
+}
+
+const INITIAL_FORM: FormState = {
+  orderNo: '',
+  buyerName: '',
+  productName: '',
+  totalQuantity: '',
+  shipmentDate: '',
+}
 
 export function OrderCreatePage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const form = useOrderCreate()
-  const createMutation = useCreateSalesOrderMutation()
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSave() {
+  const createMutation = useMutation({
+    mutationFn: createOrder,
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.list(),
+        refetchType: 'all',
+      }),
+  })
+
+  function updateField(field: keyof FormState, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
     setError(null)
-    const validation = form.validateForm()
-    if (!validation.success) {
-      setError(validation.message)
+
+    const totalQuantity = Number(form.totalQuantity)
+
+    if (!form.orderNo.trim() || !form.buyerName.trim() || !form.productName.trim()) {
+      setError('Sipariş No, Müşteri Adı ve Ürün Adı zorunludur.')
       return
     }
+    if (!form.totalQuantity || Number.isNaN(totalQuantity) || totalQuantity <= 0) {
+      setError('Toplam miktar geçerli bir sayı olmalıdır.')
+      return
+    }
+    if (!form.shipmentDate) {
+      setError('EXF tarihi zorunludur.')
+      return
+    }
+
     try {
-      const result = await createMutation.mutateAsync(
-        form.toCreateCommand(user?.id ?? 'system'),
-      )
-      navigate(`/orders/${result.salesOrderId}`)
+      await createMutation.mutateAsync({
+        orderNo: form.orderNo.trim(),
+        buyerName: form.buyerName.trim(),
+        productName: form.productName.trim(),
+        totalQuantity,
+        shipmentDate: form.shipmentDate,
+      })
+      navigate('/orders')
     } catch (err) {
-      setError(err instanceof SalesOrderDomainError ? err.message : 'Kayıt başarısız.')
+      setError(err instanceof Error ? err.message : 'Kayıt başarısız.')
     }
   }
 
@@ -50,52 +83,19 @@ export function OrderCreatePage() {
     <div className="space-y-6">
       <PageHeader
         title="Yeni Sipariş"
-        description="PO oluşturma — onaylı ürün kartı seçimi, BOM ve renk-beden matrisi."
+        description="Yeni bir sipariş kaydı oluşturun."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => navigate('/orders')}>
               İptal
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={createMutation.isPending}>
+            <Button size="sm" type="submit" form="order-create-form" disabled={createMutation.isPending}>
               <Save className="size-4" />
               {createMutation.isPending ? 'Kaydediliyor...' : 'Siparişi Kaydet'}
             </Button>
           </>
         }
       />
-
-      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Package className="size-5 text-primary" />
-          <div>
-            <p className="text-xs text-muted-foreground">Toplam Sipariş Adedi</p>
-            <p className="text-lg font-bold tabular-nums text-primary">
-              {form.totals.grandTotal.toLocaleString('tr-TR')}
-            </p>
-          </div>
-        </div>
-        <div className="h-8 w-px bg-border" />
-        <div>
-          <p className="text-xs text-muted-foreground">BOM Kalemi</p>
-          <p className="text-lg font-bold tabular-nums">
-            {form.form.bom.filter((b) => b.stockCardId).length}
-          </p>
-        </div>
-        <div className="h-8 w-px bg-border" />
-        <div>
-          <p className="text-xs text-muted-foreground">Aktif Renk</p>
-          <p className="text-lg font-bold tabular-nums">
-            {form.form.colors.filter((c) => c.active).length}
-          </p>
-        </div>
-        <div className="h-8 w-px bg-border" />
-        <div>
-          <p className="text-xs text-muted-foreground">Beden</p>
-          <p className="text-lg font-bold tabular-nums">
-            {form.form.sizes.length}
-          </p>
-        </div>
-      </div>
 
       {error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -105,46 +105,66 @@ export function OrderCreatePage() {
 
       <Card>
         <CardHeader className="pb-0">
-          <CardTitle className="text-base">Sipariş & Ürün Kartı Girişi</CardTitle>
+          <CardTitle className="text-base">Sipariş Bilgileri</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="general">
-            <TabsList className="mb-2">
-              <TabsTrigger value="general">Genel</TabsTrigger>
-              <TabsTrigger value="product">Ürün</TabsTrigger>
-              <TabsTrigger value="colors">Renkler</TabsTrigger>
-              <TabsTrigger value="sizes">Bedenler</TabsTrigger>
-              <TabsTrigger value="bom">BOM</TabsTrigger>
-              <TabsTrigger value="operations">Operasyonlar</TabsTrigger>
-              <TabsTrigger value="termin">Termin</TabsTrigger>
-              <TabsTrigger value="documents">Dökümanlar</TabsTrigger>
-            </TabsList>
+          <form
+            id="order-create-form"
+            onSubmit={handleSubmit}
+            className="grid max-w-xl gap-4"
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="orderNo">Sipariş No</Label>
+              <Input
+                id="orderNo"
+                value={form.orderNo}
+                onChange={(e) => updateField('orderNo', e.target.value)}
+                placeholder="PO-2026-0001"
+              />
+            </div>
 
-            <TabsContent value="general">
-              <GeneralTab form={form} />
-            </TabsContent>
-            <TabsContent value="product">
-              <ProductTab form={form} />
-            </TabsContent>
-            <TabsContent value="colors">
-              <ColorsTab form={form} />
-            </TabsContent>
-            <TabsContent value="sizes">
-              <SizesMatrixTab form={form} />
-            </TabsContent>
-            <TabsContent value="bom">
-              <BomTab form={form} />
-            </TabsContent>
-            <TabsContent value="operations">
-              <OperationsTab form={form} />
-            </TabsContent>
-            <TabsContent value="termin">
-              <TerminTab form={form} />
-            </TabsContent>
-            <TabsContent value="documents">
-              <DocumentsTab form={form} />
-            </TabsContent>
-          </Tabs>
+            <div className="grid gap-2">
+              <Label htmlFor="buyerName">Müşteri Adı</Label>
+              <Input
+                id="buyerName"
+                value={form.buyerName}
+                onChange={(e) => updateField('buyerName', e.target.value)}
+                placeholder="Zara"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="productName">Ürün Adı</Label>
+              <Input
+                id="productName"
+                value={form.productName}
+                onChange={(e) => updateField('productName', e.target.value)}
+                placeholder="T-Shirt"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="totalQuantity">Toplam Miktar</Label>
+              <Input
+                id="totalQuantity"
+                type="number"
+                min="1"
+                value={form.totalQuantity}
+                onChange={(e) => updateField('totalQuantity', e.target.value)}
+                placeholder="1000"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="shipmentDate">EXF Tarihi</Label>
+              <Input
+                id="shipmentDate"
+                type="date"
+                value={form.shipmentDate}
+                onChange={(e) => updateField('shipmentDate', e.target.value)}
+              />
+            </div>
+          </form>
         </CardContent>
       </Card>
 
@@ -152,9 +172,9 @@ export function OrderCreatePage() {
         <Button variant="outline" onClick={() => navigate('/orders')}>
           İptal
         </Button>
-        <Button size="lg" onClick={handleSave} disabled={createMutation.isPending}>
+        <Button size="lg" type="submit" form="order-create-form" disabled={createMutation.isPending}>
           <Save className="size-4" />
-          Siparişi Kaydet & Malzeme İhtiyacı Oluştur
+          {createMutation.isPending ? 'Kaydediliyor...' : 'Siparişi Kaydet'}
         </Button>
       </div>
     </div>

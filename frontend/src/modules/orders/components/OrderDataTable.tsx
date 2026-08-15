@@ -74,6 +74,20 @@ export function OrderDataTable({ orders, list, onDeleteRow }: OrderDataTableProp
       render: (o) => <span className="font-medium">{o.orderNo}</span>,
     },
     {
+      id: 'risk',
+      label: 'Risk',
+      render: (o) =>
+        o.terminRisk ? (
+          <span title="Termin riski — malzeme EXF'den geç geliyor" className="text-base">
+            ⚠️
+          </span>
+        ) : (
+          <span title="Termin riski yok" className="text-base text-emerald-600">
+            ✓
+          </span>
+        ),
+    },
+    {
       id: 'customer',
       label: 'Müşteri',
       sortKey: 'customer',

@@ -28,3 +28,38 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  orderNo       String   @unique
+  buyerName     String
+  productName   String
+  totalQuantity Int
+  shipmentDate  DateTime
+  status        String   @default("PLANNING")
+  tenantId      String   @default("kepler-default")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  materials     Material[]
+}
+
+model Material {
+  id               Int      @id @default(autoincrement())
+  orderId          Int
+  order            Order    @relation(fields: [orderId], references: [id])
+  materialName     String
+  materialType     String
+  supplierName     String
+  orderedQuantity  Float
+  orderedDate      DateTime?
+  expectedArrival  DateTime?
+  arrivedQuantity  Float     @default(0)
+  status           String    @default("PENDING")
+  fabricWidth      Float?
+  fabricWeight     Float?
+  unitPrice        Float?
+  currency         String?   @default("USD")
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}

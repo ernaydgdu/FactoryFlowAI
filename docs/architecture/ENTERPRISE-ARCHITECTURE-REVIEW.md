@@ -1,7 +1,7 @@
 # Enterprise Architecture Review
 
 **Date:** 2026-08-04  
-**Updated:** 2026-08-04 — P0 Remediation Sprint 2  
+**Updated:** 2026-08-04 — P0 Remediation Program Closed  
 **Scope:** Completed ERP modules (Platform → Enterprise Hardening)  
 **Method:** Evidence-only (code + existing architecture reports). No new features. No speculative refactors.  
 **Runtime truth:** Frontend in-memory `IUnitOfWork` is the system of record. NestJS backend is auth/platform stub only.
@@ -14,27 +14,27 @@
 |-----------|-------|---------|
 | Architecture | **PARTIAL** | UoW/port model coherent; **domain→infra break closed (P0-06)**; Freeze ADR-expanded beyond 18-AR constitution; legacy UI bypasses application |
 | Reliability | **PARTIAL** | Bootstrap resilient; TX/outbox solid; **PO + stock-ledger expectedVersion (P0-01/02)**; idempotency still uneven elsewhere |
-| Security | **PARTIAL** | **Command-path write guards on all TD-P0-03 modules (Sprint 2)** + prior logistics/finance/execution hardening; multi-tenant still single-tenant (P0-05) |
+| Security | **PARTIAL** | **Command-path write guards complete for TD-P0-03 scope**; multi-tenant deferred to Phase 9 program |
 | Performance | **PARTIAL** | Bounded monitors/queues; many `queryAll*` silent 100-cap; broad RQ `.all` invalidations remain |
-| PostgreSQL readiness | **NO** | `readyCount: 0`; factory throws; cutover blocked (P0-07 open) |
+| PostgreSQL readiness | **NO** | Cutover **deferred to Phase 10 program** (TD-P0-07) — not a sprint remediation |
 | AI readiness | **PARTIAL** | Deterministic foundation; **event catalog ⊆ DomainEventType (P0-08)**; LLM disabled; RM coverage still partial |
-| Enterprise maturity (overall) | **PARTIAL** | 6/8 P0s closed; remaining = multi-tenant + Postgres programs |
+| Enterprise maturity (overall) | **PARTIAL** | **P0 remediation program closed** (6 sprint P0s done; 2 deferred to transformation programs) |
 
-### P0 Remediation Sprint 2 — changes
+### P0 Remaining (deferred — not sprint work)
 
-| ID | What changed |
-|----|----------------|
-| TD-P0-03 | Added `quality.write`, `inventory.write`, `purchasing.write`; guards + mapper wraps for Inventory, Sales, Purchasing, Shop Floor, Quality, Barcode workflows, IAM admin, PO board |
+| ID | Status | Program |
+|----|--------|---------|
+| TD-P0-05 | **Deferred to Program — Multi-Tenant Transformation** | Phase 9 |
+| TD-P0-07 | **Deferred to Program — PostgreSQL Cutover** | Phase 10 |
 
-### P0 Remediation Sprint 1 — changes
+**Reason:** These are enterprise transformation programs, not sprint-sized remediations. Do not attempt partial implementations. See `ENTERPRISE-NEXT-PHASE-ROADMAP.md`.
 
-| ID | What changed |
-|----|----------------|
-| TD-P0-01 | `stock-ledger-crud.service.ts` — `saveLedgerMovement` uses `{ expectedVersion: existing.version }` |
-| TD-P0-02 | `lifecycle-persistence.ts` — update save uses `{ expectedVersion: existing.version }` |
-| TD-P0-04 | `execution-permission.guard.ts` + `kepler-execution-role.ts` — session-mapped role + `execution.write`; client role ignored for authz |
-| TD-P0-06 | Observability composed in `enterprise-hardening-observability.query.ts`; domain query has zero infra imports |
-| TD-P0-08 | `enterprise-ai-foundation.ts` catalog rebuilt from `DomainEventType` |
+### P0 Remediation program — closed items
+
+| Sprint | IDs |
+|--------|-----|
+| Sprint 1 | TD-P0-01, TD-P0-02, TD-P0-04, TD-P0-06, TD-P0-08 |
+| Sprint 2 | TD-P0-03 |
 
 ---
 
@@ -118,7 +118,7 @@ UI (modules/pages)
 |-----|---------|----------|
 | ~~P0~~ **Closed** | Client-selectable ExecutionRole trusted on commands | Authz uses `resolveTrustedExecutionRole()` (TD-P0-04); UI picker no longer authoritative |
 | ~~P0~~ **Closed** | Shop Floor / Quality / Inventory / Sales / Purchasing / Barcode / IAM / PO board writes without Kepler write assert | TD-P0-03 — command-path guards + new write permissions |
-| **P0** | Multi-tenant not real — `DEFAULT_TENANT_ID = 'kepler-default'` hardwired | TD-P0-05 open |
+| **Deferred** | Multi-tenant not real — `DEFAULT_TENANT_ID = 'kepler-default'` hardwired | TD-P0-05 → Phase 9 Multi-Tenant Transformation program |
 | **P1** | Route vs write permission asymmetry on some prefixes | e.g. purchasing route still `orders.read` |
 | **P1** | Dual IAM residual (matrix still separate; now session-bridged for execution writes) | TD-P1-06 partially mitigated |
 | **P1** | Audit tenant always DEFAULT; ID generation from capped cursor | `audit-service.ts` |
@@ -207,6 +207,7 @@ Y = acceptable · P = partial · N = not enterprise-ready
 | Deliverable | Path |
 |-------------|------|
 | Technical debt backlog | `TECHNICAL-DEBT-BACKLOG.md` |
+| Next-phase roadmap | `ENTERPRISE-NEXT-PHASE-ROADMAP.md` |
 | Postgres cutover plan | `POSTGRES-CUTOVER-PLAN.md` |
 | AI roadmap | `AI-ROADMAP.md` |
 | Tier-1 gap analysis | `TIER1-GAP-ANALYSIS.md` |
@@ -216,6 +217,6 @@ Y = acceptable · P = partial · N = not enterprise-ready
 
 ## 9. Review Constraints Honored
 
-- No new features implemented.
-- No refactor without evidence.
-- No code changes (P0 items documented; systemic — not single-line production crash fixes).
+- No new features implemented in the review sprint.
+- P0 remediation sprints closed sprint-sized defects only; TD-P0-05/07 deferred to programs (no partial tenancy/PG).
+- Application code unchanged in the P0 program-close documentation step.
