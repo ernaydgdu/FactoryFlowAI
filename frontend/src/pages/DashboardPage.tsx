@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
-import { Package, Scissors, Shirt, Truck } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Package, Scissors, Shirt, Sparkles, Truck } from 'lucide-react'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
+import { AiAdvisorChat } from '@/components/dashboard/AiAdvisorChat'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -19,6 +21,7 @@ import {
 } from '@/config/dashboard'
 import { OPERATIONAL_DASHBOARD } from '@/domain/data/workflows'
 import {
+  fetchAiAdvice,
   fetchDashboard,
   fetchDashboardAlerts,
   type DashboardAlertSeverity,
@@ -43,6 +46,8 @@ export function DashboardPage() {
     queryKey: applicationQueryKeys.dashboardSummary.alerts(),
     queryFn: fetchDashboardAlerts,
   })
+
+  const aiAdviceMutation = useMutation({ mutationFn: fetchAiAdvice })
 
   const stats = dashboardQuery.data
   const dashboardStats = stats
@@ -114,33 +119,68 @@ export function DashboardPage() {
         )}
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Akıllı Uyarılar</CardTitle>
-          <CardDescription>Kural tabanlı termin ve üretim uyarıları</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {alertsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Yükleniyor...</p>
-          ) : alertsQuery.isError ? (
-            <p className="text-sm text-destructive">Uyarılar yüklenemedi.</p>
-          ) : alertsQuery.data && alertsQuery.data.length > 0 ? (
-            alertsQuery.data.map((alert) => (
-              <div
-                key={alert.id}
-                className={cn(
-                  'rounded-lg border px-4 py-3 text-sm font-medium',
-                  ALERT_SEVERITY_STYLE[alert.severity],
-                )}
-              >
-                {alert.message}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Akıllı Uyarılar</CardTitle>
+            <CardDescription>Kural tabanlı termin ve üretim uyarıları</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {alertsQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+            ) : alertsQuery.isError ? (
+              <p className="text-sm text-destructive">Uyarılar yüklenemedi.</p>
+            ) : alertsQuery.data && alertsQuery.data.length > 0 ? (
+              alertsQuery.data.map((alert) => (
+                <div
+                  key={alert.id}
+                  className={cn(
+                    'rounded-lg border px-4 py-3 text-sm font-medium',
+                    ALERT_SEVERITY_STYLE[alert.severity],
+                  )}
+                >
+                  {alert.message}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Şu anda aktif uyarı yok.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">AI Danışman</CardTitle>
+            <CardDescription>Yapay zeka destekli üretim önerileri</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              size="sm"
+              onClick={() => aiAdviceMutation.mutate()}
+              disabled={aiAdviceMutation.isPending}
+            >
+              <Sparkles className="size-4" />
+              {aiAdviceMutation.isPending ? 'Analiz ediliyor...' : 'AI Danışman'}
+            </Button>
+
+            {aiAdviceMutation.isError ? (
+              <p className="text-sm text-destructive">
+                {aiAdviceMutation.error instanceof Error
+                  ? aiAdviceMutation.error.message
+                  : 'Öneri alınamadı.'}
+              </p>
+            ) : null}
+
+            {aiAdviceMutation.data ? (
+              <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                {aiAdviceMutation.data.advice}
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">Şu anda aktif uyarı yok.</p>
-          )}
-        </CardContent>
-      </Card>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+
+      <AiAdvisorChat />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <OpsListCard title="Bugün Kesilecek" description="Kesim emri bekleyen siparişler" items={ops.todayCutting.map((i) => ({ primary: i.orderNo, secondary: i.style, value: `${i.qty} adet` }))} />

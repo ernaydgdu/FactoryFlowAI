@@ -1,4 +1,4 @@
-import { api } from '@/services/api'
+import { api, isAxiosError } from '@/services/api'
 
 export type ApiDashboard = {
   totalOrders: number
@@ -28,4 +28,28 @@ export type DashboardAlert = {
 export async function fetchDashboardAlerts(): Promise<DashboardAlert[]> {
   const { data } = await api.get<DashboardAlert[]>('/dashboard/alerts')
   return data
+}
+
+export async function fetchAiAdvice(): Promise<{ advice: string }> {
+  try {
+    const { data } = await api.post<{ advice: string }>('/dashboard/ai-advice')
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function fetchAskQuestion(question: string): Promise<{ answer: string }> {
+  try {
+    const { data } = await api.post<{ answer: string }>('/dashboard/ask', { question })
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -25,5 +25,26 @@ export class DashboardController {
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
     return this.dashboardService.getAlerts(scope);
+  }
+
+  @Post('ai-advice')
+  async getAiAdvice(
+    @CurrentUser() user: JwtPayloadUser,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
+    const advice = await this.dashboardService.getAiAdvice(scope);
+    return { advice };
+  }
+
+  @Post('ask')
+  async ask(
+    @CurrentUser() user: JwtPayloadUser,
+    @Body('question') question: string,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
+    const answer = await this.dashboardService.answerQuestion(question, scope);
+    return { answer };
   }
 }
