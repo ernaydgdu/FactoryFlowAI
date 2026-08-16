@@ -28,8 +28,8 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
-          K
+        <div className="flex size-9 items-center justify-center">
+          <img src="/kepler-mountain-logo.svg" alt="Kepler ERP" className="size-9" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold tracking-wide text-white">

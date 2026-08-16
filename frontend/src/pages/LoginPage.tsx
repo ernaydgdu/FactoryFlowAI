@@ -44,8 +44,8 @@ export function LoginPage() {
   return (
     <Card className="border-border/60 shadow-xl">
       <CardHeader className="space-y-3 text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-primary text-xl font-bold text-primary-foreground shadow-md">
-          K
+        <div className="mx-auto flex w-56 items-center justify-center">
+          <img src="/kepler-mountain-logo.svg" alt="Kepler ERP" className="w-full" />
         </div>
         <div>
           <CardTitle className="text-3xl tracking-wide">{appConfig.name}</CardTitle>
