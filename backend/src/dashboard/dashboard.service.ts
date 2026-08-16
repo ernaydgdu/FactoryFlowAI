@@ -52,7 +52,15 @@ export type DashboardAlertType =
   | 'NO_PRODUCTION'
   | 'FIRE_RATE_HIGH'
   | 'SECOND_QUALITY_HIGH'
-  | 'STOCK_CRITICAL';
+  | 'STOCK_CRITICAL'
+  | 'APPROVAL_STALLED';
+
+const APPROVAL_STAGE_LABEL: Record<string, string> = {
+  PP_NUMUNE: 'PP Numune',
+  PASTAL_ONAY: 'Pastal Onayı',
+  SARFIYAT_ONAY: 'Sarfiyat Onayı',
+  KESIM_ONAY: 'Kesim Onayı',
+};
 
 export type DashboardAlertSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -253,6 +261,32 @@ export class DashboardService {
           type: 'STOCK_CRITICAL',
           severity: 'HIGH',
           message: `🚨 ${materialName} stoku kritik seviyede - sadece ${totalRemaining.toFixed(1)} birim kaldı (başlangıç: ${totalReceived.toFixed(1)})`,
+        });
+      }
+    }
+
+    const pendingApprovalStages = await this.prisma.approvalStage.findMany({
+      where: {
+        status: 'PENDING',
+        ...(tenantId ? { order: { tenantId } } : {}),
+      },
+      include: { order: true },
+    });
+
+    const APPROVAL_STALLED_DAYS = 3;
+    for (const stage of pendingApprovalStages) {
+      const daysPending = daysBetweenUTC(
+        dateOnlyUTC(stage.createdAt),
+        todayStartMs,
+      );
+      if (daysPending > APPROVAL_STALLED_DAYS) {
+        alerts.push({
+          id: `approval-stalled-${stage.id}`,
+          type: 'APPROVAL_STALLED',
+          severity: 'MEDIUM',
+          message: `⚠️ ${stage.order.orderNo} - ${stage.order.buyerName} siparişinde ${APPROVAL_STAGE_LABEL[stage.stageType] ?? stage.stageType} onayı ${daysPending} gündür bekliyor - süreç tıkanmış olabilir`,
+          orderId: stage.order.id,
+          orderNo: stage.order.orderNo,
         });
       }
     }
