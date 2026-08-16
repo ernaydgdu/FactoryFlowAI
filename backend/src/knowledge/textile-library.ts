@@ -1362,6 +1362,81 @@ export const TEXTILE_KNOWLEDGE_LIBRARY: KnowledgeCard[] = [
     icerik:
       'Yalın üretimin tekstil/konfeksiyon işletmesinde somut uygulama alanları şunlardır: Hat dengeleme (line balancing) — darboğaz operasyonları tespit edip iş yükünü eşitleyerek bekleme israfını azaltmak. Hızlı model değişimi (SMED — Single Minute Exchange of Die) — bir üründen diğerine geçiş/hat kurulum süresini kısaltmak, böylece daha küçük partilerle daha sık model değişimi ekonomik hâle gelir. Poka-yoke (hata önleme) — hatanın oluşmasını fiziksel/mekanik olarak imkânsız kılan basit düzenekler (örn. parçanın sadece doğru yönde takılabileceği şablonlar), kaliteyi kaynağında garanti eder. Görsel yönetim (visual management) — üretim durumunun, hedeflerin, sorunların pano/gösterge ile herkesin görebileceği şekilde sunulması (örn. hat başına günlük hedef/gerçekleşen tahtası). Değer akış haritalama (Value Stream Mapping) — siparişten sevkiyata kadar tüm sürecin adım adım çizilip, değer katmayan adımların (bekleme, gereksiz taşıma) görsel olarak tespit edilmesi.',
   },
+  {
+    id: 'renk-teorisi-tekstilde',
+    baslik: 'Tekstilde Renk Teorisi Temelleri',
+    kategori: 'tasarim-kulturu',
+    anahtarKelimeler: [
+      'renk teorisi',
+      'ana renkler',
+      'renk sıcaklığı',
+      'sıcak renkler',
+      'soğuk renkler',
+      'renk tonu',
+      'hue',
+      'doygunluk',
+      'saturation',
+      'parlaklık',
+      'value',
+      'pantone',
+      'ral',
+      'renk kodlama',
+    ],
+    icerik:
+      "Tekstilde renk teorisinin temelleri şöyledir: Ana renkler (kırmızı, mavi, sarı) birbirine karıştırılarak ara renkler elde edilir. Renk sıcaklığı kavramında sıcak renkler (kırmızı, turuncu, sarı) canlı/enerjik izlenim verir, soğuk renkler (mavi, yeşil, mor) ise sakin/ferah izlenim verir. Renk tonu (hue), doygunluk (saturation) ve parlaklık (value/lightness) bir rengi tanımlayan üç temel boyuttur. Tekstilde renk seçimi, hedef müşteri kitlesi, sezon (SS/AW koleksiyonları) ve trend tahminlerine göre yapılır. Pantone gibi standart renk kodlama sistemleri, farklı üretim tesisleri ve ülkeler arasında renk tutarlılığını garanti etmek için kullanılır — bir buyer'ın istediği rengin, farklı boyahanelerde birebir aynı çıkması için Pantone/RAL gibi kodlarla iletişim kurulur.",
+  },
+  {
+    id: 'ton-farki-nedir',
+    baslik: 'Ton Farkı Nedir?',
+    kategori: 'tasarim-kulturu',
+    anahtarKelimeler: [
+      'ton farkı',
+      'shade variation',
+      'lot farkı',
+      'parti farkı',
+      'boyama farkı',
+      'renk sapması',
+      'top kontrolü',
+      'nedir',
+    ],
+    icerik:
+      'Ton farkı (shade variation), aynı renk reçetesiyle boyanmış farklı partilerin (lot/batch) arasında oluşan küçük renk sapmalarıdır. Nedenleri şunlardır: farklı boyama makinelerinde farklı sıcaklık/süre koşulları, kumaş partisi farklılıkları, su kalitesi değişimleri, boyar madde parti farklılıkları. Ton farkı, hazır giyim üretiminde ciddi bir kalite sorunu olabilir — özellikle aynı üründe farklı parçaların (örn. ön beden ile kol) farklı kumaş partilerinden kesilmesi durumunda görsel uyumsuzluk yaratır. Bu yüzden kesim öncesi top kontrolünde ton farkı kontrolü kritik bir adımdır; aynı ürün için mümkün olduğunca aynı lot/parti kumaş kullanılması önerilir.',
+  },
+  {
+    id: 'kumas-yuzey-dokusu',
+    baslik: 'Kumaş Yüzey Dokusu (Texture)',
+    kategori: 'tasarim-kulturu',
+    anahtarKelimeler: [
+      'yüzey dokusu',
+      'texture',
+      'doku',
+      'el hissi',
+      'tuşe',
+      'bitim işlemi',
+      'kadife',
+      'krep',
+      'ribli',
+    ],
+    icerik:
+      'Kumaş yüzey dokusu (texture), kumaşın el ile hissedilen ve göz ile görülen yüzey karakteridir. Doku, iplik tipi (kalın/ince, düzgün/tüylü), örgü/dokuma yapısı (düz, ribli, krep, kadife) ve bitim işlemlerinden (zımpara, kaplama, baskı) etkilenir. Doku, bir ürünün algılanan kalitesini ve konforunu doğrudan etkiler — pürüzsüz dokular genelde daha "lüks" algılanırken, doğal/kaba dokular "rustik" veya "casual" bir görünüm verir. Tasarımda doku seçimi, ürünün kullanım amacına (günlük giyim, spor, abiye) uygun olmalıdır.',
+  },
+  {
+    id: 'tekstilde-mekan-ve-sergileme',
+    baslik: 'Tekstil Ürünlerinde Mekân ve Sergileme İlişkisi',
+    kategori: 'tasarim-kulturu',
+    anahtarKelimeler: [
+      'sergileme',
+      'mağaza tasarımı',
+      'visual merchandising',
+      'vm',
+      'görsel merchandising',
+      'aydınlatma',
+      'ürün gruplama',
+      'algılanan kalite',
+    ],
+    icerik:
+      'Tekstil ürünlerinin mekân ile ilişkisi (mağaza/sergileme tasarımı) şu şekilde özetlenebilir: bir tekstil ürününün algılanan değeri, sadece kendi kalitesiyle değil, sergilendiği ortamla da şekillenir. Mağaza içi görsel merchandising (VM — visual merchandising), aydınlatma, renk kontrastı ve ürün gruplama stratejileri, müşterinin ürüne olan ilgisini ve algılanan kaliteyi etkiler. Bu kavram, hazır giyim üreticileri için doğrudan üretim süreci değil ama nihai ürünün pazardaki konumlanmasını etkileyen önemli bir faktördür — üretim planlamasında bu bilgi, hangi ürünlerin öne çıkarılacağı ve hangi miktarlarda üretileceği kararlarını etkileyebilir.',
+  },
 ];
 
 function tokenize(text: string): string[] {
