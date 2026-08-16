@@ -1506,6 +1506,7 @@ function sortSizes(sizes: string[]): string[] {
 
 function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuantity: number }) {
   const queryClient = useQueryClient()
+  const canManage = useCanManageOrderRecords()
   const [form, setForm] = useState<ColorSizeFormState>(INITIAL_COLOR_SIZE_FORM)
   const [error, setError] = useState<string | null>(null)
 
@@ -1523,6 +1524,12 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
   }
 
   const upsertMutation = useMutation({
+    mutationFn: (input: { color: string; size: string; quantity: number }) =>
+      upsertColorSize(orderId, input),
+    onSuccess: invalidate,
+  })
+
+  const editMutation = useMutation({
     mutationFn: (input: { color: string; size: string; quantity: number }) =>
       upsertColorSize(orderId, input),
     onSuccess: invalidate,
@@ -1724,6 +1731,15 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
                 <ColorSizeRow
                   key={row.id}
                   row={row}
+                  canManage={canManage}
+                  onSaveEdit={(quantity) =>
+                    editMutation.mutateAsync({ color: row.color, size: row.size, quantity })
+                  }
+                  isSaving={
+                    editMutation.isPending &&
+                    editMutation.variables?.color === row.color &&
+                    editMutation.variables?.size === row.size
+                  }
                   onDelete={() => deleteMutation.mutate(row.id)}
                   isDeleting={deleteMutation.isPending && deleteMutation.variables === row.id}
                 />
@@ -1940,22 +1956,114 @@ function ApprovalStagePanel({ orderId }: { orderId: string }) {
 
 function ColorSizeRow({
   row,
+  canManage,
+  onSaveEdit,
+  isSaving,
   onDelete,
   isDeleting,
 }: {
   row: ApiOrderColorSize
+  canManage: boolean
+  onSaveEdit: (quantity: number) => Promise<unknown>
+  isSaving: boolean
   onDelete: () => void
   isDeleting: boolean
 }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [quantityInput, setQuantityInput] = useState(String(row.quantity))
+  const [editError, setEditError] = useState<string | null>(null)
+
+  function startEdit() {
+    setQuantityInput(String(row.quantity))
+    setEditError(null)
+    setIsEditing(true)
+  }
+
+  async function handleSave() {
+    setEditError(null)
+    const quantity = Number(quantityInput)
+    if (quantityInput === '' || Number.isNaN(quantity) || quantity < 0) {
+      setEditError('Geçerli bir miktar girin.')
+      return
+    }
+
+    try {
+      await onSaveEdit(quantity)
+      setIsEditing(false)
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Güncellenemedi.')
+    }
+  }
+
   return (
     <tr className="border-b border-border/60">
       <td className="px-3 py-2 font-medium">{row.color}</td>
       <td className="px-3 py-2">{row.size}</td>
-      <td className="px-3 py-2 tabular-nums">{row.quantity.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2 tabular-nums">
+        {isEditing ? (
+          <div>
+            <Input
+              type="number"
+              min="0"
+              value={quantityInput}
+              onChange={(e) => setQuantityInput(e.target.value)}
+              className="h-8 w-24"
+            />
+            {editError ? <p className="mt-1 text-xs text-destructive">{editError}</p> : null}
+          </div>
+        ) : (
+          row.quantity.toLocaleString('tr-TR')
+        )}
+      </td>
       <td className="px-3 py-2 text-right">
-        <Button variant="ghost" size="sm" disabled={isDeleting} onClick={onDelete}>
-          <Trash2 className="size-4" />
-        </Button>
+        {isEditing ? (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-emerald-600 hover:text-emerald-600"
+              disabled={isSaving}
+              onClick={handleSave}
+              title="Kaydet"
+            >
+              <Check className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={isSaving}
+              onClick={() => setIsEditing(false)}
+              title="İptal"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-1">
+            {canManage ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={startEdit}
+                title="Düzenle"
+              >
+                <Pencil className="size-4" />
+              </Button>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              disabled={isDeleting}
+              onClick={onDelete}
+              title="Sil"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        )}
       </td>
     </tr>
   )
