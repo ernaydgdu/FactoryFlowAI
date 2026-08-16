@@ -37,6 +37,8 @@ type ApiOrder = {
   materials: ApiMaterial[]
   productType: string | null
   materialWarning: boolean
+  colorCount?: number
+  colorSizeTotal?: number
 }
 
 export type ApiOrderDetail = ApiOrder
@@ -94,6 +96,8 @@ function mapOrder(raw: ApiOrder): Order {
     terminRisk: computeTerminRisk(raw),
     productType: raw.productType ?? null,
     materialWarning: raw.materialWarning ?? false,
+    colorCount: raw.colorCount ?? 0,
+    colorSizeTotal: raw.colorSizeTotal ?? 0,
   }
 }
 

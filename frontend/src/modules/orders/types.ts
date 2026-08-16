@@ -39,6 +39,8 @@ export type Order = {
   terminRisk: boolean
   productType: string | null
   materialWarning: boolean
+  colorCount: number
+  colorSizeTotal: number
 }
 
 export type OrderSortKey = keyof Pick<

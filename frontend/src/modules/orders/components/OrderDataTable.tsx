@@ -184,6 +184,11 @@ export function OrderDataTable({ orders, list, onDeleteRow }: OrderDataTableProp
       ),
     },
     {
+      id: 'colorSizeSummary',
+      label: 'Renk/Beden',
+      render: (o) => <ColorSizeSummaryCell order={o} />,
+    },
+    {
       id: 'approvalProgress',
       label: 'Onay',
       render: (o) => <ApprovalProgressCell orderId={o.id} />,
@@ -395,6 +400,29 @@ function ApprovalProgressCell({ orderId }: { orderId: string }) {
   return (
     <span className="text-xs tabular-nums text-muted-foreground">
       {approved}/{total}
+    </span>
+  )
+}
+
+function ColorSizeSummaryCell({ order }: { order: Order }) {
+  const { colorCount, colorSizeTotal, totalQuantity } = order
+
+  if (colorSizeTotal === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>
+  }
+
+  if (colorSizeTotal === totalQuantity) {
+    return (
+      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+        ✓ {colorCount} renk
+      </span>
+    )
+  }
+
+  return (
+    <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+      {colorCount} renk ({colorSizeTotal.toLocaleString('tr-TR')}/
+      {totalQuantity.toLocaleString('tr-TR')})
     </span>
   )
 }
