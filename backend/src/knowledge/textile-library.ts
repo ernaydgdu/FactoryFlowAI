@@ -28,6 +28,23 @@ export const TEXTILE_KNOWLEDGE_LIBRARY: KnowledgeCard[] = [
       'Hazır giyim (konfeksiyon), belirli beden ölçülerine göre seri hâlde üretilen giysilerin genel adıdır. Üretim, tek bir atölyede veya farklı işletmelerde gerçekleşen dört temel kademeden oluşur: 1) Model ve kalıp hazırlama — tasarımın kalıba dönüştürülmesi ve bedenlere göre seri kalıpların (grade) çıkarılması; 2) Kesim — kalıpların kumaş üzerine pastal planıyla yerleştirilip kesilmesi; 3) Dikim — kesilen parçaların birleştirilerek ürün hâline getirilmesi; 4) Presleme/ütü ve ambalaj — ürünün son kontrolünün yapılıp ütülenmesi, etiketlenmesi ve sevkiyata hazır hâle getirilmesi. Bu dört kademe birbirine bağlıdır; bir kademedeki hata veya gecikme sonraki kademeleri doğrudan etkiler.',
   },
   {
+    id: 'kumas-nedir-tanimi',
+    baslik: 'Kumaş Nedir?',
+    kategori: 'temel-kavramlar',
+    anahtarKelimeler: [
+      'kumaş',
+      'nedir',
+      'tekstil lifi',
+      'dokuma',
+      'örme',
+      'dokusuz yüzey',
+      'gramaj',
+      'hammadde tipi',
+    ],
+    icerik:
+      'Kumaş, tekstil liflerinin (pamuk, yün, polyester, ipek vb.) belirli bir yüzey oluşturacak şekilde bir araya getirilmesiyle elde edilen malzemedir. Kumaş üretiminde üç temel yöntem kullanılır: Dokuma, çözgü (boyuna) ve atkı (enine) ipliklerinin dik açıyla birbirinin altından ve üstünden geçirilmesiyle oluşturulur. Örme, ipliklerin iğneler yardımıyla ilmek hâline getirilip birbirine bağlanmasıyla oluşturulur. Dokusuz yüzey (nonwoven), liflerin iplik veya ilmek aşamasından geçmeden, mekanik, kimyasal veya ısıl işlemlerle doğrudan birbirine bağlanmasıyla elde edilir; ne dokuma ne de örmedir, genellikle tek kullanımlık ürünlerde (maske, hijyenik ürünler) veya astar/dolgu malzemelerinde kullanılır. Bir kumaşın temel özellikleri şunlardır: Gramaj, kumaşın 1 metrekaresinin gram cinsinden ağırlığıdır (g/m²) ve kumaşın kalınlığı/ağırlığı hakkında fikir verir. En, kumaşın kullanılabilir genişliğidir ve pastal/kesim planlamasını doğrudan etkiler. Hammadde tipi, kumaşın hangi elyaftan (pamuk, polyester, yün vb.) veya elyaf karışımından üretildiğini belirtir ve kumaşın performansını, bakımını ve maliyetini etkiler. Dokuma/örme yapısı ise kumaşın esneklik, dayanıklılık ve kullanım alanını belirleyen temel yapısal özelliğidir.',
+  },
+  {
     id: 'model-kalip-hazirlama',
     baslik: 'Model ve Kalıp Hazırlama Süreci',
     kategori: 'temel-kavramlar',
@@ -973,11 +990,56 @@ function sharesStem(a: string, b: string): boolean {
   return a.slice(0, MIN_STEM_LENGTH) === b.slice(0, MIN_STEM_LENGTH);
 }
 
+function buildCardCorpus(card: KnowledgeCard): Set<string> {
+  return new Set([
+    ...card.anahtarKelimeler.flatMap((keyword) => tokenize(keyword)),
+    ...tokenize(card.baslik),
+  ]);
+}
+
+// Kütüphane sabit olduğu için her kartın kelime havuzu tek seferde hesaplanır.
+const CARD_CORPORA: Map<KnowledgeCard, Set<string>> = new Map(
+  TEXTILE_KNOWLEDGE_LIBRARY.map((card) => [card, buildCardCorpus(card)]),
+);
+
+// Doküman frekansı: bir kelimenin kaç farklı kartın kelime havuzunda geçtiği.
+const WORD_DOCUMENT_FREQUENCY = new Map<string, number>();
+for (const corpus of CARD_CORPORA.values()) {
+  for (const word of corpus) {
+    WORD_DOCUMENT_FREQUENCY.set(
+      word,
+      (WORD_DOCUMENT_FREQUENCY.get(word) ?? 0) + 1,
+    );
+  }
+}
+
+// "kumaş" gibi neredeyse her kartta geçen genel kelimeler, spesifik olmayan
+// kartları yanlışlıkla öne çıkarabilir. Nadir kelimelere (az kartta geçen,
+// dolayısıyla ayırt edici) daha yüksek, çok yaygın kelimelere daha düşük ağırlık
+// vererek bunun önüne geçilir (basit bir doküman frekansı / IDF yaklaşımı).
+const RARE_DOCUMENT_THRESHOLD = 3;
+const COMMON_DOCUMENT_THRESHOLD = 15;
+const RARE_WORD_MULTIPLIER = 1.5;
+const COMMON_WORD_MULTIPLIER = 0.5;
+
+function documentFrequencyWeight(word: string): number {
+  const documentFrequency = WORD_DOCUMENT_FREQUENCY.get(word) ?? 0;
+  if (documentFrequency > 0 && documentFrequency <= RARE_DOCUMENT_THRESHOLD) {
+    return RARE_WORD_MULTIPLIER;
+  }
+  if (documentFrequency >= COMMON_DOCUMENT_THRESHOLD) {
+    return COMMON_WORD_MULTIPLIER;
+  }
+  return 1;
+}
+
 // Sorudaki her kelimeyi kartın anahtarKelimeler + baslik kelimeleriyle karşılaştırır.
-// Tam eşleşme +1, kök (ilk MIN_STEM_LENGTH karakter) eşleşmesi +0.5 puan verir;
-// bu sayede "hesaplama" ~ "hesaplanır", "paketleme" ~ "paketlemede" gibi çekimli
-// hâller de -tek tek karta özel bir liste tutmadan- yakalanır. En yüksek skorlu
-// kart döndürülür.
+// Tam eşleşme EXACT_MATCH_SCORE, kök (ilk MIN_STEM_LENGTH karakter) eşleşmesi
+// STEM_MATCH_SCORE taban puanı alır; bu sayede "hesaplama" ~ "hesaplanır",
+// "paketleme" ~ "paketlemede" gibi çekimli hâller de -tek tek karta özel bir
+// liste tutmadan- yakalanır. Bu taban puan, eşleşen kelimenin doküman
+// frekansına göre ağırlıklandırılır (nadir kelimeler ×1.5, çok yaygın
+// kelimeler ×0.5). En yüksek skorlu kart döndürülür.
 export function searchKnowledgeLibrary(
   question: string,
 ): KnowledgeCardMatch | null {
@@ -985,19 +1047,20 @@ export function searchKnowledgeLibrary(
   let best: KnowledgeCardMatch | null = null;
 
   for (const card of TEXTILE_KNOWLEDGE_LIBRARY) {
-    const keywordWords = new Set([
-      ...card.anahtarKelimeler.flatMap((keyword) => tokenize(keyword)),
-      ...tokenize(card.baslik),
-    ]);
+    const keywordWords = CARD_CORPORA.get(card) ?? buildCardCorpus(card);
 
     let score = 0;
     for (const word of questionWords) {
       if (keywordWords.has(word)) {
-        score += EXACT_MATCH_SCORE;
-      } else if (
-        [...keywordWords].some((keyword) => sharesStem(word, keyword))
-      ) {
-        score += STEM_MATCH_SCORE;
+        score += EXACT_MATCH_SCORE * documentFrequencyWeight(word);
+        continue;
+      }
+
+      const stemMatch = [...keywordWords].find((keyword) =>
+        sharesStem(word, keyword),
+      );
+      if (stemMatch) {
+        score += STEM_MATCH_SCORE * documentFrequencyWeight(stemMatch);
       }
     }
 
