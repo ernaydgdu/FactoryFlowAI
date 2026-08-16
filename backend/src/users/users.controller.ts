@@ -13,8 +13,11 @@ import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import type { CreateUserDto, UpdateUserDto } from '../auth/dto/auth.dto';
-import { CurrentUser, type JwtPayloadUser } from '../auth/decorators/current-user.decorator';
+import { CreateUserDto, UpdateUserDto } from '../auth/dto/auth.dto';
+import {
+  CurrentUser,
+  type JwtPayloadUser,
+} from '../auth/decorators/current-user.decorator';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)

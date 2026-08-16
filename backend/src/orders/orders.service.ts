@@ -92,8 +92,8 @@ export class OrdersService {
     }
   }
 
-  async updateOrder(orderId: number, data: UpdateOrderDto) {
-    await this.findOrderOrThrow(orderId);
+  async updateOrder(orderId: number, data: UpdateOrderDto, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
 
     const updateData: Record<string, unknown> = {};
     if (data.orderNo !== undefined) updateData.orderNo = data.orderNo.trim();
@@ -117,9 +117,12 @@ export class OrdersService {
     }
   }
 
-  private async findOrderOrThrow(orderId: number) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
+  // tenantId verilmişse (ADMIN olmayan kullanıcılar) sadece o tenant'a ait siparişler
+  // görünür/bulunabilir olur; başka tenant'a ait bir id her zaman 404 döner (403 değil —
+  // kaydın var olduğunu bile belli etmemek için).
+  private async findOrderOrThrow(orderId: number, tenantId?: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, ...(tenantId ? { tenantId } : {}) },
     });
     if (!order) {
       throw new NotFoundException('Sipariş bulunamadı');
@@ -127,9 +130,9 @@ export class OrdersService {
     return order;
   }
 
-  async getOrderById(orderId: number) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
+  async getOrderById(orderId: number, tenantId?: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, ...(tenantId ? { tenantId } : {}) },
       include: { materials: true },
     });
     if (!order) {
@@ -138,8 +141,8 @@ export class OrdersService {
     return order;
   }
 
-  async deleteOrder(orderId: number) {
-    await this.findOrderOrThrow(orderId);
+  async deleteOrder(orderId: number, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
 
     await this.prisma.$transaction([
       this.prisma.material.deleteMany({ where: { orderId } }),
@@ -157,9 +160,12 @@ export class OrdersService {
     return { success: true };
   }
 
-  async getAiSuggestion(orderId: number): Promise<OrderAiSuggestion> {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
+  async getAiSuggestion(
+    orderId: number,
+    tenantId?: string,
+  ): Promise<OrderAiSuggestion> {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, ...(tenantId ? { tenantId } : {}) },
       include: { materials: true },
     });
     if (!order) {
@@ -220,16 +226,20 @@ export class OrdersService {
     return { productType: match.label, estimatedNeed, warning: null, ok: true };
   }
 
-  async getMaterials(orderId: number) {
-    await this.findOrderOrThrow(orderId);
+  async getMaterials(orderId: number, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
     return this.prisma.material.findMany({
       where: { orderId },
       orderBy: { createdAt: 'asc' },
     });
   }
 
-  async addMaterial(orderId: number, data: CreateMaterialDto) {
-    await this.findOrderOrThrow(orderId);
+  async addMaterial(
+    orderId: number,
+    data: CreateMaterialDto,
+    tenantId?: string,
+  ) {
+    await this.findOrderOrThrow(orderId, tenantId);
 
     return this.prisma.material.create({
       data: {
@@ -256,9 +266,14 @@ export class OrdersService {
     orderId: number,
     materialId: number,
     data: UpdateMaterialDto,
+    tenantId?: string,
   ) {
     const material = await this.prisma.material.findFirst({
-      where: { id: materialId, orderId },
+      where: {
+        id: materialId,
+        orderId,
+        ...(tenantId ? { order: { tenantId } } : {}),
+      },
     });
     if (!material) {
       throw new NotFoundException('Malzeme bulunamadı');
@@ -290,9 +305,13 @@ export class OrdersService {
     });
   }
 
-  async deleteMaterial(orderId: number, materialId: number) {
+  async deleteMaterial(orderId: number, materialId: number, tenantId?: string) {
     const material = await this.prisma.material.findFirst({
-      where: { id: materialId, orderId },
+      where: {
+        id: materialId,
+        orderId,
+        ...(tenantId ? { order: { tenantId } } : {}),
+      },
     });
     if (!material) {
       throw new NotFoundException('Malzeme bulunamadı');
@@ -301,16 +320,20 @@ export class OrdersService {
     return { success: true };
   }
 
-  async getProductionEntries(orderId: number) {
-    await this.findOrderOrThrow(orderId);
+  async getProductionEntries(orderId: number, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
     return this.prisma.productionEntry.findMany({
       where: { orderId },
       orderBy: { date: 'asc' },
     });
   }
 
-  async addProductionEntry(orderId: number, data: CreateProductionEntryDto) {
-    await this.findOrderOrThrow(orderId);
+  async addProductionEntry(
+    orderId: number,
+    data: CreateProductionEntryDto,
+    tenantId?: string,
+  ) {
+    await this.findOrderOrThrow(orderId, tenantId);
 
     return this.prisma.productionEntry.create({
       data: {
@@ -324,9 +347,17 @@ export class OrdersService {
     });
   }
 
-  async deleteProductionEntry(orderId: number, entryId: number) {
+  async deleteProductionEntry(
+    orderId: number,
+    entryId: number,
+    tenantId?: string,
+  ) {
     const entry = await this.prisma.productionEntry.findFirst({
-      where: { id: entryId, orderId },
+      where: {
+        id: entryId,
+        orderId,
+        ...(tenantId ? { order: { tenantId } } : {}),
+      },
     });
     if (!entry) {
       throw new NotFoundException('Üretim girişi bulunamadı');
@@ -335,16 +366,20 @@ export class OrdersService {
     return { success: true };
   }
 
-  async getQualityEntries(orderId: number) {
-    await this.findOrderOrThrow(orderId);
+  async getQualityEntries(orderId: number, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
     return this.prisma.qualityEntry.findMany({
       where: { orderId },
       orderBy: { date: 'asc' },
     });
   }
 
-  async addQualityEntry(orderId: number, data: CreateQualityEntryDto) {
-    await this.findOrderOrThrow(orderId);
+  async addQualityEntry(
+    orderId: number,
+    data: CreateQualityEntryDto,
+    tenantId?: string,
+  ) {
+    await this.findOrderOrThrow(orderId, tenantId);
 
     if (
       data.firstQuality + data.secondQuality + data.rejected !==
@@ -369,9 +404,17 @@ export class OrdersService {
     });
   }
 
-  async deleteQualityEntry(orderId: number, entryId: number) {
+  async deleteQualityEntry(
+    orderId: number,
+    entryId: number,
+    tenantId?: string,
+  ) {
     const entry = await this.prisma.qualityEntry.findFirst({
-      where: { id: entryId, orderId },
+      where: {
+        id: entryId,
+        orderId,
+        ...(tenantId ? { order: { tenantId } } : {}),
+      },
     });
     if (!entry) {
       throw new NotFoundException('Kalite girişi bulunamadı');
@@ -380,16 +423,20 @@ export class OrdersService {
     return { success: true };
   }
 
-  async getColorSizes(orderId: number) {
-    await this.findOrderOrThrow(orderId);
+  async getColorSizes(orderId: number, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
     return this.prisma.orderColorSize.findMany({
       where: { orderId },
       orderBy: [{ color: 'asc' }, { size: 'asc' }],
     });
   }
 
-  async upsertColorSize(orderId: number, data: CreateOrderColorSizeDto) {
-    await this.findOrderOrThrow(orderId);
+  async upsertColorSize(
+    orderId: number,
+    data: CreateOrderColorSizeDto,
+    tenantId?: string,
+  ) {
+    await this.findOrderOrThrow(orderId, tenantId);
 
     const color = data.color.trim();
     const size = data.size.trim();
@@ -401,9 +448,17 @@ export class OrdersService {
     });
   }
 
-  async deleteColorSize(orderId: number, colorSizeId: number) {
+  async deleteColorSize(
+    orderId: number,
+    colorSizeId: number,
+    tenantId?: string,
+  ) {
     const row = await this.prisma.orderColorSize.findFirst({
-      where: { id: colorSizeId, orderId },
+      where: {
+        id: colorSizeId,
+        orderId,
+        ...(tenantId ? { order: { tenantId } } : {}),
+      },
     });
     if (!row) {
       throw new NotFoundException('Renk/beden kaydı bulunamadı');
@@ -412,8 +467,8 @@ export class OrdersService {
     return { success: true };
   }
 
-  async getApprovalStages(orderId: number) {
-    await this.findOrderOrThrow(orderId);
+  async getApprovalStages(orderId: number, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
 
     const existing = await this.prisma.approvalStage.findMany({
       where: { orderId },
@@ -447,9 +502,14 @@ export class OrdersService {
     orderId: number,
     stageId: number,
     data: UpdateApprovalStageDto,
+    tenantId?: string,
   ) {
     const stage = await this.prisma.approvalStage.findFirst({
-      where: { id: stageId, orderId },
+      where: {
+        id: stageId,
+        orderId,
+        ...(tenantId ? { order: { tenantId } } : {}),
+      },
     });
     if (!stage) {
       throw new NotFoundException('Onay aşaması bulunamadı');
@@ -461,6 +521,8 @@ export class OrdersService {
       );
       if (stageIndex > 0) {
         const previousStageType = APPROVAL_STAGE_ORDER[stageIndex - 1];
+        // orderId burada zaten tenant doğrulamasından geçmiş `stage` üzerinden geliyor,
+        // aynı siparişin bir önceki aşamasını sorguladığımız için ek tenant filtresi gerekmez.
         const previousStage = await this.prisma.approvalStage.findFirst({
           where: { orderId, stageType: previousStageType },
         });

@@ -18,7 +18,7 @@ import {
   CurrentUser,
   type JwtPayloadUser,
 } from '../auth/decorators/current-user.decorator';
-import type {
+import {
   CreateMaterialDto,
   CreateOrderColorSizeDto,
   CreateOrderDto,
@@ -33,6 +33,13 @@ import type {
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OrdersController {
   constructor(private ordersService: OrdersService) {}
+
+  // ADMIN görür tüm tenant'ları (scope=undefined); diğer roller sadece kendi tenant'ına
+  // sahip kayıtlara erişebilir. Alt-kaynak (materials/production/quality/...) uç noktaları
+  // bu scope'u orders.service.ts'e ileterek her sorguda tenant filtresi uygular.
+  private scopeFor(user: JwtPayloadUser): string | undefined {
+    return user.role === 'ADMIN' ? undefined : user.tenantId;
+  }
 
   @Get()
   async getOrders(
@@ -53,144 +60,205 @@ export class OrdersController {
   }
 
   @Get(':id')
-  async getOrder(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.getOrderById(id);
+  async getOrder(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getOrderById(id, this.scopeFor(user));
   }
 
   @Patch(':id')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
   async updateOrder(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateOrderDto,
   ) {
-    return this.ordersService.updateOrder(id, body);
+    return this.ordersService.updateOrder(id, body, this.scopeFor(user));
   }
 
   @Delete(':id')
   @Roles('ADMIN', 'MANAGER')
-  async deleteOrder(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.deleteOrder(id);
+  async deleteOrder(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.deleteOrder(id, this.scopeFor(user));
   }
 
   @Get(':id/ai-suggestion')
-  async getAiSuggestion(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.getAiSuggestion(id);
+  async getAiSuggestion(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getAiSuggestion(id, this.scopeFor(user));
   }
 
   @Get(':id/materials')
-  async getMaterials(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.getMaterials(id);
+  async getMaterials(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getMaterials(id, this.scopeFor(user));
   }
 
   @Post(':id/materials')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
   async addMaterial(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateMaterialDto,
   ) {
-    return this.ordersService.addMaterial(id, body);
+    return this.ordersService.addMaterial(id, body, this.scopeFor(user));
   }
 
   @Patch(':id/materials/:materialId')
   @Roles('ADMIN', 'MANAGER', 'PLANNER', 'SHOP_FLOOR_OPERATOR')
   async updateMaterial(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Param('materialId', ParseIntPipe) materialId: number,
     @Body() body: UpdateMaterialDto,
   ) {
-    return this.ordersService.updateMaterial(id, materialId, body);
+    return this.ordersService.updateMaterial(
+      id,
+      materialId,
+      body,
+      this.scopeFor(user),
+    );
   }
 
   @Delete(':id/materials/:materialId')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
   async deleteMaterial(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Param('materialId', ParseIntPipe) materialId: number,
   ) {
-    return this.ordersService.deleteMaterial(id, materialId);
+    return this.ordersService.deleteMaterial(
+      id,
+      materialId,
+      this.scopeFor(user),
+    );
   }
 
   @Get(':id/production')
-  async getProductionEntries(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.getProductionEntries(id);
+  async getProductionEntries(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getProductionEntries(id, this.scopeFor(user));
   }
 
   @Post(':id/production')
   @Roles('ADMIN', 'MANAGER', 'PLANNER', 'SHOP_FLOOR_OPERATOR')
   async addProductionEntry(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateProductionEntryDto,
   ) {
-    return this.ordersService.addProductionEntry(id, body);
+    return this.ordersService.addProductionEntry(id, body, this.scopeFor(user));
   }
 
   @Delete(':id/production/:entryId')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
   async deleteProductionEntry(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Param('entryId', ParseIntPipe) entryId: number,
   ) {
-    return this.ordersService.deleteProductionEntry(id, entryId);
+    return this.ordersService.deleteProductionEntry(
+      id,
+      entryId,
+      this.scopeFor(user),
+    );
   }
 
   @Get(':id/quality')
-  async getQualityEntries(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.getQualityEntries(id);
+  async getQualityEntries(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getQualityEntries(id, this.scopeFor(user));
   }
 
   @Post(':id/quality')
   @Roles('ADMIN', 'MANAGER', 'PLANNER', 'SHOP_FLOOR_OPERATOR')
   async addQualityEntry(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateQualityEntryDto,
   ) {
-    return this.ordersService.addQualityEntry(id, body);
+    return this.ordersService.addQualityEntry(id, body, this.scopeFor(user));
   }
 
   @Delete(':id/quality/:entryId')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
   async deleteQualityEntry(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Param('entryId', ParseIntPipe) entryId: number,
   ) {
-    return this.ordersService.deleteQualityEntry(id, entryId);
+    return this.ordersService.deleteQualityEntry(
+      id,
+      entryId,
+      this.scopeFor(user),
+    );
   }
 
   @Get(':id/color-sizes')
-  async getColorSizes(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.getColorSizes(id);
+  async getColorSizes(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getColorSizes(id, this.scopeFor(user));
   }
 
   @Post(':id/color-sizes')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
   async upsertColorSize(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateOrderColorSizeDto,
   ) {
-    return this.ordersService.upsertColorSize(id, body);
+    return this.ordersService.upsertColorSize(id, body, this.scopeFor(user));
   }
 
   @Delete(':id/color-sizes/:colorSizeId')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
   async deleteColorSize(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Param('colorSizeId', ParseIntPipe) colorSizeId: number,
   ) {
-    return this.ordersService.deleteColorSize(id, colorSizeId);
+    return this.ordersService.deleteColorSize(
+      id,
+      colorSizeId,
+      this.scopeFor(user),
+    );
   }
 
   @Get(':id/approval-stages')
-  async getApprovalStages(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersService.getApprovalStages(id);
+  async getApprovalStages(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getApprovalStages(id, this.scopeFor(user));
   }
 
   @Patch(':id/approval-stages/:stageId')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
   async updateApprovalStage(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Param('stageId', ParseIntPipe) stageId: number,
     @Body() body: UpdateApprovalStageDto,
   ) {
-    return this.ordersService.updateApprovalStage(id, stageId, body);
+    return this.ordersService.updateApprovalStage(
+      id,
+      stageId,
+      body,
+      this.scopeFor(user),
+    );
   }
 }

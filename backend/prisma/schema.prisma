@@ -46,6 +46,8 @@ model Order {
   stockLots     StockLot[]
   colorSizes    OrderColorSize[]
   approvalStages ApprovalStage[]
+
+  @@index([tenantId])
 }
 
 model ApprovalStage {
@@ -61,6 +63,7 @@ model ApprovalStage {
   updatedAt   DateTime @updatedAt
 
   @@unique([orderId, stageType])
+  @@index([orderId])
 }
 
 model OrderColorSize {
@@ -74,6 +77,7 @@ model OrderColorSize {
   updatedAt DateTime @updatedAt
 
   @@unique([orderId, color, size])
+  @@index([orderId])
 }
 
 model Material {
@@ -95,6 +99,8 @@ model Material {
   notes            String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+
+  @@index([orderId])
 }
 
 model ProductionEntry {
@@ -108,6 +114,8 @@ model ProductionEntry {
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
 }
 
 model QualityEntry {
@@ -123,6 +131,8 @@ model QualityEntry {
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([orderId])
 }
 
 model StockLot {
@@ -141,6 +151,8 @@ model StockLot {
   movements       StockMovement[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([orderId])
 }
 
 model StockMovement {
@@ -153,4 +165,7 @@ model StockMovement {
   orderId     Int?     // tüketim hangi sipariş için yapıldı
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
+
+  @@index([stockLotId])
+  @@index([orderId])
 }

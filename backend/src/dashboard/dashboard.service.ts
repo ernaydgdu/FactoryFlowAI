@@ -239,7 +239,16 @@ export class DashboardService {
       }
     }
 
-    const stockLots = await this.prisma.stockLot.findMany();
+    // StockLot modelinde tenantId alanı yok (stok kasıtlı olarak tenant'lar arası paylaşılan
+    // bir kaynak) — ama bir sipariş ile ilişkilendirilmiş lotlar (orderId dolu) o siparişin
+    // tenant'ına aitmiş gibi davranmalı; aksi halde bir tenant başka bir tenant'ın sipariş
+    // bazlı stok uyarısını görebilir. Siparişe bağlı olmayan (orderId=null) lotlar hâlâ
+    // tüm tenant'lar arasında paylaşılıyor (bilinen mimari sınırlama).
+    const stockLots = await this.prisma.stockLot.findMany({
+      where: tenantId
+        ? { OR: [{ orderId: null }, { order: { tenantId } }] }
+        : undefined,
+    });
     const stockByMaterial = new Map<
       string,
       { totalReceived: number; totalRemaining: number }
