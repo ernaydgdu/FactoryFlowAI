@@ -34,6 +34,8 @@ function applyQuickFilter(orders: Order[], filter: QuickFilter): Order[] {
           o.productionStatus === 'Tamamlandı' ||
           o.productionStatus === 'Sevk Edildi',
       )
+    case 'cutting-ready':
+      return orders.filter((o) => o.cuttingReady)
     default:
       return orders
   }
@@ -75,6 +77,7 @@ export function computeOrderKpis(orders: Order[]): OrderListKpis {
         o.productionStatus === 'Sevk Edildi',
     ).length,
     waiting: orders.filter((o) => o.productionStatus === 'Beklemede').length,
+    cuttingReady: orders.filter((o) => o.cuttingReady).length,
   }
 }
 

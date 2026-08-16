@@ -47,7 +47,7 @@ export class OrdersService {
   async getOrders(tenantId?: string) {
     const orders = await this.prisma.order.findMany({
       where: tenantId ? { tenantId } : undefined,
-      include: { materials: true, colorSizes: true },
+      include: { materials: true, colorSizes: true, approvalStages: true },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -58,12 +58,17 @@ export class OrdersService {
         (sum, cs) => sum + cs.quantity,
         0,
       );
+      const cuttingReady = order.approvalStages.some(
+        (stage) =>
+          stage.stageType === 'KESIM_ONAY' && stage.status === 'APPROVED',
+      );
       return {
         ...order,
         productType: suggestion.productType,
         materialWarning: suggestion.warning !== null,
         colorCount,
         colorSizeTotal,
+        cuttingReady,
       };
     });
   }

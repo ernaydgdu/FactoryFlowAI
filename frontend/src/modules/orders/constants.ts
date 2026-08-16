@@ -6,6 +6,7 @@ export const QUICK_FILTERS: { id: QuickFilter; label: string }[] = [
   { id: 'in-production', label: 'Üretimde' },
   { id: 'waiting', label: 'Beklemede' },
   { id: 'completed', label: 'Tamamlandı' },
+  { id: 'cutting-ready', label: 'Kesime Hazır' },
 ]
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50] as const

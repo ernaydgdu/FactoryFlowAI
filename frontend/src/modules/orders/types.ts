@@ -14,6 +14,7 @@ export type QuickFilter =
   | 'in-production'
   | 'waiting'
   | 'completed'
+  | 'cutting-ready'
 
 export type Order = {
   id: string
@@ -41,6 +42,7 @@ export type Order = {
   materialWarning: boolean
   colorCount: number
   colorSizeTotal: number
+  cuttingReady: boolean
 }
 
 export type OrderSortKey = keyof Pick<
@@ -77,4 +79,5 @@ export type OrderListKpis = {
   terminRisk: number
   completed: number
   waiting: number
+  cuttingReady: number
 }

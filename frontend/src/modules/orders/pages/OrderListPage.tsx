@@ -32,6 +32,7 @@ export function OrderListPage() {
           o.productionStatus === 'Tamamlandı' ||
           o.productionStatus === 'Sevk Edildi',
       ).length,
+      'cutting-ready': all.filter((o) => o.cuttingReady).length,
     } satisfies Record<QuickFilter, number>
   }, [list.allOrders])
 

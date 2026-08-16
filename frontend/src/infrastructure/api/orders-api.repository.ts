@@ -39,6 +39,7 @@ type ApiOrder = {
   materialWarning: boolean
   colorCount?: number
   colorSizeTotal?: number
+  cuttingReady?: boolean
 }
 
 export type ApiOrderDetail = ApiOrder
@@ -98,6 +99,7 @@ function mapOrder(raw: ApiOrder): Order {
     materialWarning: raw.materialWarning ?? false,
     colorCount: raw.colorCount ?? 0,
     colorSizeTotal: raw.colorSizeTotal ?? 0,
+    cuttingReady: raw.cuttingReady ?? false,
   }
 }
 
