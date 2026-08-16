@@ -30,6 +30,20 @@ export async function fetchDashboardAlerts(): Promise<DashboardAlert[]> {
   return data
 }
 
+export type QualitySummary = {
+  totalChecked: number
+  totalFirstQuality: number
+  totalSecondQuality: number
+  totalRejected: number
+  secondQualityRate: number
+  rejectionRate: number
+}
+
+export async function fetchQualitySummary(): Promise<QualitySummary> {
+  const { data } = await api.get<QualitySummary>('/dashboard/quality-summary')
+  return data
+}
+
 export async function fetchAiAdvice(): Promise<{ advice: string }> {
   try {
     const { data } = await api.post<{ advice: string }>('/dashboard/ai-advice')

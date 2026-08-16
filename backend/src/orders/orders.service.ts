@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -12,6 +13,7 @@ import type {
   CreateMaterialDto,
   CreateOrderDto,
   CreateProductionEntryDto,
+  CreateQualityEntryDto,
   UpdateMaterialStatusDto,
 } from './dto/order.dto';
 
@@ -219,6 +221,40 @@ export class OrdersService {
         quantity: data.quantity,
         date: data.date ? new Date(data.date) : undefined,
         lineNo: data.lineNo,
+        notes: data.notes,
+      },
+    });
+  }
+
+  async getQualityEntries(orderId: number) {
+    await this.findOrderOrThrow(orderId);
+    return this.prisma.qualityEntry.findMany({
+      where: { orderId },
+      orderBy: { date: 'asc' },
+    });
+  }
+
+  async addQualityEntry(orderId: number, data: CreateQualityEntryDto) {
+    await this.findOrderOrThrow(orderId);
+
+    if (
+      data.firstQuality + data.secondQuality + data.rejected !==
+      data.checkedQty
+    ) {
+      throw new BadRequestException(
+        '1. kalite + 2. kalite + ret toplamı kontrol edilen adede eşit olmalı.',
+      );
+    }
+
+    return this.prisma.qualityEntry.create({
+      data: {
+        orderId,
+        checkedQty: data.checkedQty,
+        firstQuality: data.firstQuality,
+        secondQuality: data.secondQuality,
+        rejected: data.rejected,
+        defectType: data.defectType,
+        date: data.date ? new Date(data.date) : undefined,
         notes: data.notes,
       },
     });

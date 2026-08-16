@@ -66,6 +66,15 @@ const SEVERITY_RANK: Record<DashboardAlertSeverity, number> = {
   LOW: 2,
 };
 
+export type QualitySummary = {
+  totalChecked: number;
+  totalFirstQuality: number;
+  totalSecondQuality: number;
+  totalRejected: number;
+  secondQualityRate: number;
+  rejectionRate: number;
+};
+
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
@@ -179,6 +188,43 @@ export class DashboardService {
     return alerts.sort(
       (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity],
     );
+  }
+
+  async getQualitySummary(tenantId?: string): Promise<QualitySummary> {
+    const entries = await this.prisma.qualityEntry.findMany({
+      where: tenantId ? { order: { tenantId } } : undefined,
+    });
+
+    const totalChecked = entries.reduce(
+      (sum, entry) => sum + entry.checkedQty,
+      0,
+    );
+    const totalFirstQuality = entries.reduce(
+      (sum, entry) => sum + entry.firstQuality,
+      0,
+    );
+    const totalSecondQuality = entries.reduce(
+      (sum, entry) => sum + entry.secondQuality,
+      0,
+    );
+    const totalRejected = entries.reduce(
+      (sum, entry) => sum + entry.rejected,
+      0,
+    );
+
+    const secondQualityRate =
+      totalChecked > 0 ? (totalSecondQuality / totalChecked) * 100 : 0;
+    const rejectionRate =
+      totalChecked > 0 ? (totalRejected / totalChecked) * 100 : 0;
+
+    return {
+      totalChecked,
+      totalFirstQuality,
+      totalSecondQuality,
+      totalRejected,
+      secondQualityRate,
+      rejectionRate,
+    };
   }
 
   async getAiAdvice(tenantId?: string): Promise<string> {

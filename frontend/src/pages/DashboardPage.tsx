@@ -24,8 +24,10 @@ import {
   fetchAiAdvice,
   fetchDashboard,
   fetchDashboardAlerts,
+  fetchQualitySummary,
   type DashboardAlertSeverity,
 } from '@/infrastructure/api/dashboard-api.repository'
+import { getQualityRateTone, QUALITY_RATE_TONE_CLASS } from '@/lib/quality-rate'
 import { cn } from '@/lib/utils'
 
 const ALERT_SEVERITY_STYLE: Record<DashboardAlertSeverity, string> = {
@@ -48,6 +50,11 @@ export function DashboardPage() {
   })
 
   const aiAdviceMutation = useMutation({ mutationFn: fetchAiAdvice })
+
+  const qualitySummaryQuery = useQuery({
+    queryKey: applicationQueryKeys.dashboardSummary.qualitySummary(),
+    queryFn: fetchQualitySummary,
+  })
 
   const stats = dashboardQuery.data
   const dashboardStats = stats
@@ -119,7 +126,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-4">
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Akıllı Uyarılar</CardTitle>
@@ -174,6 +181,49 @@ export function DashboardPage() {
             {aiAdviceMutation.data ? (
               <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3 text-sm">
                 {aiAdviceMutation.data.advice}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Kalite Özeti</CardTitle>
+            <CardDescription>Genel 2. kalite ve fire oranı</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {qualitySummaryQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+            ) : qualitySummaryQuery.isError ? (
+              <p className="text-sm text-destructive">Kalite özeti yüklenemedi.</p>
+            ) : qualitySummaryQuery.data ? (
+              <div className="space-y-2">
+                <div
+                  className={cn(
+                    'rounded-lg border px-3 py-2',
+                    QUALITY_RATE_TONE_CLASS[
+                      getQualityRateTone(qualitySummaryQuery.data.secondQualityRate)
+                    ],
+                  )}
+                >
+                  <p className="text-xs opacity-80">2. Kalite Oranı</p>
+                  <p className="text-lg font-bold tabular-nums">
+                    %{qualitySummaryQuery.data.secondQualityRate.toFixed(1)}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    'rounded-lg border px-3 py-2',
+                    QUALITY_RATE_TONE_CLASS[
+                      getQualityRateTone(qualitySummaryQuery.data.rejectionRate)
+                    ],
+                  )}
+                >
+                  <p className="text-xs opacity-80">Fire Oranı</p>
+                  <p className="text-lg font-bold tabular-nums">
+                    %{qualitySummaryQuery.data.rejectionRate.toFixed(1)}
+                  </p>
+                </div>
               </div>
             ) : null}
           </CardContent>

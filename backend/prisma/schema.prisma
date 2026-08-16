@@ -42,6 +42,7 @@ model Order {
   updatedAt     DateTime @updatedAt
   materials     Material[]
   productionEntries ProductionEntry[]
+  qualityEntries QualityEntry[]
 }
 
 model Material {
@@ -76,4 +77,19 @@ model ProductionEntry {
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model QualityEntry {
+  id            Int      @id @default(autoincrement())
+  orderId       Int
+  order         Order    @relation(fields: [orderId], references: [id])
+  checkedQty    Int      // kontrol edilen adet
+  firstQuality  Int      // 1. kalite adet
+  secondQuality Int      // 2. kalite adet
+  rejected      Int      // ret/fire adet
+  defectType    String?  // hata türü (opsiyonel: dikiş hatası, leke, ölçü sapması vb.)
+  date          DateTime @default(now())
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

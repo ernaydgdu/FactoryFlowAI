@@ -210,3 +210,47 @@ export async function createProductionEntry(
   const { data } = await api.post<ApiProductionEntry>(`/orders/${orderId}/production`, input)
   return data
 }
+
+export type ApiQualityEntry = {
+  id: number
+  orderId: number
+  checkedQty: number
+  firstQuality: number
+  secondQuality: number
+  rejected: number
+  defectType: string | null
+  date: string
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type CreateQualityEntryInput = {
+  checkedQty: number
+  firstQuality: number
+  secondQuality: number
+  rejected: number
+  defectType?: string
+  date?: string
+  notes?: string
+}
+
+export async function fetchQualityEntries(orderId: string): Promise<ApiQualityEntry[]> {
+  const { data } = await api.get<ApiQualityEntry[]>(`/orders/${orderId}/quality`)
+  return data
+}
+
+export async function createQualityEntry(
+  orderId: string,
+  input: CreateQualityEntryInput,
+): Promise<ApiQualityEntry> {
+  try {
+    const { data } = await api.post<ApiQualityEntry>(`/orders/${orderId}/quality`, input)
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}

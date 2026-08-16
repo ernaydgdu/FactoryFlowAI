@@ -20,12 +20,15 @@ export const applicationQueryKeys = {
     production: (id: string) => [...applicationQueryKeys.orderRecord.all, 'production', id] as const,
     aiSuggestion: (id: string) =>
       [...applicationQueryKeys.orderRecord.all, 'ai-suggestion', id] as const,
+    quality: (id: string) => [...applicationQueryKeys.orderRecord.all, 'quality', id] as const,
   },
   // Real backend GET /api/dashboard summary
   dashboardSummary: {
     all: ['dashboard-summary'] as const,
     summary: () => [...applicationQueryKeys.dashboardSummary.all, 'summary'] as const,
     alerts: () => [...applicationQueryKeys.dashboardSummary.all, 'alerts'] as const,
+    qualitySummary: () =>
+      [...applicationQueryKeys.dashboardSummary.all, 'quality-summary'] as const,
   },
   fabricCard: {
     all: ['fabric-card'] as const,

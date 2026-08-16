@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
-import { PageHeader, StatusBadge } from '@/components/erp'
+import { PageHeader, QualityRateCard, StatusBadge } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -14,15 +14,19 @@ import { cn } from '@/lib/utils'
 import {
   createMaterial,
   createProductionEntry,
+  createQualityEntry,
   fetchAiSuggestion,
   fetchMaterials,
   fetchOrderById,
   fetchProductionEntries,
+  fetchQualityEntries,
   updateMaterialStatus,
   type ApiMaterial,
   type ApiProductionEntry,
+  type ApiQualityEntry,
   type CreateMaterialInput,
   type CreateProductionEntryInput,
+  type CreateQualityEntryInput,
   type MaterialStatusValue,
   type ProductionStage,
 } from '@/infrastructure/api/orders-api.repository'
@@ -136,6 +140,7 @@ export function OrderDetailPage() {
               <TabsTrigger value="general">Genel</TabsTrigger>
               <TabsTrigger value="purchase">Satın Alma</TabsTrigger>
               <TabsTrigger value="production">Üretim</TabsTrigger>
+              <TabsTrigger value="quality">Kalite</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
@@ -159,6 +164,10 @@ export function OrderDetailPage() {
 
             <TabsContent value="production">
               <ProductionPanel orderId={id} totalQuantity={order.totalQuantity} />
+            </TabsContent>
+
+            <TabsContent value="quality">
+              <QualityPanel orderId={id} />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -773,6 +782,276 @@ function ProductionRow({ entry }: { entry: ApiProductionEntry }) {
       <td className="px-3 py-2 font-medium">{STAGE_LABEL[entry.stage] ?? entry.stage}</td>
       <td className="px-3 py-2 tabular-nums">{entry.quantity.toLocaleString('tr-TR')}</td>
       <td className="px-3 py-2">{entry.lineNo ?? '—'}</td>
+      <td className="px-3 py-2">{formatDate(entry.date)}</td>
+      <td className="px-3 py-2">{entry.notes ?? '—'}</td>
+    </tr>
+  )
+}
+
+type QualityFormState = {
+  checkedQty: string
+  firstQuality: string
+  secondQuality: string
+  rejected: string
+  defectType: string
+  date: string
+  notes: string
+}
+
+function initialQualityForm(): QualityFormState {
+  return {
+    checkedQty: '',
+    firstQuality: '',
+    secondQuality: '',
+    rejected: '',
+    defectType: '',
+    date: todayIso(),
+    notes: '',
+  }
+}
+
+function QualityPanel({ orderId }: { orderId: string }) {
+  const queryClient = useQueryClient()
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<QualityFormState>(initialQualityForm)
+  const [error, setError] = useState<string | null>(null)
+
+  const qualityQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.quality(orderId),
+    queryFn: () => fetchQualityEntries(orderId),
+    enabled: !!orderId,
+  })
+
+  const addMutation = useMutation({
+    mutationFn: (input: CreateQualityEntryInput) => createQualityEntry(orderId, input),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.quality(orderId),
+        refetchType: 'all',
+      }),
+  })
+
+  function updateField(field: keyof QualityFormState, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleAddEntry(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const checkedQty = Number(form.checkedQty)
+    const firstQuality = Number(form.firstQuality)
+    const secondQuality = Number(form.secondQuality)
+    const rejected = Number(form.rejected)
+
+    if (form.checkedQty === '' || Number.isNaN(checkedQty) || checkedQty <= 0) {
+      setError('Kontrol edilen adet geçerli bir sayı olmalıdır.')
+      return
+    }
+    if (
+      form.firstQuality === '' ||
+      form.secondQuality === '' ||
+      form.rejected === '' ||
+      Number.isNaN(firstQuality) ||
+      Number.isNaN(secondQuality) ||
+      Number.isNaN(rejected) ||
+      firstQuality < 0 ||
+      secondQuality < 0 ||
+      rejected < 0
+    ) {
+      setError('1. kalite, 2. kalite ve ret adetleri geçerli (0 veya üzeri) sayılar olmalıdır.')
+      return
+    }
+    if (firstQuality + secondQuality + rejected !== checkedQty) {
+      setError(
+        `1. kalite + 2. kalite + ret toplamı (${firstQuality + secondQuality + rejected}) kontrol edilen adede (${checkedQty}) eşit olmalı.`,
+      )
+      return
+    }
+
+    try {
+      await addMutation.mutateAsync({
+        checkedQty,
+        firstQuality,
+        secondQuality,
+        rejected,
+        defectType: form.defectType.trim() || undefined,
+        date: form.date || undefined,
+        notes: form.notes.trim() || undefined,
+      })
+      setForm(initialQualityForm())
+      setShowForm(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kalite girişi eklenemedi.')
+    }
+  }
+
+  const entries = qualityQuery.data ?? []
+  const totalChecked = entries.reduce((sum, e) => sum + e.checkedQty, 0)
+  const totalSecondQuality = entries.reduce((sum, e) => sum + e.secondQuality, 0)
+  const totalRejected = entries.reduce((sum, e) => sum + e.rejected, 0)
+  const secondQualityRate = totalChecked > 0 ? (totalSecondQuality / totalChecked) * 100 : 0
+  const rejectionRate = totalChecked > 0 ? (totalRejected / totalChecked) * 100 : 0
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <QualityRateCard
+          label="2. Kalite Oranı"
+          percent={secondQualityRate}
+          hint="Kabul edilebilir aralık: %2-5"
+        />
+        <QualityRateCard
+          label="Fire Oranı"
+          percent={rejectionRate}
+          hint="Kabul edilebilir aralık: %2-5"
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Siparişe ait kalite kontrol girişleri</p>
+        <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
+          <Plus className="size-4" /> Yeni Kalite Girişi
+        </Button>
+      </div>
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      {showForm ? (
+        <form
+          onSubmit={handleAddEntry}
+          className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <div className="grid gap-1.5">
+            <Label htmlFor="checkedQty">Kontrol Edilen Adet</Label>
+            <Input
+              id="checkedQty"
+              type="number"
+              min="0"
+              value={form.checkedQty}
+              onChange={(e) => updateField('checkedQty', e.target.value)}
+              placeholder="100"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="firstQuality">1. Kalite Adet</Label>
+            <Input
+              id="firstQuality"
+              type="number"
+              min="0"
+              value={form.firstQuality}
+              onChange={(e) => updateField('firstQuality', e.target.value)}
+              placeholder="90"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="secondQuality">2. Kalite Adet</Label>
+            <Input
+              id="secondQuality"
+              type="number"
+              min="0"
+              value={form.secondQuality}
+              onChange={(e) => updateField('secondQuality', e.target.value)}
+              placeholder="7"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="rejected">Ret Adet</Label>
+            <Input
+              id="rejected"
+              type="number"
+              min="0"
+              value={form.rejected}
+              onChange={(e) => updateField('rejected', e.target.value)}
+              placeholder="3"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="defectType">Hata Türü</Label>
+            <Input
+              id="defectType"
+              value={form.defectType}
+              onChange={(e) => updateField('defectType', e.target.value)}
+              placeholder="Dikiş hatası"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="qualityDate">Tarih</Label>
+            <Input
+              id="qualityDate"
+              type="date"
+              value={form.date}
+              onChange={(e) => updateField('date', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label htmlFor="qualityNotes">Notlar</Label>
+            <Input
+              id="qualityNotes"
+              value={form.notes}
+              onChange={(e) => updateField('notes', e.target.value)}
+              placeholder="—"
+            />
+          </div>
+          <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-4">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
+              İptal
+            </Button>
+            <Button type="submit" size="sm" disabled={addMutation.isPending}>
+              {addMutation.isPending ? 'Ekleniyor...' : 'Ekle'}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2">Kontrol Edilen</th>
+              <th className="px-3 py-2">1. Kalite</th>
+              <th className="px-3 py-2">2. Kalite</th>
+              <th className="px-3 py-2">Ret</th>
+              <th className="px-3 py-2">Hata Türü</th>
+              <th className="px-3 py-2">Tarih</th>
+              <th className="px-3 py-2">Notlar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {qualityQuery.isLoading ? (
+              <tr>
+                <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                  Yükleniyor...
+                </td>
+              </tr>
+            ) : entries.length > 0 ? (
+              entries.map((entry) => <QualityRow key={entry.id} entry={entry} />)
+            ) : (
+              <tr>
+                <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                  Henüz kalite girişi eklenmedi.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function QualityRow({ entry }: { entry: ApiQualityEntry }) {
+  return (
+    <tr className="border-b border-border/60">
+      <td className="px-3 py-2 tabular-nums">{entry.checkedQty.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2 tabular-nums">{entry.firstQuality.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2 tabular-nums">{entry.secondQuality.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2 tabular-nums">{entry.rejected.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2">{entry.defectType ?? '—'}</td>
       <td className="px-3 py-2">{formatDate(entry.date)}</td>
       <td className="px-3 py-2">{entry.notes ?? '—'}</td>
     </tr>

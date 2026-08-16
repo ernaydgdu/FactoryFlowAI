@@ -21,6 +21,7 @@ import type {
   CreateMaterialDto,
   CreateOrderDto,
   CreateProductionEntryDto,
+  CreateQualityEntryDto,
   UpdateMaterialStatusDto,
 } from './dto/order.dto';
 
@@ -93,5 +94,19 @@ export class OrdersController {
     @Body() body: CreateProductionEntryDto,
   ) {
     return this.ordersService.addProductionEntry(id, body);
+  }
+
+  @Get(':id/quality')
+  async getQualityEntries(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.getQualityEntries(id);
+  }
+
+  @Post(':id/quality')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER', 'SHOP_FLOOR_OPERATOR')
+  async addQualityEntry(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateQualityEntryDto,
+  ) {
+    return this.ordersService.addQualityEntry(id, body);
   }
 }

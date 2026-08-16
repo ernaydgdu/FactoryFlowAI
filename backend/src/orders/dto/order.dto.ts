@@ -35,3 +35,13 @@ export class CreateProductionEntryDto {
   lineNo?: string;
   notes?: string;
 }
+
+export class CreateQualityEntryDto {
+  checkedQty!: number;
+  firstQuality!: number;
+  secondQuality!: number;
+  rejected!: number;
+  defectType?: string;
+  date?: string;
+  notes?: string;
+}
