@@ -397,8 +397,15 @@ function ApprovalProgressCell({ orderId }: { orderId: string }) {
   const total = stagesQuery.data.length
   const approved = stagesQuery.data.filter((s) => s.status === 'APPROVED').length
 
+  const toneClass =
+    total > 0 && approved === total
+      ? 'text-emerald-700 dark:text-emerald-400'
+      : approved === 0
+        ? 'text-muted-foreground'
+        : 'text-amber-700 dark:text-amber-400'
+
   return (
-    <span className="text-xs tabular-nums text-muted-foreground">
+    <span className={cn('text-xs font-medium tabular-nums', toneClass)}>
       {approved}/{total}
     </span>
   )

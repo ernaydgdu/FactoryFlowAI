@@ -162,7 +162,13 @@ export function OrderDetailPage() {
                   <Field label="Ürün" value={order.productName} />
                   <Field label="Toplam Miktar" value={order.totalQuantity.toLocaleString('tr-TR')} />
                   <Field label="EXF Tarihi" value={formatDate(order.shipmentDate)} />
-                  <Field label="Durum" value={ORDER_STATUS_LABEL[order.status] ?? order.status} />
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Durum</dt>
+                    <dd className="mt-0.5 flex items-center gap-2 text-sm font-medium">
+                      {ORDER_STATUS_LABEL[order.status] ?? order.status}
+                      <CuttingReadinessBadge orderId={id} />
+                    </dd>
+                  </div>
                   <Field label="Oluşturulma" value={formatDate(order.createdAt)} />
                 </dl>
 
@@ -171,11 +177,17 @@ export function OrderDetailPage() {
             </TabsContent>
 
             <TabsContent value="purchase">
-              <MaterialsPanel orderId={id} exfDate={order.shipmentDate} />
+              <div className="space-y-4">
+                <CuttingApprovalWarningBanner orderId={id} />
+                <MaterialsPanel orderId={id} exfDate={order.shipmentDate} />
+              </div>
             </TabsContent>
 
             <TabsContent value="production">
-              <ProductionPanel orderId={id} totalQuantity={order.totalQuantity} />
+              <div className="space-y-4">
+                <CuttingApprovalWarningBanner orderId={id} />
+                <ProductionPanel orderId={id} totalQuantity={order.totalQuantity} />
+              </div>
             </TabsContent>
 
             <TabsContent value="quality">
@@ -1368,6 +1380,58 @@ const APPROVAL_STATUS_TONE: Record<ApiApprovalStage['status'], string> = {
   PENDING: 'border-border text-muted-foreground',
   APPROVED: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
   REJECTED: 'border-destructive/30 bg-destructive/5 text-destructive',
+}
+
+function CuttingReadinessBadge({ orderId }: { orderId: string }) {
+  const stagesQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.approvalStages(orderId),
+    queryFn: () => fetchApprovalStages(orderId),
+    enabled: !!orderId,
+  })
+
+  if (stagesQuery.isLoading || !stagesQuery.data) {
+    return null
+  }
+
+  const kesimOnay = stagesQuery.data.find((s) => s.stageType === 'KESIM_ONAY')
+  const isReady = kesimOnay?.status === 'APPROVED'
+
+  return (
+    <StatusBadge
+      label={isReady ? '✓ Kesime Hazır' : '⏳ Onay Bekliyor'}
+      tone={isReady ? 'success' : 'warning'}
+    />
+  )
+}
+
+function CuttingApprovalWarningBanner({ orderId }: { orderId: string }) {
+  const stagesQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.approvalStages(orderId),
+    queryFn: () => fetchApprovalStages(orderId),
+    enabled: !!orderId,
+  })
+
+  if (stagesQuery.isLoading || !stagesQuery.data) {
+    return null
+  }
+
+  const allApproved = (
+    ['PP_NUMUNE', 'PASTAL_ONAY', 'SARFIYAT_ONAY', 'KESIM_ONAY'] as ApprovalStageType[]
+  ).every(
+    (stageType) =>
+      stagesQuery.data.find((s) => s.stageType === stageType)?.status === 'APPROVED',
+  )
+
+  if (allApproved) {
+    return null
+  }
+
+  return (
+    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-400">
+      ⚠️ Bu siparişte kesim onayı henüz verilmedi. Üretim girişi yapmadan önce Onay Süreci
+      sekmesini kontrol edin.
+    </div>
+  )
 }
 
 function ApprovalStagePanel({ orderId }: { orderId: string }) {
