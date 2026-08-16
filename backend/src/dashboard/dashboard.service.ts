@@ -62,6 +62,13 @@ const APPROVAL_STAGE_LABEL: Record<string, string> = {
   KESIM_ONAY: 'Kesim Onayı',
 };
 
+const APPROVAL_STAGE_ORDER_LIST = [
+  'PP_NUMUNE',
+  'PASTAL_ONAY',
+  'SARFIYAT_ONAY',
+  'KESIM_ONAY',
+] as const;
+
 export type DashboardAlertSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export type DashboardAlert = {
@@ -551,6 +558,21 @@ export class DashboardService {
       return this.answerSupplierPerformance(question, tenantId);
     }
 
+    if (
+      /\d{2,}/.test(question) &&
+      (q.includes('onay') || q.includes('aşama'))
+    ) {
+      const order = await this.findOrderFromQuestion(question, tenantId);
+      return this.answerOrderApprovalStatus(order);
+    }
+
+    if (
+      q.includes('kesime hazır') ||
+      (q.includes('onay') && (q.includes('bekliyor') || q.includes('bekleyen')))
+    ) {
+      return this.answerApprovalOverview(question, tenantId);
+    }
+
     if (q.includes('termin') || q.includes('gecikme')) {
       const order = await this.findOrderFromQuestion(question, tenantId);
       return this.answerTerminStatus(order);
@@ -582,7 +604,71 @@ export class DashboardService {
       '• Tedarikçi güvenilirliği — örn: "ÖZEGE güvenilir mi?"',
       '• Sipariş termin durumu — örn: "1040 termin durumu nedir?"',
       '• Sipariş üretim durumu — örn: "1040 ne durumda?"',
+      '• Sipariş onay durumu — örn: "1040 onay durumu" veya "1040 hangi aşamada?"',
+      '• Onay bekleyen / kesime hazır siparişler — örn: "hangi siparişler onay bekliyor?" veya "kesime hazır siparişler"',
     ].join('\n');
+  }
+
+  private async answerApprovalOverview(
+    question: string,
+    tenantId?: string,
+  ): Promise<string> {
+    const q = question.toLocaleLowerCase('tr-TR');
+    const orders = await this.prisma.order.findMany({
+      where: tenantId ? { tenantId } : undefined,
+      include: { approvalStages: true },
+    });
+
+    if (q.includes('kesime hazır')) {
+      const ready = orders.filter((order) =>
+        order.approvalStages.some(
+          (stage) =>
+            stage.stageType === 'KESIM_ONAY' && stage.status === 'APPROVED',
+        ),
+      );
+      if (ready.length === 0) {
+        return 'Şu an kesime hazır sipariş yok.';
+      }
+      return `${ready.length} sipariş kesime hazır: ${ready
+        .map((order) => `${order.orderNo} (${order.buyerName})`)
+        .join(', ')}`;
+    }
+
+    const waiting = orders.filter((order) =>
+      order.approvalStages.some((stage) => stage.status === 'PENDING'),
+    );
+    if (waiting.length === 0) {
+      return 'Şu an onay bekleyen sipariş yok.';
+    }
+    return `${waiting.length} sipariş onay bekliyor: ${waiting
+      .map((order) => `${order.orderNo} (${order.buyerName})`)
+      .join(', ')}`;
+  }
+
+  private async answerOrderApprovalStatus(
+    order: OrderWithMaterials | null,
+  ): Promise<string> {
+    if (!order) {
+      return 'Hangi sipariş için sorduğunuzu anlayamadım. Lütfen sipariş numarasını belirtin (örn: "1040 onay durumu").';
+    }
+
+    const stages = await this.prisma.approvalStage.findMany({
+      where: { orderId: order.id },
+    });
+    if (stages.length === 0) {
+      return `${order.orderNo} siparişi için henüz onay süreci başlatılmamış.`;
+    }
+
+    const parts = APPROVAL_STAGE_ORDER_LIST.map((stageType) => {
+      const stage = stages.find((s) => s.stageType === stageType);
+      const label = APPROVAL_STAGE_LABEL[stageType] ?? stageType;
+      if (!stage) return `${label} ⏳ (bekliyor)`;
+      if (stage.status === 'APPROVED') return `${label} ✅`;
+      if (stage.status === 'REJECTED') return `${label} ❌ (reddedildi)`;
+      return `${label} ⏳ (bekliyor)`;
+    });
+
+    return `${order.orderNo} siparişi: ${parts.join(', ')}`;
   }
 
   private answerTopUsage(question: string): string {
