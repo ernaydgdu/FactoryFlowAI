@@ -15,8 +15,23 @@ import type {
   CreateOrderDto,
   CreateProductionEntryDto,
   CreateQualityEntryDto,
+  UpdateApprovalStageDto,
   UpdateMaterialStatusDto,
 } from './dto/order.dto';
+
+const APPROVAL_STAGE_ORDER = [
+  'PP_NUMUNE',
+  'PASTAL_ONAY',
+  'SARFIYAT_ONAY',
+  'KESIM_ONAY',
+] as const;
+
+const APPROVAL_STAGE_LABEL: Record<string, string> = {
+  PP_NUMUNE: 'PP Numune Onayı',
+  PASTAL_ONAY: 'Pastal Onayı',
+  SARFIYAT_ONAY: 'Sarfiyat Onayı',
+  KESIM_ONAY: 'Kesim Onayı',
+};
 
 export type OrderAiSuggestion = {
   productType: string | null;
@@ -291,5 +306,79 @@ export class OrdersService {
     }
     await this.prisma.orderColorSize.delete({ where: { id: colorSizeId } });
     return { success: true };
+  }
+
+  async getApprovalStages(orderId: number) {
+    await this.findOrderOrThrow(orderId);
+
+    const existing = await this.prisma.approvalStage.findMany({
+      where: { orderId },
+    });
+
+    if (existing.length === 0) {
+      await this.prisma.approvalStage.createMany({
+        data: APPROVAL_STAGE_ORDER.map((stageType) => ({
+          orderId,
+          stageType,
+        })),
+      });
+    }
+
+    const stages = await this.prisma.approvalStage.findMany({
+      where: { orderId },
+    });
+
+    return stages.sort(
+      (a, b) =>
+        APPROVAL_STAGE_ORDER.indexOf(
+          a.stageType as (typeof APPROVAL_STAGE_ORDER)[number],
+        ) -
+        APPROVAL_STAGE_ORDER.indexOf(
+          b.stageType as (typeof APPROVAL_STAGE_ORDER)[number],
+        ),
+    );
+  }
+
+  async updateApprovalStage(
+    orderId: number,
+    stageId: number,
+    data: UpdateApprovalStageDto,
+  ) {
+    const stage = await this.prisma.approvalStage.findFirst({
+      where: { id: stageId, orderId },
+    });
+    if (!stage) {
+      throw new NotFoundException('Onay aşaması bulunamadı');
+    }
+
+    if (data.status === 'APPROVED') {
+      const stageIndex = APPROVAL_STAGE_ORDER.indexOf(
+        stage.stageType as (typeof APPROVAL_STAGE_ORDER)[number],
+      );
+      if (stageIndex > 0) {
+        const previousStageType = APPROVAL_STAGE_ORDER[stageIndex - 1];
+        const previousStage = await this.prisma.approvalStage.findFirst({
+          where: { orderId, stageType: previousStageType },
+        });
+        if (!previousStage || previousStage.status !== 'APPROVED') {
+          throw new BadRequestException(
+            `Önce ${APPROVAL_STAGE_LABEL[previousStageType]} onaylanmalı`,
+          );
+        }
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (data.status) {
+      updateData.status = data.status;
+      updateData.approvedAt = data.status === 'APPROVED' ? new Date() : null;
+    }
+    if (data.approvedBy !== undefined) updateData.approvedBy = data.approvedBy;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+
+    return this.prisma.approvalStage.update({
+      where: { id: stageId },
+      data: updateData,
+    });
   }
 }

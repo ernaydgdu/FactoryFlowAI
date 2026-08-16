@@ -45,6 +45,22 @@ model Order {
   qualityEntries QualityEntry[]
   stockLots     StockLot[]
   colorSizes    OrderColorSize[]
+  approvalStages ApprovalStage[]
+}
+
+model ApprovalStage {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  stageType   String   // PP_NUMUNE, PASTAL_ONAY, SARFIYAT_ONAY, KESIM_ONAY
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedBy  String?
+  approvedAt  DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([orderId, stageType])
 }
 
 model OrderColorSize {

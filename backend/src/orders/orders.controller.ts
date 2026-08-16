@@ -24,6 +24,7 @@ import type {
   CreateOrderDto,
   CreateProductionEntryDto,
   CreateQualityEntryDto,
+  UpdateApprovalStageDto,
   UpdateMaterialStatusDto,
 } from './dto/order.dto';
 
@@ -133,5 +134,20 @@ export class OrdersController {
     @Param('colorSizeId', ParseIntPipe) colorSizeId: number,
   ) {
     return this.ordersService.deleteColorSize(id, colorSizeId);
+  }
+
+  @Get(':id/approval-stages')
+  async getApprovalStages(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.getApprovalStages(id);
+  }
+
+  @Patch(':id/approval-stages/:stageId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async updateApprovalStage(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('stageId', ParseIntPipe) stageId: number,
+    @Body() body: UpdateApprovalStageDto,
+  ) {
+    return this.ordersService.updateApprovalStage(id, stageId, body);
   }
 }

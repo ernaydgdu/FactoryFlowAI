@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
+import { useAuth } from '@/application/platform/iam/auth-context'
 import { PageHeader, QualityRateCard, StatusBadge } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,17 +19,21 @@ import {
   createQualityEntry,
   deleteColorSize,
   fetchAiSuggestion,
+  fetchApprovalStages,
   fetchColorSizes,
   fetchMaterials,
   fetchOrderById,
   fetchProductionEntries,
   fetchQualityEntries,
+  updateApprovalStage,
   updateMaterialStatus,
   upsertColorSize,
+  type ApiApprovalStage,
   type ApiMaterial,
   type ApiOrderColorSize,
   type ApiProductionEntry,
   type ApiQualityEntry,
+  type ApprovalStageType,
   type CreateMaterialInput,
   type CreateProductionEntryInput,
   type CreateQualityEntryInput,
@@ -147,6 +152,7 @@ export function OrderDetailPage() {
               <TabsTrigger value="production">Üretim</TabsTrigger>
               <TabsTrigger value="quality">Kalite</TabsTrigger>
               <TabsTrigger value="color-sizes">Renk/Beden</TabsTrigger>
+              <TabsTrigger value="approval">Onay Süreci</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
@@ -178,6 +184,10 @@ export function OrderDetailPage() {
 
             <TabsContent value="color-sizes">
               <ColorSizePanel orderId={id} totalQuantity={order.totalQuantity} />
+            </TabsContent>
+
+            <TabsContent value="approval">
+              <ApprovalStagePanel orderId={id} />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -1331,6 +1341,150 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+const APPROVAL_STAGE_LABEL: Record<ApprovalStageType, string> = {
+  PP_NUMUNE: 'PP Numune Onayı',
+  PASTAL_ONAY: 'Pastal Onayı',
+  SARFIYAT_ONAY: 'Sarfiyat Onayı',
+  KESIM_ONAY: 'Kesim Onayı',
+}
+
+const APPROVAL_STATUS_ICON: Record<ApiApprovalStage['status'], string> = {
+  PENDING: '⏳',
+  APPROVED: '✅',
+  REJECTED: '❌',
+}
+
+const APPROVAL_STATUS_LABEL: Record<ApiApprovalStage['status'], string> = {
+  PENDING: 'Bekliyor',
+  APPROVED: 'Onaylandı',
+  REJECTED: 'Reddedildi',
+}
+
+const APPROVAL_STATUS_TONE: Record<ApiApprovalStage['status'], string> = {
+  PENDING: 'border-border text-muted-foreground',
+  APPROVED: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+  REJECTED: 'border-destructive/30 bg-destructive/5 text-destructive',
+}
+
+function ApprovalStagePanel({ orderId }: { orderId: string }) {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [error, setError] = useState<string | null>(null)
+
+  const stagesQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.approvalStages(orderId),
+    queryFn: () => fetchApprovalStages(orderId),
+    enabled: !!orderId,
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({
+      stageId,
+      status,
+    }: {
+      stageId: number
+      status: 'APPROVED' | 'REJECTED'
+    }) =>
+      updateApprovalStage(orderId, stageId, {
+        status,
+        approvedBy: user?.fullName ?? 'Bilinmeyen Kullanıcı',
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.approvalStages(orderId),
+        refetchType: 'all',
+      }),
+  })
+
+  async function handleUpdate(stageId: number, status: 'APPROVED' | 'REJECTED') {
+    setError(null)
+    try {
+      await updateMutation.mutateAsync({ stageId, status })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Aşama güncellenemedi.')
+    }
+  }
+
+  const stages = stagesQuery.data ?? []
+  const approvedCount = stages.filter((s) => s.status === 'APPROVED').length
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border px-4 py-3 text-sm font-medium">
+        {approvedCount}/{stages.length || 4} aşama tamamlandı
+      </div>
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      {stagesQuery.isLoading ? (
+        <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+      ) : (
+        <ol className="relative space-y-4 border-l border-border pl-6">
+          {stages.map((stage) => (
+            <li key={stage.id} className="relative">
+              <span
+                className={cn(
+                  'absolute -left-[1.95rem] flex size-6 items-center justify-center rounded-full border bg-background text-xs',
+                  APPROVAL_STATUS_TONE[stage.status],
+                )}
+              >
+                {APPROVAL_STATUS_ICON[stage.status]}
+              </span>
+              <div
+                className={cn(
+                  'rounded-lg border p-4',
+                  stage.status === 'PENDING' ? 'border-border' : APPROVAL_STATUS_TONE[stage.status],
+                )}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{APPROVAL_STAGE_LABEL[stage.stageType]}</p>
+                  <StatusBadge
+                    label={APPROVAL_STATUS_LABEL[stage.status]}
+                    tone={
+                      stage.status === 'APPROVED'
+                        ? 'success'
+                        : stage.status === 'REJECTED'
+                          ? 'danger'
+                          : 'muted'
+                    }
+                  />
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {stage.approvedBy ? `Onaylayan: ${stage.approvedBy}` : 'Henüz işlem yapılmadı'}
+                  {stage.approvedAt ? ` · ${formatDate(stage.approvedAt)}` : ''}
+                </div>
+                {stage.status === 'PENDING' ? (
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={updateMutation.isPending}
+                      onClick={() => handleUpdate(stage.id, 'APPROVED')}
+                    >
+                      <Check className="size-4" /> Onayla
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={updateMutation.isPending}
+                      onClick={() => handleUpdate(stage.id, 'REJECTED')}
+                    >
+                      <X className="size-4" /> Reddet
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   )
 }

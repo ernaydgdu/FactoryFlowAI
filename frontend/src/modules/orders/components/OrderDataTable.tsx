@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   ArrowDown,
   ArrowUp,
@@ -6,7 +7,9 @@ import {
 } from 'lucide-react'
 import { useMemo, type ReactNode } from 'react'
 
+import { applicationQueryKeys } from '@/application/core/query-keys'
 import { StatusBadge } from '@/components/erp'
+import { fetchApprovalStages } from '@/infrastructure/api/orders-api.repository'
 import { cn } from '@/lib/utils'
 
 import {
@@ -179,6 +182,11 @@ export function OrderDataTable({ orders, list, onDeleteRow }: OrderDataTableProp
           tone={productionStatusTone[o.productionStatus]}
         />
       ),
+    },
+    {
+      id: 'approvalProgress',
+      label: 'Onay',
+      render: (o) => <ApprovalProgressCell orderId={o.id} />,
     },
     {
       id: 'fabricStatus',
@@ -367,6 +375,27 @@ export function OrderDataTable({ orders, list, onDeleteRow }: OrderDataTableProp
         </tbody>
       </table>
     </div>
+  )
+}
+
+function ApprovalProgressCell({ orderId }: { orderId: string }) {
+  const stagesQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.approvalStages(orderId),
+    queryFn: () => fetchApprovalStages(orderId),
+    staleTime: 60_000,
+  })
+
+  if (stagesQuery.isLoading || !stagesQuery.data) {
+    return <span className="text-xs text-muted-foreground">—</span>
+  }
+
+  const total = stagesQuery.data.length
+  const approved = stagesQuery.data.filter((s) => s.status === 'APPROVED').length
+
+  return (
+    <span className="text-xs tabular-nums text-muted-foreground">
+      {approved}/{total}
+    </span>
   )
 }
 

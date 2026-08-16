@@ -51,3 +51,9 @@ export class CreateOrderColorSizeDto {
   size!: string;
   quantity!: number;
 }
+
+export class UpdateApprovalStageDto {
+  status?: string;
+  approvedBy?: string;
+  notes?: string;
+}

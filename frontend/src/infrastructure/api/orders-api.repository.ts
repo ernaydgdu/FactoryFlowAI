@@ -287,3 +287,53 @@ export async function upsertColorSize(
 export async function deleteColorSize(orderId: string, colorSizeId: number): Promise<void> {
   await api.delete(`/orders/${orderId}/color-sizes/${colorSizeId}`)
 }
+
+export type ApprovalStageType =
+  | 'PP_NUMUNE'
+  | 'PASTAL_ONAY'
+  | 'SARFIYAT_ONAY'
+  | 'KESIM_ONAY'
+
+export type ApprovalStageStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export type ApiApprovalStage = {
+  id: number
+  orderId: number
+  stageType: ApprovalStageType
+  status: ApprovalStageStatus
+  approvedBy: string | null
+  approvedAt: string | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type UpdateApprovalStageInput = {
+  status?: ApprovalStageStatus
+  approvedBy?: string
+  notes?: string
+}
+
+export async function fetchApprovalStages(orderId: string): Promise<ApiApprovalStage[]> {
+  const { data } = await api.get<ApiApprovalStage[]>(`/orders/${orderId}/approval-stages`)
+  return data
+}
+
+export async function updateApprovalStage(
+  orderId: string,
+  stageId: number,
+  input: UpdateApprovalStageInput,
+): Promise<ApiApprovalStage> {
+  try {
+    const { data } = await api.patch<ApiApprovalStage>(
+      `/orders/${orderId}/approval-stages/${stageId}`,
+      input,
+    )
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
