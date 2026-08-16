@@ -11,6 +11,7 @@ import {
 } from '../knowledge/textile-knowledge';
 import type {
   CreateMaterialDto,
+  CreateOrderColorSizeDto,
   CreateOrderDto,
   CreateProductionEntryDto,
   CreateQualityEntryDto,
@@ -258,5 +259,37 @@ export class OrdersService {
         notes: data.notes,
       },
     });
+  }
+
+  async getColorSizes(orderId: number) {
+    await this.findOrderOrThrow(orderId);
+    return this.prisma.orderColorSize.findMany({
+      where: { orderId },
+      orderBy: [{ color: 'asc' }, { size: 'asc' }],
+    });
+  }
+
+  async upsertColorSize(orderId: number, data: CreateOrderColorSizeDto) {
+    await this.findOrderOrThrow(orderId);
+
+    const color = data.color.trim();
+    const size = data.size.trim();
+
+    return this.prisma.orderColorSize.upsert({
+      where: { orderId_color_size: { orderId, color, size } },
+      create: { orderId, color, size, quantity: data.quantity },
+      update: { quantity: data.quantity },
+    });
+  }
+
+  async deleteColorSize(orderId: number, colorSizeId: number) {
+    const row = await this.prisma.orderColorSize.findFirst({
+      where: { id: colorSizeId, orderId },
+    });
+    if (!row) {
+      throw new NotFoundException('Renk/beden kaydı bulunamadı');
+    }
+    await this.prisma.orderColorSize.delete({ where: { id: colorSizeId } });
+    return { success: true };
   }
 }

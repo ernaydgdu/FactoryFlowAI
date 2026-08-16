@@ -44,6 +44,20 @@ model Order {
   productionEntries ProductionEntry[]
   qualityEntries QualityEntry[]
   stockLots     StockLot[]
+  colorSizes    OrderColorSize[]
+}
+
+model OrderColorSize {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  color     String
+  size      String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderId, color, size])
 }
 
 model Material {

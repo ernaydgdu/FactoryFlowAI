@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Sparkles } from 'lucide-react'
+import { ArrowLeft, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -11,17 +11,22 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { SIZE_PRESETS } from '@/modules/core/data/master-data'
 import {
   createMaterial,
   createProductionEntry,
   createQualityEntry,
+  deleteColorSize,
   fetchAiSuggestion,
+  fetchColorSizes,
   fetchMaterials,
   fetchOrderById,
   fetchProductionEntries,
   fetchQualityEntries,
   updateMaterialStatus,
+  upsertColorSize,
   type ApiMaterial,
+  type ApiOrderColorSize,
   type ApiProductionEntry,
   type ApiQualityEntry,
   type CreateMaterialInput,
@@ -141,6 +146,7 @@ export function OrderDetailPage() {
               <TabsTrigger value="purchase">Satın Alma</TabsTrigger>
               <TabsTrigger value="production">Üretim</TabsTrigger>
               <TabsTrigger value="quality">Kalite</TabsTrigger>
+              <TabsTrigger value="color-sizes">Renk/Beden</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
@@ -168,6 +174,10 @@ export function OrderDetailPage() {
 
             <TabsContent value="quality">
               <QualityPanel orderId={id} />
+            </TabsContent>
+
+            <TabsContent value="color-sizes">
+              <ColorSizePanel orderId={id} totalQuantity={order.totalQuantity} />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -1054,6 +1064,296 @@ function QualityRow({ entry }: { entry: ApiQualityEntry }) {
       <td className="px-3 py-2">{entry.defectType ?? '—'}</td>
       <td className="px-3 py-2">{formatDate(entry.date)}</td>
       <td className="px-3 py-2">{entry.notes ?? '—'}</td>
+    </tr>
+  )
+}
+
+type ColorSizeFormState = {
+  color: string
+  size: string
+  quantity: string
+}
+
+const INITIAL_COLOR_SIZE_FORM: ColorSizeFormState = {
+  color: '',
+  size: '',
+  quantity: '',
+}
+
+const LETTER_SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL']
+
+function sortSizes(sizes: string[]): string[] {
+  const unique = Array.from(new Set(sizes))
+  const allLetter = unique.every((s) => LETTER_SIZE_ORDER.includes(s.toUpperCase()))
+  if (allLetter) {
+    return unique.sort(
+      (a, b) => LETTER_SIZE_ORDER.indexOf(a.toUpperCase()) - LETTER_SIZE_ORDER.indexOf(b.toUpperCase()),
+    )
+  }
+  const allNumeric = unique.every((s) => !Number.isNaN(Number(s)))
+  if (allNumeric) {
+    return unique.sort((a, b) => Number(a) - Number(b))
+  }
+  return unique.sort((a, b) => a.localeCompare(b, 'tr-TR'))
+}
+
+function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuantity: number }) {
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<ColorSizeFormState>(INITIAL_COLOR_SIZE_FORM)
+  const [error, setError] = useState<string | null>(null)
+
+  const colorSizesQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.colorSizes(orderId),
+    queryFn: () => fetchColorSizes(orderId),
+    enabled: !!orderId,
+  })
+
+  function invalidate() {
+    return queryClient.invalidateQueries({
+      queryKey: applicationQueryKeys.orderRecord.colorSizes(orderId),
+      refetchType: 'all',
+    })
+  }
+
+  const upsertMutation = useMutation({
+    mutationFn: (input: { color: string; size: string; quantity: number }) =>
+      upsertColorSize(orderId, input),
+    onSuccess: invalidate,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (colorSizeId: number) => deleteColorSize(orderId, colorSizeId),
+    onSuccess: invalidate,
+  })
+
+  function updateField(field: keyof ColorSizeFormState, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const quantity = Number(form.quantity)
+    if (!form.color.trim() || !form.size.trim()) {
+      setError('Renk ve beden alanları zorunludur.')
+      return
+    }
+    if (form.quantity === '' || Number.isNaN(quantity) || quantity < 0) {
+      setError('Miktar geçerli bir sayı olmalıdır.')
+      return
+    }
+
+    try {
+      await upsertMutation.mutateAsync({
+        color: form.color.trim(),
+        size: form.size.trim(),
+        quantity,
+      })
+      setForm((prev) => ({ ...prev, size: '', quantity: '' }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Renk/beden eklenemedi.')
+    }
+  }
+
+  async function handleApplyTemplate(sizes: readonly string[]) {
+    setError(null)
+    if (!form.color.trim()) {
+      setError('Şablon uygulamadan önce bir Renk girin.')
+      return
+    }
+
+    const color = form.color.trim()
+    const existingSizes = new Set(
+      (colorSizesQuery.data ?? [])
+        .filter((row) => row.color === color)
+        .map((row) => row.size),
+    )
+
+    for (const size of sizes) {
+      if (existingSizes.has(size)) continue
+      await upsertMutation.mutateAsync({ color, size, quantity: 0 })
+    }
+  }
+
+  const rows = colorSizesQuery.data ?? []
+  const colors = Array.from(new Set(rows.map((r) => r.color))).sort((a, b) =>
+    a.localeCompare(b, 'tr-TR'),
+  )
+  const sizes = sortSizes(rows.map((r) => r.size))
+  const quantityByColorSize = new Map(rows.map((r) => [`${r.color}__${r.size}`, r.quantity]))
+
+  const enteredTotal = rows.reduce((sum, r) => sum + r.quantity, 0)
+  const diff = totalQuantity - enteredTotal
+  const isBalanced = diff === 0
+
+  return (
+    <div className="space-y-4">
+      <div
+        className={cn(
+          'rounded-lg border px-4 py-3 text-sm font-medium',
+          isBalanced
+            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+            : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+        )}
+      >
+        Girilen Toplam: {enteredTotal.toLocaleString('tr-TR')} / Sipariş Toplamı:{' '}
+        {totalQuantity.toLocaleString('tr-TR')}
+        {isBalanced ? ' ✓' : ` — ⚠️ Fark: ${Math.abs(diff).toLocaleString('tr-TR')} adet`}
+      </div>
+
+      {colors.length > 0 && sizes.length > 0 ? (
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+                <th className="px-3 py-2">Renk \ Beden</th>
+                {sizes.map((size) => (
+                  <th key={size} className="px-3 py-2 text-center">
+                    {size}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {colors.map((color) => (
+                <tr key={color} className="border-b border-border/60">
+                  <td className="px-3 py-2 font-medium">{color}</td>
+                  {sizes.map((size) => (
+                    <td key={size} className="px-3 py-2 text-center tabular-nums">
+                      {quantityByColorSize.get(`${color}__${size}`)?.toLocaleString('tr-TR') ?? '—'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      <form
+        onSubmit={handleAdd}
+        className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-3"
+      >
+        <div className="grid gap-1.5">
+          <Label htmlFor="csColor">Renk</Label>
+          <Input
+            id="csColor"
+            value={form.color}
+            onChange={(e) => updateField('color', e.target.value)}
+            placeholder="Lacivert"
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="csSize">Beden</Label>
+          <Input
+            id="csSize"
+            value={form.size}
+            onChange={(e) => updateField('size', e.target.value)}
+            placeholder="M"
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="csQuantity">Miktar</Label>
+          <Input
+            id="csQuantity"
+            type="number"
+            min="0"
+            value={form.quantity}
+            onChange={(e) => updateField('quantity', e.target.value)}
+            placeholder="100"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:col-span-3">
+          <Button type="submit" size="sm" disabled={upsertMutation.isPending}>
+            <Plus className="size-4" /> Ekle
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={upsertMutation.isPending}
+            onClick={() => handleApplyTemplate(SIZE_PRESETS.letter)}
+          >
+            {SIZE_PRESETS.letter.join('-')} ekle
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={upsertMutation.isPending}
+            onClick={() => handleApplyTemplate(SIZE_PRESETS.numeric)}
+          >
+            {SIZE_PRESETS.numeric.join('-')} ekle
+          </Button>
+        </div>
+      </form>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2">Renk</th>
+              <th className="px-3 py-2">Beden</th>
+              <th className="px-3 py-2">Miktar</th>
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {colorSizesQuery.isLoading ? (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                  Yükleniyor...
+                </td>
+              </tr>
+            ) : rows.length > 0 ? (
+              rows.map((row) => (
+                <ColorSizeRow
+                  key={row.id}
+                  row={row}
+                  onDelete={() => deleteMutation.mutate(row.id)}
+                  isDeleting={deleteMutation.isPending && deleteMutation.variables === row.id}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                  Henüz renk/beden girilmedi.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ColorSizeRow({
+  row,
+  onDelete,
+  isDeleting,
+}: {
+  row: ApiOrderColorSize
+  onDelete: () => void
+  isDeleting: boolean
+}) {
+  return (
+    <tr className="border-b border-border/60">
+      <td className="px-3 py-2 font-medium">{row.color}</td>
+      <td className="px-3 py-2">{row.size}</td>
+      <td className="px-3 py-2 tabular-nums">{row.quantity.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2 text-right">
+        <Button variant="ghost" size="sm" disabled={isDeleting} onClick={onDelete}>
+          <Trash2 className="size-4" />
+        </Button>
+      </td>
     </tr>
   )
 }

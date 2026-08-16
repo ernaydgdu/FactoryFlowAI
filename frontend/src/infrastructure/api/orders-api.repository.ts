@@ -254,3 +254,36 @@ export async function createQualityEntry(
     throw err
   }
 }
+
+export type ApiOrderColorSize = {
+  id: number
+  orderId: number
+  color: string
+  size: string
+  quantity: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type UpsertColorSizeInput = {
+  color: string
+  size: string
+  quantity: number
+}
+
+export async function fetchColorSizes(orderId: string): Promise<ApiOrderColorSize[]> {
+  const { data } = await api.get<ApiOrderColorSize[]>(`/orders/${orderId}/color-sizes`)
+  return data
+}
+
+export async function upsertColorSize(
+  orderId: string,
+  input: UpsertColorSizeInput,
+): Promise<ApiOrderColorSize> {
+  const { data } = await api.post<ApiOrderColorSize>(`/orders/${orderId}/color-sizes`, input)
+  return data
+}
+
+export async function deleteColorSize(orderId: string, colorSizeId: number): Promise<void> {
+  await api.delete(`/orders/${orderId}/color-sizes/${colorSizeId}`)
+}

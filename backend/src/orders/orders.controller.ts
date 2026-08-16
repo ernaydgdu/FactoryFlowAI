@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -19,6 +20,7 @@ import {
 } from '../auth/decorators/current-user.decorator';
 import type {
   CreateMaterialDto,
+  CreateOrderColorSizeDto,
   CreateOrderDto,
   CreateProductionEntryDto,
   CreateQualityEntryDto,
@@ -108,5 +110,28 @@ export class OrdersController {
     @Body() body: CreateQualityEntryDto,
   ) {
     return this.ordersService.addQualityEntry(id, body);
+  }
+
+  @Get(':id/color-sizes')
+  async getColorSizes(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.getColorSizes(id);
+  }
+
+  @Post(':id/color-sizes')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async upsertColorSize(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateOrderColorSizeDto,
+  ) {
+    return this.ordersService.upsertColorSize(id, body);
+  }
+
+  @Delete(':id/color-sizes/:colorSizeId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async deleteColorSize(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('colorSizeId', ParseIntPipe) colorSizeId: number,
+  ) {
+    return this.ordersService.deleteColorSize(id, colorSizeId);
   }
 }

@@ -45,3 +45,9 @@ export class CreateQualityEntryDto {
   date?: string;
   notes?: string;
 }
+
+export class CreateOrderColorSizeDto {
+  color!: string;
+  size!: string;
+  quantity!: number;
+}

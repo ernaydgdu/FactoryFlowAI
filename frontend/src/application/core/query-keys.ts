@@ -21,6 +21,8 @@ export const applicationQueryKeys = {
     aiSuggestion: (id: string) =>
       [...applicationQueryKeys.orderRecord.all, 'ai-suggestion', id] as const,
     quality: (id: string) => [...applicationQueryKeys.orderRecord.all, 'quality', id] as const,
+    colorSizes: (id: string) =>
+      [...applicationQueryKeys.orderRecord.all, 'color-sizes', id] as const,
   },
   // Real backend GET /api/dashboard summary
   dashboardSummary: {
