@@ -30,6 +30,21 @@ export const applicationQueryKeys = {
     qualitySummary: () =>
       [...applicationQueryKeys.dashboardSummary.all, 'quality-summary'] as const,
   },
+  // Real backend StockLot/StockMovement REST resource
+  stockRecord: {
+    all: ['stock-record'] as const,
+    lots: (materialType?: string) =>
+      [...applicationQueryKeys.stockRecord.all, 'lots', materialType ?? 'all'] as const,
+    movements: (lotId: number) =>
+      [...applicationQueryKeys.stockRecord.all, 'movements', lotId] as const,
+    fifoSuggestion: (materialName: string, neededQty: number) =>
+      [
+        ...applicationQueryKeys.stockRecord.all,
+        'fifo-suggestion',
+        materialName,
+        neededQty,
+      ] as const,
+  },
   fabricCard: {
     all: ['fabric-card'] as const,
     list: () => [...applicationQueryKeys.fabricCard.all, 'list'] as const,

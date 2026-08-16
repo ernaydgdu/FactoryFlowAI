@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Bot,
+  Boxes,
   ClipboardList,
   Factory,
   FileBarChart,
@@ -44,6 +45,11 @@ export const navGroups: NavGroup[] = [
       { title: 'MRP', href: '/planning/mrp' },
       { title: 'Satın Alma', href: '/purchasing' },
     ],
+  },
+  {
+    title: 'Stok Yönetimi',
+    icon: Boxes,
+    items: [{ title: 'Stok Yönetimi', href: '/stock' }],
   },
   {
     title: 'Ürün Kartları',
@@ -272,6 +278,7 @@ export const routeTitles: Record<string, string> = {
   '/dashboard': 'Kontrol Paneli',
   '/orders': 'Sipariş Listesi',
   '/orders/new': 'Yeni Sipariş',
+  '/stock': 'Stok Yönetimi',
   '/merchandising': 'Merchandising',
   '/purchasing': 'Satın Alma',
   '/products': 'Ürün Kartları',

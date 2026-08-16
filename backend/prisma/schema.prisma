@@ -43,6 +43,7 @@ model Order {
   materials     Material[]
   productionEntries ProductionEntry[]
   qualityEntries QualityEntry[]
+  stockLots     StockLot[]
 }
 
 model Material {
@@ -92,4 +93,34 @@ model QualityEntry {
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model StockLot {
+  id              Int      @id @default(autoincrement())
+  materialName    String
+  materialType    String   // KUMAŞ, AKSESUAR
+  supplierName    String
+  lotNo           String?
+  receivedQty     Float
+  remainingQty    Float
+  unitPrice       Float?
+  currency        String   @default("USD")
+  receivedDate    DateTime @default(now())
+  orderId         Int?     // hangi siparişin malzemesi olarak geldi (opsiyonel)
+  order           Order?   @relation(fields: [orderId], references: [id])
+  movements       StockMovement[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model StockMovement {
+  id          Int      @id @default(autoincrement())
+  stockLotId  Int
+  stockLot    StockLot @relation(fields: [stockLotId], references: [id])
+  type        String   // GIRIS, CIKIS
+  quantity    Float
+  reason      String?  // örn: "1040 nolu sipariş kesim için tüketim"
+  orderId     Int?     // tüketim hangi sipariş için yapıldı
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
 }
