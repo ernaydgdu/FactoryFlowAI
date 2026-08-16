@@ -79,6 +79,16 @@ export type QualitySummary = {
   rejectionRate: number;
 };
 
+export type SupplierPerformance = {
+  supplierName: string;
+  totalOrders: number;
+  onTimeCount: number;
+  lateCount: number;
+  pendingCount: number;
+  avgDelayDays: number;
+  reliabilityScore: number;
+};
+
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
@@ -272,6 +282,64 @@ export class DashboardService {
     };
   }
 
+  async getSupplierPerformance(
+    tenantId?: string,
+  ): Promise<SupplierPerformance[]> {
+    const materials = await this.prisma.material.findMany({
+      where: tenantId ? { order: { tenantId } } : undefined,
+      include: { order: true },
+    });
+
+    const bySupplier = new Map<string, typeof materials>();
+    for (const material of materials) {
+      const list = bySupplier.get(material.supplierName) ?? [];
+      list.push(material);
+      bySupplier.set(material.supplierName, list);
+    }
+
+    const results: SupplierPerformance[] = [];
+
+    for (const [supplierName, supplierMaterials] of bySupplier) {
+      const totalOrders = supplierMaterials.length;
+      let onTimeCount = 0;
+      let lateCount = 0;
+      let pendingCount = 0;
+      let totalDelayDays = 0;
+
+      for (const material of supplierMaterials) {
+        if (material.status === 'ARRIVED' && material.expectedArrival) {
+          const expectedMs = dateOnlyUTC(material.expectedArrival);
+          const shipmentMs = dateOnlyUTC(material.order.shipmentDate);
+
+          if (expectedMs <= shipmentMs) {
+            onTimeCount += 1;
+          } else {
+            lateCount += 1;
+            totalDelayDays += daysBetweenUTC(shipmentMs, expectedMs);
+          }
+        } else if (material.status === 'PENDING') {
+          pendingCount += 1;
+        }
+      }
+
+      const avgDelayDays = lateCount > 0 ? totalDelayDays / lateCount : 0;
+      const reliabilityScore =
+        totalOrders > 0 ? (onTimeCount / totalOrders) * 100 : 0;
+
+      results.push({
+        supplierName,
+        totalOrders,
+        onTimeCount,
+        lateCount,
+        pendingCount,
+        avgDelayDays,
+        reliabilityScore,
+      });
+    }
+
+    return results.sort((a, b) => b.reliabilityScore - a.reliabilityScore);
+  }
+
   async getAiAdvice(tenantId?: string): Promise<string> {
     const orders = await this.prisma.order.findMany({
       where: tenantId ? { tenantId } : undefined,
@@ -411,6 +479,10 @@ export class DashboardService {
       return this.answerCuttingOrderType(question);
     }
 
+    if (q.includes('güvenilir') || q.includes('performans')) {
+      return this.answerSupplierPerformance(question, tenantId);
+    }
+
     if (q.includes('termin') || q.includes('gecikme')) {
       const order = await this.findOrderFromQuestion(question, tenantId);
       return this.answerTerminStatus(order);
@@ -439,6 +511,7 @@ export class DashboardService {
       '• Kesim işçilik maliyeti hesaplama — örn: "kesim maliyeti nasıl hesaplanır?"',
       '• Depo yönetimi (FIFO/LIFO) önerisi — örn: "3 renk 4 beden parçalı teslimat, hangi depo yöntemi?"',
       '• Kesim emri türü önerisi — örn: "2 beden 1 renk için nasıl kesim emri açmalıyım?"',
+      '• Tedarikçi güvenilirliği — örn: "ÖZEGE güvenilir mi?"',
       '• Sipariş termin durumu — örn: "1040 termin durumu nedir?"',
       '• Sipariş üretim durumu — örn: "1040 ne durumda?"',
     ].join('\n');
@@ -589,6 +662,43 @@ export class DashboardService {
 
     const { label, rate } = productType;
     return `${label} için standart sarfiyat ${formatConsumptionRate(rate)} kullanılır.`;
+  }
+
+  private async answerSupplierPerformance(
+    question: string,
+    tenantId?: string,
+  ): Promise<string> {
+    const performance = await this.getSupplierPerformance(tenantId);
+    if (performance.length === 0) {
+      return 'Henüz değerlendirilecek tedarikçi verisi bulunmuyor.';
+    }
+
+    const normalizedQuestion = question.toLocaleLowerCase('tr-TR');
+    const match = [...performance]
+      .sort((a, b) => b.supplierName.length - a.supplierName.length)
+      .find((supplier) =>
+        normalizedQuestion.includes(
+          supplier.supplierName.toLocaleLowerCase('tr-TR'),
+        ),
+      );
+
+    if (!match) {
+      return 'Hangi tedarikçiyi kastettiğinizi anlayamadım. Tedarikçi adını tam olarak belirtir misiniz? (örn: "ÖZEGE güvenilir mi?")';
+    }
+
+    const reliabilityLabel =
+      match.reliabilityScore >= 80
+        ? 'güvenilir'
+        : match.reliabilityScore >= 50
+          ? 'orta düzeyde güvenilir'
+          : 'düşük güvenilirlikte';
+
+    const lateInfo =
+      match.lateCount > 0
+        ? ` (ortalama ${match.avgDelayDays.toFixed(1)} gün gecikme)`
+        : '';
+
+    return `${match.supplierName} tedarikçisi ${reliabilityLabel} (%${match.reliabilityScore.toFixed(1)} güvenilirlik skoru). Toplam ${match.totalOrders} malzeme siparişinden ${match.onTimeCount} tanesi zamanında geldi, ${match.lateCount} tanesi geç geldi${lateInfo}, ${match.pendingCount} tanesi hâlâ bekliyor.`;
   }
 
   private answerTerminStatus(order: OrderWithMaterials | null): string {

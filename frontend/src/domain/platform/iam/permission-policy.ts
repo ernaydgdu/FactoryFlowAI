@@ -155,6 +155,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: '/packaging', permission: 'warehouse.read' },
   { prefix: '/warehouse', permission: 'warehouse.read' },
   { prefix: '/stock', permission: 'warehouse.read' },
+  { prefix: '/suppliers', permission: 'reports.read' },
   { prefix: '/export-logistics', permission: 'shipping.read' },
   { prefix: '/commercial-documents', permission: 'shipping.read' },
   { prefix: '/shipping', permission: 'shipping.read' },

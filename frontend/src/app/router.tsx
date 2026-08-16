@@ -13,6 +13,10 @@ const OrderCreatePage = lazyPage(() => import('@/pages/orders/OrderCreatePage'),
 const OrderEditPage = lazyPage(() => import('@/pages/orders/OrderEditPage'), 'OrderEditPage')
 const OrderDetailPage = lazyPage(() => import('@/modules/orders/pages/OrderDetailPage'), 'OrderDetailPage')
 const StockPage = lazyPage(() => import('@/pages/stock/StockPage'), 'StockPage')
+const SupplierPerformancePage = lazyPage(
+  () => import('@/pages/suppliers/SupplierPerformancePage'),
+  'SupplierPerformancePage',
+)
 const ProductListPage = lazyPage(() => import('@/pages/catalog/ProductPages'), 'ProductListPage')
 const ProductCreatePage = lazyPage(() => import('@/pages/catalog/ProductPages'), 'ProductCreatePage')
 const ProductEditRoute = lazyPage(() => import('@/pages/catalog/ProductEditRoute'), 'ProductEditRoute')
@@ -716,6 +720,7 @@ export function AppRouter() {
         <Route path="/orders/:id/edit" element={<L><OrderEditPage /></L>} />
 
         <Route path="/stock" element={<L><StockPage /></L>} />
+        <Route path="/suppliers" element={<L><SupplierPerformancePage /></L>} />
 
         <Route path="/merchandising" element={<L><MerchandisingListPage /></L>} />
         <Route path="/merchandising/:orderId" element={<L><MerchandisingDetailRoute /></L>} />

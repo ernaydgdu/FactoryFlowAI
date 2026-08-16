@@ -25,9 +25,12 @@ import {
   fetchDashboard,
   fetchDashboardAlerts,
   fetchQualitySummary,
+  fetchSupplierPerformance,
   type DashboardAlertSeverity,
+  type SupplierPerformance,
 } from '@/infrastructure/api/dashboard-api.repository'
 import { getQualityRateTone, QUALITY_RATE_TONE_CLASS } from '@/lib/quality-rate'
+import { getReliabilityTone } from '@/lib/reliability-rate'
 import { cn } from '@/lib/utils'
 
 const ALERT_SEVERITY_STYLE: Record<DashboardAlertSeverity, string> = {
@@ -55,6 +58,20 @@ export function DashboardPage() {
     queryKey: applicationQueryKeys.dashboardSummary.qualitySummary(),
     queryFn: fetchQualitySummary,
   })
+
+  const supplierPerformanceQuery = useQuery({
+    queryKey: applicationQueryKeys.dashboardSummary.supplierPerformance(),
+    queryFn: fetchSupplierPerformance,
+  })
+
+  // Tek seferlik siparişler yanıltıcı olmasın diye en az 2 sipariş verilmiş tedarikçiler arasından bakılır.
+  const riskySupplier = (supplierPerformanceQuery.data ?? [])
+    .filter((supplier) => supplier.totalOrders >= 2)
+    .reduce<SupplierPerformance | null>(
+      (worst, supplier) =>
+        !worst || supplier.reliabilityScore < worst.reliabilityScore ? supplier : worst,
+      null,
+    )
 
   const stats = dashboardQuery.data
   const dashboardStats = stats
@@ -126,7 +143,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Akıllı Uyarılar</CardTitle>
@@ -226,6 +243,39 @@ export function DashboardPage() {
                 </div>
               </div>
             ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">En Riskli Tedarikçi</CardTitle>
+            <CardDescription>En düşük güvenilirlik skoru (en az 2 sipariş)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {supplierPerformanceQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+            ) : supplierPerformanceQuery.isError ? (
+              <p className="text-sm text-destructive">Tedarikçi verisi yüklenemedi.</p>
+            ) : riskySupplier ? (
+              <div
+                className={cn(
+                  'rounded-lg border px-3 py-2',
+                  QUALITY_RATE_TONE_CLASS[getReliabilityTone(riskySupplier.reliabilityScore)],
+                )}
+              >
+                <p className="text-sm font-semibold">{riskySupplier.supplierName}</p>
+                <p className="text-lg font-bold tabular-nums">
+                  %{riskySupplier.reliabilityScore.toFixed(1)}
+                </p>
+                <p className="text-xs opacity-80">
+                  {riskySupplier.totalOrders} sipariş · {riskySupplier.lateCount} geç
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Yeterli veri yok (en az 2 sipariş gerekli).
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

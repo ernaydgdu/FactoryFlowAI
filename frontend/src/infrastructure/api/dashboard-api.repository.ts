@@ -44,6 +44,21 @@ export async function fetchQualitySummary(): Promise<QualitySummary> {
   return data
 }
 
+export type SupplierPerformance = {
+  supplierName: string
+  totalOrders: number
+  onTimeCount: number
+  lateCount: number
+  pendingCount: number
+  avgDelayDays: number
+  reliabilityScore: number
+}
+
+export async function fetchSupplierPerformance(): Promise<SupplierPerformance[]> {
+  const { data } = await api.get<SupplierPerformance[]>('/dashboard/supplier-performance')
+  return data
+}
+
 export async function fetchAiAdvice(): Promise<{ advice: string }> {
   try {
     const { data } = await api.post<{ advice: string }>('/dashboard/ai-advice')

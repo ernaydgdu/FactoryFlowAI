@@ -12,6 +12,7 @@ import {
   Scissors,
   Settings,
   Shirt,
+  Star,
   Truck,
   Warehouse,
   Wallet,
@@ -50,6 +51,11 @@ export const navGroups: NavGroup[] = [
     title: 'Stok Yönetimi',
     icon: Boxes,
     items: [{ title: 'Stok Yönetimi', href: '/stock' }],
+  },
+  {
+    title: 'Tedarikçi Performansı',
+    icon: Star,
+    items: [{ title: 'Tedarikçi Performansı', href: '/suppliers' }],
   },
   {
     title: 'Ürün Kartları',
@@ -279,6 +285,7 @@ export const routeTitles: Record<string, string> = {
   '/orders': 'Sipariş Listesi',
   '/orders/new': 'Yeni Sipariş',
   '/stock': 'Stok Yönetimi',
+  '/suppliers': 'Tedarikçi Performansı',
   '/merchandising': 'Merchandising',
   '/purchasing': 'Satın Alma',
   '/products': 'Ürün Kartları',

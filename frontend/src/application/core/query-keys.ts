@@ -29,6 +29,8 @@ export const applicationQueryKeys = {
     alerts: () => [...applicationQueryKeys.dashboardSummary.all, 'alerts'] as const,
     qualitySummary: () =>
       [...applicationQueryKeys.dashboardSummary.all, 'quality-summary'] as const,
+    supplierPerformance: () =>
+      [...applicationQueryKeys.dashboardSummary.all, 'supplier-performance'] as const,
   },
   // Real backend StockLot/StockMovement REST resource
   stockRecord: {
