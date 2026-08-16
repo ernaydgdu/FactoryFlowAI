@@ -17,6 +17,7 @@ import type {
   CreateQualityEntryDto,
   UpdateApprovalStageDto,
   UpdateMaterialStatusDto,
+  UpdateOrderDto,
 } from './dto/order.dto';
 
 const APPROVAL_STAGE_ORDER = [
@@ -85,6 +86,31 @@ export class OrdersService {
           status: data.status ?? 'PLANNING',
           tenantId,
         },
+      });
+    } catch {
+      throw new ConflictException('Bu sipariş numarası zaten kayıtlı.');
+    }
+  }
+
+  async updateOrder(orderId: number, data: UpdateOrderDto) {
+    await this.findOrderOrThrow(orderId);
+
+    const updateData: Record<string, unknown> = {};
+    if (data.orderNo !== undefined) updateData.orderNo = data.orderNo.trim();
+    if (data.buyerName !== undefined)
+      updateData.buyerName = data.buyerName.trim();
+    if (data.productName !== undefined)
+      updateData.productName = data.productName.trim();
+    if (data.totalQuantity !== undefined)
+      updateData.totalQuantity = data.totalQuantity;
+    if (data.shipmentDate !== undefined)
+      updateData.shipmentDate = new Date(data.shipmentDate);
+    if (data.status !== undefined) updateData.status = data.status;
+
+    try {
+      return await this.prisma.order.update({
+        where: { id: orderId },
+        data: updateData,
       });
     } catch {
       throw new ConflictException('Bu sipariş numarası zaten kayıtlı.');

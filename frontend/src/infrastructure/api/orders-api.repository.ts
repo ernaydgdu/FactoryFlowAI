@@ -128,6 +128,32 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   }
 }
 
+export type UpdateOrderInput = {
+  orderNo?: string
+  buyerName?: string
+  productName?: string
+  totalQuantity?: number
+  shipmentDate?: string
+}
+
+export async function updateOrder(id: string, input: UpdateOrderInput): Promise<Order> {
+  try {
+    const { data } = await api.patch<ApiOrder>(`/orders/${id}`, input)
+    return mapOrder(data)
+  } catch (err) {
+    if (isAxiosError(err) && err.response?.status === 409) {
+      throw new Error('Bu sipariş numarası zaten kayıtlı.')
+    }
+    if (isAxiosError(err) && err.response?.status === 404) {
+      throw new Error('Sipariş bulunamadı.')
+    }
+    if (isAxiosError(err) && err.response?.status === 403) {
+      throw new Error('Bu işlem için yetkiniz yok.')
+    }
+    throw err
+  }
+}
+
 export async function deleteOrder(id: string): Promise<void> {
   try {
     await api.delete(`/orders/${id}`)

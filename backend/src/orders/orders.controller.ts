@@ -26,6 +26,7 @@ import type {
   CreateQualityEntryDto,
   UpdateApprovalStageDto,
   UpdateMaterialStatusDto,
+  UpdateOrderDto,
 } from './dto/order.dto';
 
 @Controller('orders')
@@ -54,6 +55,15 @@ export class OrdersController {
   @Get(':id')
   async getOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.getOrderById(id);
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async updateOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateOrderDto,
+  ) {
+    return this.ordersService.updateOrder(id, body);
   }
 
   @Delete(':id')

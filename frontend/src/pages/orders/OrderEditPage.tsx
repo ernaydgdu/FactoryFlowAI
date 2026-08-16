@@ -1,30 +1,123 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Save } from 'lucide-react'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import { useAuth } from '@/application/platform/iam/auth-context'
-import {
-  SalesOrderDomainError,
-  useSalesOrderDetail,
-  useUpdateSalesOrderMutation,
-} from '@/application/sales-order/use-sales-order'
+import { applicationQueryKeys } from '@/application/core/query-keys'
 import { PageHeader } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getSalesOrderById } from '@/domain/data/orders'
+import { fetchOrderById, updateOrder } from '@/infrastructure/api/orders-api.repository'
+
+type FormState = {
+  orderNo: string
+  buyerName: string
+  productName: string
+  totalQuantity: string
+  shipmentDate: string
+}
+
+const INITIAL_FORM: FormState = {
+  orderNo: '',
+  buyerName: '',
+  productName: '',
+  totalQuantity: '',
+  shipmentDate: '',
+}
 
 export function OrderEditPage() {
   const { id = '' } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const { data: detail } = useSalesOrderDetail(id)
-  const order = getSalesOrderById(id)
-  const updateMutation = useUpdateSalesOrderMutation(id)
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  if (!order || !detail) {
+  const orderQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.detail(id),
+    queryFn: () => fetchOrderById(id),
+    enabled: !!id,
+  })
+
+  useEffect(() => {
+    const order = orderQuery.data
+    if (!order) return
+    setForm({
+      orderNo: order.orderNo,
+      buyerName: order.buyerName,
+      productName: order.productName,
+      totalQuantity: String(order.totalQuantity),
+      shipmentDate: order.shipmentDate.slice(0, 10),
+    })
+  }, [orderQuery.data])
+
+  const updateMutation = useMutation({
+    mutationFn: (input: {
+      orderNo: string
+      buyerName: string
+      productName: string
+      totalQuantity: number
+      shipmentDate: string
+    }) => updateOrder(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.list(),
+        refetchType: 'all',
+      })
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.detail(id),
+        refetchType: 'all',
+      })
+    },
+  })
+
+  function updateField(field: keyof FormState, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const totalQuantity = Number(form.totalQuantity)
+
+    if (!form.orderNo.trim() || !form.buyerName.trim() || !form.productName.trim()) {
+      setError('Sipariş No, Müşteri Adı ve Ürün Adı zorunludur.')
+      return
+    }
+    if (!form.totalQuantity || Number.isNaN(totalQuantity) || totalQuantity <= 0) {
+      setError('Toplam miktar geçerli bir sayı olmalıdır.')
+      return
+    }
+    if (!form.shipmentDate) {
+      setError('EXF tarihi zorunludur.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await updateMutation.mutateAsync({
+        orderNo: form.orderNo.trim(),
+        buyerName: form.buyerName.trim(),
+        productName: form.productName.trim(),
+        totalQuantity,
+        shipmentDate: form.shipmentDate,
+      })
+      navigate(`/orders/${id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kayıt başarısız.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (orderQuery.isLoading) {
+    return <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+  }
+
+  if (orderQuery.isError || !orderQuery.data) {
     return (
       <PageHeader
         title="Sipariş Bulunamadı"
@@ -38,112 +131,104 @@ export function OrderEditPage() {
     )
   }
 
-  if (!detail.editable) {
-    return (
-      <PageHeader
-        title={`Düzenle — ${order.orderNo}`}
-        description="Bu sipariş düzenlenemez durumda."
-        actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/orders/${order.id}`}>Detaya Dön</Link>
-          </Button>
-        }
-      />
-    )
-  }
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!order || !detail) return
-    setError(null)
-    const form = new FormData(e.currentTarget)
-    const current = order
-    try {
-      await updateMutation.mutateAsync({
-        expectedVersion: detail.version,
-        actorUserId: user?.id ?? 'system',
-        productCardId: current.productCardId,
-        general: {
-          customer: String(form.get('customer') ?? current.general.customer),
-          brand: String(form.get('brand') ?? current.general.brand),
-          buyer: current.general.buyer,
-          merchandiser: String(form.get('planner') ?? current.general.merchandiser),
-          season: current.general.season,
-          collection: current.general.collection,
-          poNo: String(form.get('poNo') ?? current.general.poNo),
-          poDate: current.general.poDate,
-          orderDate: current.general.orderDate,
-          exf: String(form.get('exf') ?? current.general.exf),
-          deliveryTerm: current.general.deliveryTerm,
-          paymentTerm: current.general.paymentTerm,
-          factory: current.general.factory,
-          currency: current.general.currency,
-          notes: current.general.notes,
-        },
-        matrix: current.matrix,
-        unitPrice: current.unitPrice,
-        lineDeliveryDate: String(form.get('exf') ?? current.general.exf),
-      })
-      navigate(`/orders/${current.id}`)
-    } catch (err) {
-      setError(err instanceof SalesOrderDomainError ? err.message : 'Kayıt başarısız.')
-    }
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Düzenle — ${order.orderNo}`}
+        title={`Düzenle — ${orderQuery.data.orderNo}`}
         description="Sipariş bilgilerini güncelleyin."
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/orders/${order.id}`}>İptal</Link>
-          </Button>
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/orders/${id}`}>İptal</Link>
+            </Button>
+            <Button size="sm" type="submit" form="order-edit-form" disabled={isSubmitting}>
+              <Save className="size-4" />
+              {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+            </Button>
+          </>
         }
       />
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
       <Card>
-        <CardHeader>
-          <CardTitle>Sipariş Bilgileri</CardTitle>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-base">Sipariş Bilgileri</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit}>
-            <Field label="Müşteri" id="customer">
-              <Input id="customer" name="customer" defaultValue={order.general.customer} required />
-            </Field>
-            <Field label="Marka" id="brand">
-              <Input id="brand" name="brand" defaultValue={order.general.brand} required />
-            </Field>
-            <Field label="PO No" id="poNo">
-              <Input id="poNo" name="poNo" defaultValue={order.general.poNo} />
-            </Field>
-            <Field label="EXF" id="exf">
-              <Input id="exf" name="exf" type="date" defaultValue={order.general.exf} required />
-            </Field>
-            <Field label="Planlamacı" id="planner">
-              <Input id="planner" name="planner" defaultValue={order.planner} required />
-            </Field>
-            <Field label="Birim Fiyat (USD)" id="unitPrice">
-              <Input id="unitPrice" name="unitPrice" type="number" step="0.01" defaultValue={order.unitPrice} readOnly />
-            </Field>
-            {error && <p className="text-sm text-destructive md:col-span-2">{error}</p>}
-            <div className="md:col-span-2">
-              <Button type="submit" disabled={updateMutation.isPending}>
-                <Save className="size-4" />
-                {updateMutation.isPending ? 'Kaydediliyor…' : 'Kaydet'}
-              </Button>
+          <form
+            id="order-edit-form"
+            onSubmit={handleSubmit}
+            className="grid max-w-xl gap-4"
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="orderNo">Sipariş No</Label>
+              <Input
+                id="orderNo"
+                value={form.orderNo}
+                onChange={(e) => updateField('orderNo', e.target.value)}
+                placeholder="PO-2026-0001"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="buyerName">Müşteri Adı</Label>
+              <Input
+                id="buyerName"
+                value={form.buyerName}
+                onChange={(e) => updateField('buyerName', e.target.value)}
+                placeholder="Zara"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="productName">Ürün Adı</Label>
+              <Input
+                id="productName"
+                value={form.productName}
+                onChange={(e) => updateField('productName', e.target.value)}
+                placeholder="T-Shirt"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="totalQuantity">Toplam Miktar</Label>
+              <Input
+                id="totalQuantity"
+                type="number"
+                min="1"
+                value={form.totalQuantity}
+                onChange={(e) => updateField('totalQuantity', e.target.value)}
+                placeholder="1000"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="shipmentDate">EXF Tarihi</Label>
+              <Input
+                id="shipmentDate"
+                type="date"
+                value={form.shipmentDate}
+                onChange={(e) => updateField('shipmentDate', e.target.value)}
+              />
             </div>
           </form>
         </CardContent>
       </Card>
-    </div>
-  )
-}
 
-function Field({ label, id, children }: { label: string; id: string; children: ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
+      <div className="flex justify-end gap-3">
+        <Button variant="outline" asChild>
+          <Link to={`/orders/${id}`}>İptal</Link>
+        </Button>
+        <Button size="lg" type="submit" form="order-edit-form" disabled={isSubmitting}>
+          <Save className="size-4" />
+          {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+        </Button>
+      </div>
     </div>
   )
 }

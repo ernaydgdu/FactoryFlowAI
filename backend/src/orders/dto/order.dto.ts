@@ -7,6 +7,15 @@ export class CreateOrderDto {
   status?: string;
 }
 
+export class UpdateOrderDto {
+  orderNo?: string;
+  buyerName?: string;
+  productName?: string;
+  totalQuantity?: number;
+  shipmentDate?: string;
+  status?: string;
+}
+
 export class CreateMaterialDto {
   materialName!: string;
   materialType!: string;
