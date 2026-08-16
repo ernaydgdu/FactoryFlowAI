@@ -47,7 +47,11 @@ function extractNumbers(text: string): number[] {
 type OrderWithMaterials = OrderModel & { materials: MaterialModel[] };
 
 export type DashboardAlertType =
-  'MATERIAL_DELAY' | 'MATERIAL_PENDING' | 'NO_PRODUCTION';
+  | 'MATERIAL_DELAY'
+  | 'MATERIAL_PENDING'
+  | 'NO_PRODUCTION'
+  | 'FIRE_RATE_HIGH'
+  | 'SECOND_QUALITY_HIGH';
 
 export type DashboardAlertSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -127,7 +131,7 @@ export class DashboardService {
   async getAlerts(tenantId?: string): Promise<DashboardAlert[]> {
     const orders = await this.prisma.order.findMany({
       where: tenantId ? { tenantId } : undefined,
-      include: { materials: true },
+      include: { materials: true, qualityEntries: true },
     });
 
     const alerts: DashboardAlert[] = [];
@@ -160,6 +164,47 @@ export class DashboardService {
               type: 'MATERIAL_PENDING',
               severity: 'HIGH',
               message: `🚨 ${order.orderNo} siparişinin ${material.materialName} malzemesi henüz gelmedi, EXF'ye ${daysUntilExf} gün kaldı!`,
+              orderId: order.id,
+              orderNo: order.orderNo,
+            });
+          }
+        }
+      }
+
+      if (order.qualityEntries.length > 0) {
+        const totalChecked = order.qualityEntries.reduce(
+          (sum, entry) => sum + entry.checkedQty,
+          0,
+        );
+
+        if (totalChecked > 0) {
+          const totalRejected = order.qualityEntries.reduce(
+            (sum, entry) => sum + entry.rejected,
+            0,
+          );
+          const totalSecondQuality = order.qualityEntries.reduce(
+            (sum, entry) => sum + entry.secondQuality,
+            0,
+          );
+
+          const rejectionRate = (totalRejected / totalChecked) * 100;
+          const secondQualityRate = (totalSecondQuality / totalChecked) * 100;
+
+          if (rejectionRate > 5) {
+            alerts.push({
+              id: `fire-rate-${order.id}`,
+              type: 'FIRE_RATE_HIGH',
+              severity: 'HIGH',
+              message: `🚨 ${order.orderNo} - ${order.buyerName} siparişinde fire oranı %${rejectionRate.toFixed(1)} - kabul edilebilir sınırın (%5) üzerinde!`,
+              orderId: order.id,
+              orderNo: order.orderNo,
+            });
+          } else if (secondQualityRate > 5) {
+            alerts.push({
+              id: `second-quality-${order.id}`,
+              type: 'SECOND_QUALITY_HIGH',
+              severity: 'MEDIUM',
+              message: `⚠️ ${order.orderNo} siparişinde 2. kalite oranı %${secondQualityRate.toFixed(1)} - normalin üzerinde, üretim sürecini kontrol edin`,
               orderId: order.id,
               orderNo: order.orderNo,
             });
