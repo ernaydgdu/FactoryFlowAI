@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button'
 type OrderRowActionsProps = {
   orderId: string
   onDelete: () => void
+  canDelete: boolean
 }
 
 export function OrderRowActions({
   orderId,
   onDelete,
+  canDelete,
 }: OrderRowActionsProps) {
   return (
     <div className="flex items-center gap-1">
@@ -30,15 +32,17 @@ export function OrderRowActions({
           <Pencil className="size-4" />
         </Link>
       </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Sil"
-        onClick={onDelete}
-        className="h-8 w-8 text-destructive hover:text-destructive"
-      >
-        <Trash2 className="size-4" />
-      </Button>
+      {canDelete ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Sil"
+          onClick={onDelete}
+          className="h-8 w-8 text-destructive hover:text-destructive"
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      ) : null}
     </div>
   )
 }

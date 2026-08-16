@@ -112,6 +112,25 @@ export class OrdersService {
     return order;
   }
 
+  async deleteOrder(orderId: number) {
+    await this.findOrderOrThrow(orderId);
+
+    await this.prisma.$transaction([
+      this.prisma.material.deleteMany({ where: { orderId } }),
+      this.prisma.productionEntry.deleteMany({ where: { orderId } }),
+      this.prisma.qualityEntry.deleteMany({ where: { orderId } }),
+      this.prisma.orderColorSize.deleteMany({ where: { orderId } }),
+      this.prisma.approvalStage.deleteMany({ where: { orderId } }),
+      this.prisma.stockLot.updateMany({
+        where: { orderId },
+        data: { orderId: null },
+      }),
+      this.prisma.order.delete({ where: { id: orderId } }),
+    ]);
+
+    return { success: true };
+  }
+
   async getAiSuggestion(orderId: number): Promise<OrderAiSuggestion> {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },

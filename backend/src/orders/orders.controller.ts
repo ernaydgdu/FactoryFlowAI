@@ -56,6 +56,12 @@ export class OrdersController {
     return this.ordersService.getOrderById(id);
   }
 
+  @Delete(':id')
+  @Roles('ADMIN', 'MANAGER')
+  async deleteOrder(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.deleteOrder(id);
+  }
+
   @Get(':id/ai-suggestion')
   async getAiSuggestion(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.getAiSuggestion(id);

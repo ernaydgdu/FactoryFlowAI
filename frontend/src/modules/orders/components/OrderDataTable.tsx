@@ -8,6 +8,7 @@ import {
 import { useMemo, type ReactNode } from 'react'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
+import { useAuth } from '@/application/platform/iam/auth-context'
 import { StatusBadge } from '@/components/erp'
 import { fetchApprovalStages } from '@/infrastructure/api/orders-api.repository'
 import { cn } from '@/lib/utils'
@@ -50,6 +51,9 @@ export function OrderDataTable({ orders, list, onDeleteRow }: OrderDataTableProp
     toggleSelectAll,
     allOrders,
   } = list
+
+  const { user } = useAuth()
+  const canDelete = user?.role === 'ADMIN' || user?.role === 'MANAGER'
 
   const filterOptions = useMemo(
     () =>
@@ -372,6 +376,7 @@ export function OrderDataTable({ orders, list, onDeleteRow }: OrderDataTableProp
                   <OrderRowActions
                     orderId={order.id}
                     onDelete={() => onDeleteRow(order)}
+                    canDelete={canDelete}
                   />
                 </td>
               </tr>

@@ -128,6 +128,20 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   }
 }
 
+export async function deleteOrder(id: string): Promise<void> {
+  try {
+    await api.delete(`/orders/${id}`)
+  } catch (err) {
+    if (isAxiosError(err) && err.response?.status === 404) {
+      throw new Error('Sipariş bulunamadı.')
+    }
+    if (isAxiosError(err) && err.response?.status === 403) {
+      throw new Error('Bu işlem için yetkiniz yok.')
+    }
+    throw err
+  }
+}
+
 export async function fetchOrderById(id: string): Promise<ApiOrderDetail> {
   const { data } = await api.get<ApiOrderDetail>(`/orders/${id}`)
   return data
