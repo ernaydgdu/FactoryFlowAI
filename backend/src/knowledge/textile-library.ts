@@ -962,6 +962,133 @@ export const TEXTILE_KNOWLEDGE_LIBRARY: KnowledgeCard[] = [
     icerik:
       'Masura, dikiş makinesinin alt kısmında yer alan ve alt ipliği taşıyan küçük bobin/makaradır; sağlıklı bir dikiş için masuradan gelen alt iplik ile üstten gelen iplik arasında dengeli bir gerginlik olması gerekir. Masura gerginliği çok sıkı ayarlanmışsa, dikiş yüzeyi üstten çekilir ve kumaş dalgalanır/büzülür; gerginlik çok gevşek bırakılmışsa alt iplik kumaşın üst yüzeyinde görünür hâle gelir ve dikiş gevşek/düzensiz olur. Gerginlik ayarı, masuranın yerleştirildiği masura yuvası (bobin case) üzerindeki küçük bir vida ile yapılır: vida saat yönünde çevrildiğinde gerginlik artar, saat yönünün tersine çevrildiğinde gerginlik azalır; ayar genellikle çok küçük dönüşlerle (çeyrek tur gibi) yapılmalıdır çünkü hassas bir ayardır. Doğru gerginliğe ulaşıldığından emin olmak için kumaş üzerinde bir deneme dikişi yapılmalı ve dikiş çözülerek üst ile alt ipliğin kumaşın tam ortasında (ne üstte ne altta) dengeli şekilde birbirine kenetlendiği gözle kontrol edilmelidir; iplikler ortada buluşuyorsa gerginlik doğru ayarlanmış demektir.',
   },
+  {
+    id: 'azo-boyar-maddeler',
+    baslik: 'Azo Boyar Maddeler Nedir?',
+    kategori: 'kimya-boyama',
+    anahtarKelimeler: [
+      'azo boyar madde',
+      'azo',
+      'boyar madde',
+      'nedir',
+      'kanserojen',
+      'aromatik amin',
+      'ppm',
+      'oeko-tex',
+    ],
+    icerik:
+      "Azo boyar maddeler, yapısında bir veya daha fazla azo grubu (-N=N-) içeren sentetik organik boyar madde sınıfıdır; dünyada üretilen sentetik boyaların büyük bir kısmı bu sınıfa girer çünkü üretimi görece ucuzdur ve çok çeşitli, canlı renk tonları elde etmeyi sağlar. Tekstil boyamada yaygın kullanılmasının nedeni geniş renk paletine ek olarak farklı elyaf tiplerine uyarlanabilir formülasyonlara sahip olmasıdır. Ancak bazı azo boyar maddeler, belirli koşullar altında (örneğin ciltle uzun süreli temas veya metabolik parçalanma) indirgenerek aromatik amin bileşiklerine dönüşebilir; bu aromatik aminlerden bir kısmının kanserojen (kanser yapıcı) etkisi bilimsel olarak tespit edilmiştir. Bu nedenle Avrupa Birliği ve Türkiye'de belirli azo boyar maddelerin tekstil ve deri ürünlerinde kullanımı yasal düzenlemelerle sınırlandırılmıştır; genel kabul gören limit, serbest aromatik amin miktarının 30 ppm (milyonda parça) değerini aşmamasıdır. Özellikle AB'ye ihracat yapan tekstil üreticileri için bu limitlere uyum zorunludur ve alıcı firmalar genellikle akredite laboratuvarlardan alınmış azo boyar madde test raporu talep eder; test raporu olmayan veya limiti aşan ürünler gümrükte veya denetimlerde reddedilebilir.",
+  },
+  {
+    id: 'dispers-boyama-nedir',
+    baslik: 'Dispers Boyama Nedir?',
+    kategori: 'kimya-boyama',
+    anahtarKelimeler: [
+      'dispers boyama',
+      'nedir',
+      'polyester boyama',
+      'disperse',
+      'hidrofobik',
+      'boya partikülü',
+    ],
+    icerik:
+      'Dispers boyama, suda çözünmeyen ve bu nedenle su içinde ince partiküller hâlinde dağıtılarak (disperse edilerek) uygulanan boyar maddelerle yapılan bir boyama yöntemidir. Bu yöntem özellikle polyester gibi sentetik elyafların boyanmasında kullanılır çünkü polyester lifleri hidrofobiktir (su sevmez) ve suda çözünen boyar maddelerle yeterince güçlü bir bağ kuramaz; dispers boya partikülleri ise lif yapısına fiziksel olarak nüfuz ederek renklenmeyi sağlar. Dispers boyama genellikle yüksek sıcaklıkta (yaklaşık 130°C civarında), basınçlı kapalı boyama kazanlarında yapılır çünkü bu sıcaklık polyester lifinin moleküler yapısını gevşeterek boya partiküllerinin life nüfuz etmesini kolaylaştırır; alternatif olarak taşıyıcı (carrier) kimyasallar kullanılarak daha düşük sıcaklıkta da boyama yapılabilir, ancak bu yöntem daha az tercih edilir. Boya partikül boyutunun küçük ve boyama banyosu içinde homojen dağılmış olması, hem elde edilen rengin verimini (koyuluğunu) hem de yıkama ve sürtünme haslığını doğrudan etkiler; partiküllerin topaklanması (agregasyon) durumunda leke, benek veya düzensiz renk sorunları ortaya çıkabilir.',
+  },
+  {
+    id: 'tekstilde-ph-degeri',
+    baslik: 'Tekstilde pH Değerinin Önemi',
+    kategori: 'kimya-boyama',
+    anahtarKelimeler: [
+      'ph',
+      'ph değeri',
+      'tekstilde ph',
+      'neden önemli',
+      'asit baz',
+      'oeko-tex',
+      'cilt',
+      'nötr',
+    ],
+    icerik:
+      "pH, bir çözeltinin asidik mi yoksa bazik (alkali) mi olduğunu gösteren, 0 ile 14 arasında değişen bir ölçü birimidir; 7 değeri nötr kabul edilir, 7'nin altı asidik, üstü bazik anlamına gelir. Tekstil üretiminin hemen her aşamasında (yıkama, boyama, apre/bitim işlemleri) pH kontrolü kritik önem taşır çünkü uygun olmayan pH koşulları lif yapısında hasara (özellikle yün ve ipek gibi hassas doğal liflerde), boyanın life düzgün bağlanamamasından kaynaklanan renk sabitliği sorunlarına veya nihai üründe kimyasal kalıntı birikimine yol açabilir. Bitmiş tekstil ürününün, özellikle cilt ile doğrudan temas eden bölgelerinin pH değeri genellikle 4,0-7,5 aralığında olması istenir; bu aralık insan cildinin doğal pH'ına (hafif asidik, yaklaşık 5,5) yakındır ve cilt bariyerinin korunmasına yardımcı olur. Bu kriter, Oeko-Tex Standard 100 gibi uluslararası tekstil güvenlik sertifikasyon sistemlerinde düzenli olarak test edilen ve denetlenen parametrelerden biridir. Üretim sürecinde kalan yüksek pH'lı (bazik) kimyasal kalıntılar, özellikle bebek/çocuk giysileri ve hassas ciltli kullanıcılar için tahriş, kaşıntı ve alerjik reaksiyon riskini artırabilir; bu nedenle boyama ve apre sonrası yeterli durulama ve gerektiğinde nötralizasyon (pH dengeleme) işlemi uygulanması önemlidir.",
+  },
+  {
+    id: 'risk-degerlendirme-metotlari',
+    baslik: 'Tekstil İşletmelerinde Risk Değerlendirmesi',
+    kategori: 'is-guvenligi',
+    anahtarKelimeler: [
+      'risk değerlendirmesi',
+      'iş sağlığı',
+      'iş güvenliği',
+      'tehlike',
+      'kesimhane riski',
+      'dikimhane riski',
+      'kimyasal maruziyet',
+    ],
+    icerik:
+      'Tekstil işletmelerinde risk değerlendirmesi, iş sağlığı ve güvenliği (İSG) kapsamında üretim sürecinde çalışanları tehdit edebilecek tehlikelerin (makine kazaları, kimyasal maruziyet, yangın, ergonomik riskler, gürültü, toz vb.) sistematik olarak tespit edilip değerlendirildiği ve önlem alındığı bir yönetim sürecidir. Temel adımlar şöyle sıralanabilir: 1) Tehlikelerin tespiti — her bölüm ve işlem için olası tehlike kaynaklarının belirlenmesi; 2) Risklerin analiz edilmesi — her tehlikenin gerçekleşme olasılığı ile gerçekleştiğinde yol açacağı zararın şiddetinin (olasılık × şiddet) değerlendirilmesi; 3) Risklerin derecelendirilmesi — elde edilen skora göre riskin düşük, orta veya yüksek olarak sınıflandırılması; 4) Önleyici tedbirlerin belirlenmesi — riski ortadan kaldıracak veya azaltacak teknik/idari önlemlerin (koruyucu ekipman, eğitim, prosedür değişikliği) planlanması; 5) Uygulama ve takip — alınan önlemlerin hayata geçirilip düzenli aralıklarla etkinliğinin gözden geçirilmesi. Tekstil üretiminde en yüksek risk taşıyan bölümler arasında kesimhane (keskin bıçaklı kesim makineleri, şerit bıçaklar), dikimhane (iğne batması yaralanmaları, tekrarlayan hareketlere bağlı kas-iskelet rahatsızlıkları) ve kimyasal madde kullanılan boyama/apre alanları (solunum yoluyla veya cilt teması ile kimyasal maruziyet) sayılabilir; bu bölümler için risk değerlendirmesi özellikle titizlikle yapılmalı ve düzenli olarak güncellenmelidir.',
+  },
+  {
+    id: 'tekstil-boyama-yontemleri-ozet',
+    baslik: 'Tekstil Boyama Yöntemleri Özeti',
+    kategori: 'kimya-boyama',
+    anahtarKelimeler: [
+      'boyama yöntemleri',
+      'elyaf boyama',
+      'iplik boyama',
+      'kumaş boyama',
+      'parça boyama',
+      'reaktif boya',
+      'küp boya',
+      'asit boya',
+      'ön terbiye',
+    ],
+    icerik:
+      'Tekstil boyamada, boyamanın üretim sürecinin hangi aşamasında yapıldığına göre iki temel yaklaşım vardır. Elyaf/İplik boyama, kumaş henüz dokunmadan veya örülmeden önce, ham elyaf ya da iplik hâlindeyken yapılan boyamadır; bu yöntem genellikle çizgili, ekose veya farklı renkte ipliklerin bir arada kullanıldığı desenli kumaşların üretiminde tercih edilir çünkü her iplik farklı renkte önceden hazırlanabilir. Kumaş (parça) boyama ise kumaş dokunduktan veya örüldükten sonra, tamamlanmış kumaş hâlinde topluca boyanmasıdır; düz (tek renk) kumaşların üretiminde daha ekonomik ve pratik bir yöntemdir çünkü büyük partiler hâlinde işlenebilir. Yöntem ne olursa olsun, genel boyama süreci şu adımlardan oluşur: 1) Ön terbiye/temizleme — kumaş veya elyaf üzerindeki doğal yağların, apre kalıntılarının ve kirin giderilmesi; 2) Boyama — elyaf tipine uygun boyar madde sınıfı ile renklendirme; 3) Durulama — fazla/bağlanmamış boyanın yıkanarak uzaklaştırılması; 4) Sabitleme/fiksaj — boyanın life kalıcı olarak bağlanmasını sağlayan işlem; 5) Kurutma. Elyaf tipi, kullanılacak boyar madde sınıfını belirler: pamuk ve diğer selülozik elyaflar için reaktif veya küp boyalar, polyester gibi sentetik elyaflar için dispers boyalar, yün ve naylon gibi protein bazlı veya poliamid elyaflar için asit boyalar tercih edilir; yanlış boyar madde-elyaf eşleşmesi zayıf haslık ve düşük renk verimine yol açar.',
+  },
+  {
+    id: 'sonil-kumas-ozellikleri',
+    baslik: 'Şönil Kumaş Özellikleri',
+    kategori: 'kumas-bilgisi',
+    anahtarKelimeler: [
+      'şönil',
+      'şönil kumaş',
+      'özellikleri',
+      'döşemelik',
+      'battaniye',
+      'kadife',
+    ],
+    icerik:
+      'Şönil (chenille) kumaş, yüzeyinde kadife benzeri yumuşak ve tüylü bir doku bulunan, özel bükümlü şönil ipliğinden üretilen bir kumaş türüdür. Şönil ipliği, kısa lif parçacıklarının iki ana iplik arasına sıkıştırılıp bükülmesiyle elde edilir; bu yapı iplik yüzeyinde her yöne çıkıntı yapan tüycükler oluşturur ve dokunulduğunda kadifemsi, yumuşak bir his verir. Kumaşın dolgun ve zengin görünümü nedeniyle döşemelik kumaş (koltuk, perde), battaniye, atkı-şal ve kazak gibi ürünlerde tercih edilir. Şönil kumaşın aşınma direnci; kullanılan iplik yapısına, şönil ipliğinin sıkılığına ve uygulanan üretim/bitim yöntemine (baskı, kabartma gibi ilave işlemler) bağlı olarak değişkenlik gösterir; bazı şönil kumaşlar yüzey sürtünmesine karşı orta-düşük düzeyde dayanım sergileyebilir, tüyler zamanla düzleşebilir veya dökülebilir. Bu nedenle özellikle yoğun kullanılan döşemelik uygulamalarda şönil kumaşın Martindale (aşınma) testi gibi kalite testlerinden geçirilerek dayanıklılığının doğrulanması önerilir.',
+  },
+  {
+    id: 'iplik-kalite-kontrolu',
+    baslik: 'İplik Kalite Kontrolünde Önemli Parametreler',
+    kategori: 'kumas-bilgisi',
+    anahtarKelimeler: [
+      'iplik kalite kontrolü',
+      'düzensizlik yüzdesi',
+      'u yüzdesi',
+      'düğüm sayısı',
+      'iplik temizleme',
+    ],
+    icerik:
+      'İplik kalite kontrolünde izlenen başlıca parametreler, ipliğin dokuma veya örme sırasındaki performansını ve nihai kumaş kalitesini doğrudan etkiler. Düzensizlik yüzdesi (U%), ipliğin boyu boyunca kalınlığındaki değişkenliği ölçen bir parametredir; düşük U% değeri, ipliğin daha düzgün ve tutarlı bir kalınlığa sahip olduğu, dolayısıyla daha kaliteli olduğu anlamına gelir, yüksek U% ise kumaş yüzeyinde görünür ton/doku farklılıklarına yol açabilir. Düğüm sayısı (ince/kalın yer sayısı), iplik üzerinde beklenmedik kalınlaşma veya inceleşme noktalarının birim uzunluk başına sıklığını ifade eder; bu düzensizlikler dokuma veya örme sırasında iplik kopmasına, makine duruşlarına ve kumaş yüzeyinde görünür hatalara neden olabilir. Bu parametreler büyük ölçüde iplik üretim hattındaki temizleme ve tarak makinelerinin (iplik temizleyicileri, karde/tarak üniteleri) doğru ayarlanması ve düzenli bakımı ile kontrol altında tutulur; bakımı ihmal edilen makineler ipliğe yabancı madde, kısa lif artığı veya düzensiz gerginlik aktararak kalite düşüşüne yol açar. Kaliteli iplik kullanımı, üretim hattında daha az dikiş/dokuma hatası, daha az makine duruşu ve sonuç olarak daha yüksek genel üretim verimliliği sağlar.',
+  },
+  {
+    id: 'elyaf-boyama-oncesi-hazirlik',
+    baslik: 'Boyama Öncesi Elyaf/Kumaş Hazırlığı (Ön Terbiye)',
+    kategori: 'kimya-boyama',
+    anahtarKelimeler: [
+      'ön terbiye',
+      'haşıl sökme',
+      'ağartma',
+      'merserizasyon',
+      'boyama öncesi hazırlık',
+      'ton farkı',
+    ],
+    icerik:
+      'Boyama öncesi elyaf/kumaş hazırlığı, tekstil sektöründe ön terbiye olarak adlandırılan ve ham kumaş üzerindeki doğal yağları, üretim sırasında eklenen apre/koruyucu maddeleri, kir ve diğer safsızlıkları gidermeyi amaçlayan işlemler bütünüdür. Temel ön terbiye adımları şunlardır: Haşıl sökme, dokuma kumaşlarda dokuma sırasında çözgü ipliğinin kopmasını önlemek için uygulanan nişasta bazlı koruyucu haşıl maddesinin, dokuma tamamlandıktan sonra enzim veya kimyasal yöntemlerle temizlenmesidir. Yıkama/ağartma, elyaf üzerindeki doğal renk pigmentlerinin (özellikle pamukta bulunan sarımsı doğal tonun) giderilmesi işlemidir; bu adım özellikle beyaz veya açık ton boyamalarda, istenen rengin net ve doğru elde edilebilmesi için kritik önem taşır. Merserizasyon, pamuklu kumaşa yoğun kostik soda çözeltisi uygulanarak yapılan bir işlemdir; lifin şeklini değiştirerek kumaşa kalıcı bir parlaklık, artan mukavemet ve daha yüksek boya alma kapasitesi kazandırır. Ön terbiye aşamasının eksik, hatalı veya tutarsız (partiler arası farklı) yapılması, sonraki boyama aşamasında lekelenme, düzensiz renk dağılımı (ton farkı) veya boyanın kalıcılığını gösteren haslık değerlerinde düşüklük gibi ciddi kalite sorunlarına yol açar; bu nedenle ön terbiye, boyama sürecinin görünmez ama belirleyici bir temel adımı olarak kabul edilir.',
+  },
 ];
 
 function tokenize(text: string): string[] {
