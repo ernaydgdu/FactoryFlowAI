@@ -222,6 +222,33 @@ export async function updateMaterialStatus(
   return data
 }
 
+export type UpdateMaterialInput = {
+  materialName?: string
+  supplierName?: string
+  orderedQuantity?: number
+  expectedArrival?: string
+  fabricWidth?: number
+  fabricWeight?: number
+  unitPrice?: number
+  currency?: string
+}
+
+export async function updateMaterial(
+  orderId: string,
+  materialId: number,
+  input: UpdateMaterialInput,
+): Promise<ApiMaterial> {
+  const { data } = await api.patch<ApiMaterial>(
+    `/orders/${orderId}/materials/${materialId}`,
+    input,
+  )
+  return data
+}
+
+export async function deleteMaterial(orderId: string, materialId: number): Promise<void> {
+  await api.delete(`/orders/${orderId}/materials/${materialId}`)
+}
+
 export type ProductionStage = 'CUTTING' | 'SEWING' | 'IRONING' | 'PACKING' | 'SHIPPING'
 
 export type ApiProductionEntry = {
@@ -255,6 +282,10 @@ export async function createProductionEntry(
 ): Promise<ApiProductionEntry> {
   const { data } = await api.post<ApiProductionEntry>(`/orders/${orderId}/production`, input)
   return data
+}
+
+export async function deleteProductionEntry(orderId: string, entryId: number): Promise<void> {
+  await api.delete(`/orders/${orderId}/production/${entryId}`)
 }
 
 export type ApiQualityEntry = {
@@ -299,6 +330,10 @@ export async function createQualityEntry(
     }
     throw err
   }
+}
+
+export async function deleteQualityEntry(orderId: string, entryId: number): Promise<void> {
+  await api.delete(`/orders/${orderId}/quality/${entryId}`)
 }
 
 export type ApiOrderColorSize = {

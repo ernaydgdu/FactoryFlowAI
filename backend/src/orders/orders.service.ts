@@ -16,7 +16,7 @@ import type {
   CreateProductionEntryDto,
   CreateQualityEntryDto,
   UpdateApprovalStageDto,
-  UpdateMaterialStatusDto,
+  UpdateMaterialDto,
   UpdateOrderDto,
 } from './dto/order.dto';
 
@@ -252,10 +252,10 @@ export class OrdersService {
     });
   }
 
-  async updateMaterialStatus(
+  async updateMaterial(
     orderId: number,
     materialId: number,
-    data: UpdateMaterialStatusDto,
+    data: UpdateMaterialDto,
   ) {
     const material = await this.prisma.material.findFirst({
       where: { id: materialId, orderId },
@@ -265,6 +265,20 @@ export class OrdersService {
     }
 
     const updateData: Record<string, unknown> = {};
+    if (data.materialName !== undefined)
+      updateData.materialName = data.materialName.trim();
+    if (data.supplierName !== undefined)
+      updateData.supplierName = data.supplierName.trim();
+    if (data.orderedQuantity !== undefined)
+      updateData.orderedQuantity = data.orderedQuantity;
+    if (data.expectedArrival !== undefined)
+      updateData.expectedArrival = new Date(data.expectedArrival);
+    if (data.fabricWidth !== undefined)
+      updateData.fabricWidth = data.fabricWidth;
+    if (data.fabricWeight !== undefined)
+      updateData.fabricWeight = data.fabricWeight;
+    if (data.unitPrice !== undefined) updateData.unitPrice = data.unitPrice;
+    if (data.currency !== undefined) updateData.currency = data.currency;
     if (data.status) updateData.status = data.status;
     if (data.arrivedQuantity !== undefined)
       updateData.arrivedQuantity = data.arrivedQuantity;
@@ -274,6 +288,17 @@ export class OrdersService {
       where: { id: materialId },
       data: updateData,
     });
+  }
+
+  async deleteMaterial(orderId: number, materialId: number) {
+    const material = await this.prisma.material.findFirst({
+      where: { id: materialId, orderId },
+    });
+    if (!material) {
+      throw new NotFoundException('Malzeme bulunamadı');
+    }
+    await this.prisma.material.delete({ where: { id: materialId } });
+    return { success: true };
   }
 
   async getProductionEntries(orderId: number) {
@@ -297,6 +322,17 @@ export class OrdersService {
         notes: data.notes,
       },
     });
+  }
+
+  async deleteProductionEntry(orderId: number, entryId: number) {
+    const entry = await this.prisma.productionEntry.findFirst({
+      where: { id: entryId, orderId },
+    });
+    if (!entry) {
+      throw new NotFoundException('Üretim girişi bulunamadı');
+    }
+    await this.prisma.productionEntry.delete({ where: { id: entryId } });
+    return { success: true };
   }
 
   async getQualityEntries(orderId: number) {
@@ -331,6 +367,17 @@ export class OrdersService {
         notes: data.notes,
       },
     });
+  }
+
+  async deleteQualityEntry(orderId: number, entryId: number) {
+    const entry = await this.prisma.qualityEntry.findFirst({
+      where: { id: entryId, orderId },
+    });
+    if (!entry) {
+      throw new NotFoundException('Kalite girişi bulunamadı');
+    }
+    await this.prisma.qualityEntry.delete({ where: { id: entryId } });
+    return { success: true };
   }
 
   async getColorSizes(orderId: number) {

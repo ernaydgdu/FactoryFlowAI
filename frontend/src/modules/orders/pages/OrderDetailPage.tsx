@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Check, Plus, Sparkles, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -8,6 +8,7 @@ import { useAuth } from '@/application/platform/iam/auth-context'
 import { PageHeader, QualityRateCard, StatusBadge } from '@/components/erp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -18,6 +19,9 @@ import {
   createProductionEntry,
   createQualityEntry,
   deleteColorSize,
+  deleteMaterial,
+  deleteProductionEntry,
+  deleteQualityEntry,
   fetchAiSuggestion,
   fetchApprovalStages,
   fetchColorSizes,
@@ -26,6 +30,7 @@ import {
   fetchProductionEntries,
   fetchQualityEntries,
   updateApprovalStage,
+  updateMaterial,
   updateMaterialStatus,
   upsertColorSize,
   type ApiApprovalStage,
@@ -39,9 +44,15 @@ import {
   type CreateQualityEntryInput,
   type MaterialStatusValue,
   type ProductionStage,
+  type UpdateMaterialInput,
 } from '@/infrastructure/api/orders-api.repository'
 
 import { OrderProgressBar } from '../components/OrderProgressBar'
+
+function useCanManageOrderRecords(): boolean {
+  const { user } = useAuth()
+  return user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'PLANNER'
+}
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PLANNING: 'Beklemede',
@@ -273,9 +284,11 @@ const INITIAL_MATERIAL_FORM: MaterialFormState = {
 
 function MaterialsPanel({ orderId, exfDate }: { orderId: string; exfDate: string }) {
   const queryClient = useQueryClient()
+  const canManage = useCanManageOrderRecords()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<MaterialFormState>(INITIAL_MATERIAL_FORM)
   const [error, setError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ApiMaterial | null>(null)
 
   const materialsQuery = useQuery({
     queryKey: applicationQueryKeys.orderRecord.materials(orderId),
@@ -300,6 +313,28 @@ function MaterialsPanel({ orderId, exfDate }: { orderId: string; exfDate: string
       updateMaterialStatus(orderId, materialId, status),
     onSuccess: invalidateMaterials,
   })
+
+  const editMutation = useMutation({
+    mutationFn: ({
+      materialId,
+      input,
+    }: {
+      materialId: number
+      input: UpdateMaterialInput
+    }) => updateMaterial(orderId, materialId, input),
+    onSuccess: invalidateMaterials,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (materialId: number) => deleteMaterial(orderId, materialId),
+    onSuccess: invalidateMaterials,
+  })
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return
+    await deleteMutation.mutateAsync(pendingDelete.id)
+    setPendingDelete(null)
+  }
 
   function updateField(field: keyof MaterialFormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -486,12 +521,13 @@ function MaterialsPanel({ orderId, exfDate }: { orderId: string; exfDate: string
               <th className="px-3 py-2">Birim Fiyat</th>
               <th className="px-3 py-2">Para Birimi</th>
               <th className="px-3 py-2">Durum</th>
+              {canManage ? <th className="px-3 py-2" /> : null}
             </tr>
           </thead>
           <tbody>
             {materialsQuery.isLoading ? (
               <tr>
-                <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={canManage ? 12 : 11} className="px-3 py-6 text-center text-muted-foreground">
                   Yükleniyor...
                 </td>
               </tr>
@@ -505,11 +541,17 @@ function MaterialsPanel({ orderId, exfDate }: { orderId: string; exfDate: string
                   isUpdating={
                     statusMutation.isPending && statusMutation.variables?.materialId === m.id
                   }
+                  canManage={canManage}
+                  onSaveEdit={(input) => editMutation.mutateAsync({ materialId: m.id, input })}
+                  isSaving={
+                    editMutation.isPending && editMutation.variables?.materialId === m.id
+                  }
+                  onRequestDelete={() => setPendingDelete(m)}
                 />
               ))
             ) : (
               <tr>
-                <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={canManage ? 12 : 11} className="px-3 py-6 text-center text-muted-foreground">
                   Henüz malzeme eklenmedi.
                 </td>
               </tr>
@@ -517,8 +559,47 @@ function MaterialsPanel({ orderId, exfDate }: { orderId: string; exfDate: string
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Malzemeyi Sil"
+        description={
+          pendingDelete
+            ? `"${pendingDelete.materialName}" malzemesini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+            : ''
+        }
+        confirmLabel="Sil"
+        destructive
+        isConfirming={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
+}
+
+type MaterialEditFormState = {
+  materialName: string
+  supplierName: string
+  orderedQuantity: string
+  expectedArrival: string
+  fabricWidth: string
+  fabricWeight: string
+  unitPrice: string
+  currency: string
+}
+
+function materialToEditForm(material: ApiMaterial): MaterialEditFormState {
+  return {
+    materialName: material.materialName,
+    supplierName: material.supplierName,
+    orderedQuantity: String(material.orderedQuantity),
+    expectedArrival: material.expectedArrival ? material.expectedArrival.slice(0, 10) : '',
+    fabricWidth: material.fabricWidth != null ? String(material.fabricWidth) : '',
+    fabricWeight: material.fabricWeight != null ? String(material.fabricWeight) : '',
+    unitPrice: material.unitPrice != null ? String(material.unitPrice) : '',
+    currency: material.currency ?? '',
+  }
 }
 
 function MaterialRow({
@@ -526,13 +607,173 @@ function MaterialRow({
   lateDays,
   onStatusChange,
   isUpdating,
+  canManage,
+  onSaveEdit,
+  isSaving,
+  onRequestDelete,
 }: {
   material: ApiMaterial
   lateDays: number
   onStatusChange: (status: MaterialStatusValue) => void
   isUpdating: boolean
+  canManage: boolean
+  onSaveEdit: (input: UpdateMaterialInput) => Promise<unknown>
+  isSaving: boolean
+  onRequestDelete: () => void
 }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState<MaterialEditFormState>(() => materialToEditForm(material))
+  const [editError, setEditError] = useState<string | null>(null)
   const isLate = lateDays > 0
+
+  function startEdit() {
+    setEditForm(materialToEditForm(material))
+    setEditError(null)
+    setIsEditing(true)
+  }
+
+  function updateEditField(field: keyof MaterialEditFormState, value: string) {
+    setEditForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleSave() {
+    setEditError(null)
+    const orderedQuantity = Number(editForm.orderedQuantity)
+    if (!editForm.materialName.trim() || !editForm.supplierName.trim()) {
+      setEditError('Malzeme adı ve tedarikçi zorunludur.')
+      return
+    }
+    if (!editForm.orderedQuantity || Number.isNaN(orderedQuantity) || orderedQuantity <= 0) {
+      setEditError('Sipariş miktarı geçerli bir sayı olmalıdır.')
+      return
+    }
+
+    try {
+      await onSaveEdit({
+        materialName: editForm.materialName.trim(),
+        supplierName: editForm.supplierName.trim(),
+        orderedQuantity,
+        expectedArrival: editForm.expectedArrival || undefined,
+        fabricWidth: editForm.fabricWidth ? Number(editForm.fabricWidth) : undefined,
+        fabricWeight: editForm.fabricWeight ? Number(editForm.fabricWeight) : undefined,
+        unitPrice: editForm.unitPrice ? Number(editForm.unitPrice) : undefined,
+        currency: editForm.currency.trim() || undefined,
+      })
+      setIsEditing(false)
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Malzeme güncellenemedi.')
+    }
+  }
+
+  if (isEditing) {
+    return (
+      <tr className="border-b border-border/60 bg-muted/20">
+        <td className="px-3 py-2">
+          <Input
+            value={editForm.materialName}
+            onChange={(e) => updateEditField('materialName', e.target.value)}
+            className="h-8"
+          />
+        </td>
+        <td className="px-3 py-2 text-muted-foreground">{material.materialType}</td>
+        <td className="px-3 py-2">
+          <Input
+            value={editForm.supplierName}
+            onChange={(e) => updateEditField('supplierName', e.target.value)}
+            className="h-8"
+          />
+        </td>
+        <td className="px-3 py-2">
+          <Input
+            type="number"
+            min="0"
+            value={editForm.orderedQuantity}
+            onChange={(e) => updateEditField('orderedQuantity', e.target.value)}
+            className="h-8 w-24"
+          />
+        </td>
+        <td className="px-3 py-2 tabular-nums">{material.arrivedQuantity.toLocaleString('tr-TR')}</td>
+        <td className="px-3 py-2">
+          <Input
+            type="date"
+            value={editForm.expectedArrival}
+            onChange={(e) => updateEditField('expectedArrival', e.target.value)}
+            className="h-8"
+          />
+        </td>
+        <td className="px-3 py-2">
+          <Input
+            type="number"
+            min="0"
+            step="0.1"
+            value={editForm.fabricWidth}
+            onChange={(e) => updateEditField('fabricWidth', e.target.value)}
+            className="h-8 w-20"
+          />
+        </td>
+        <td className="px-3 py-2">
+          <Input
+            type="number"
+            min="0"
+            step="0.1"
+            value={editForm.fabricWeight}
+            onChange={(e) => updateEditField('fabricWeight', e.target.value)}
+            className="h-8 w-20"
+          />
+        </td>
+        <td className="px-3 py-2">
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={editForm.unitPrice}
+            onChange={(e) => updateEditField('unitPrice', e.target.value)}
+            className="h-8 w-20"
+          />
+        </td>
+        <td className="px-3 py-2">
+          <Input
+            value={editForm.currency}
+            onChange={(e) => updateEditField('currency', e.target.value)}
+            className="h-8 w-16"
+          />
+        </td>
+        <td className="px-3 py-2">
+          <StatusBadge
+            label={MATERIAL_STATUS_LABEL[material.status]}
+            tone={MATERIAL_STATUS_TONE[material.status]}
+          />
+        </td>
+        <td className="px-3 py-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-emerald-600 hover:text-emerald-600"
+              disabled={isSaving}
+              onClick={handleSave}
+              title="Kaydet"
+            >
+              <Check className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={isSaving}
+              onClick={() => setIsEditing(false)}
+              title="İptal"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+          {editError ? (
+            <p className="mt-1 max-w-[200px] text-xs text-destructive">{editError}</p>
+          ) : null}
+        </td>
+      </tr>
+    )
+  }
 
   return (
     <tr className={cn('border-b border-border/60', isLate && 'bg-destructive/5 text-destructive')}>
@@ -575,6 +816,30 @@ function MaterialRow({
           </select>
         </div>
       </td>
+      {canManage ? (
+        <td className="px-3 py-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={startEdit}
+              title="Düzenle"
+            >
+              <Pencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={onRequestDelete}
+              title="Sil"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </td>
+      ) : null}
     </tr>
   )
 }
@@ -605,9 +870,11 @@ function ProductionPanel({
   totalQuantity: number
 }) {
   const queryClient = useQueryClient()
+  const canManage = useCanManageOrderRecords()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<ProductionFormState>(initialProductionForm)
   const [error, setError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ApiProductionEntry | null>(null)
 
   const productionQuery = useQuery({
     queryKey: applicationQueryKeys.orderRecord.production(orderId),
@@ -615,14 +882,28 @@ function ProductionPanel({
     enabled: !!orderId,
   })
 
+  function invalidateProduction() {
+    return queryClient.invalidateQueries({
+      queryKey: applicationQueryKeys.orderRecord.production(orderId),
+      refetchType: 'all',
+    })
+  }
+
   const addMutation = useMutation({
     mutationFn: (input: CreateProductionEntryInput) => createProductionEntry(orderId, input),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: applicationQueryKeys.orderRecord.production(orderId),
-        refetchType: 'all',
-      }),
+    onSuccess: invalidateProduction,
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: (entryId: number) => deleteProductionEntry(orderId, entryId),
+    onSuccess: invalidateProduction,
+  })
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return
+    await deleteMutation.mutateAsync(pendingDelete.id)
+    setPendingDelete(null)
+  }
 
   function updateField(field: keyof ProductionFormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -783,20 +1064,28 @@ function ProductionPanel({
               <th className="px-3 py-2">Hat No</th>
               <th className="px-3 py-2">Tarih</th>
               <th className="px-3 py-2">Notlar</th>
+              {canManage ? <th className="px-3 py-2" /> : null}
             </tr>
           </thead>
           <tbody>
             {productionQuery.isLoading ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={canManage ? 6 : 5} className="px-3 py-6 text-center text-muted-foreground">
                   Yükleniyor...
                 </td>
               </tr>
             ) : entries.length > 0 ? (
-              entries.map((entry) => <ProductionRow key={entry.id} entry={entry} />)
+              entries.map((entry) => (
+                <ProductionRow
+                  key={entry.id}
+                  entry={entry}
+                  canManage={canManage}
+                  onRequestDelete={() => setPendingDelete(entry)}
+                />
+              ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={canManage ? 6 : 5} className="px-3 py-6 text-center text-muted-foreground">
                   Henüz üretim girişi eklenmedi.
                 </td>
               </tr>
@@ -804,11 +1093,34 @@ function ProductionPanel({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Üretim Girişini Sil"
+        description={
+          pendingDelete
+            ? `${STAGE_LABEL[pendingDelete.stage] ?? pendingDelete.stage} aşamasındaki ${pendingDelete.quantity.toLocaleString('tr-TR')} adetlik üretim girişini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+            : ''
+        }
+        confirmLabel="Sil"
+        destructive
+        isConfirming={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }
 
-function ProductionRow({ entry }: { entry: ApiProductionEntry }) {
+function ProductionRow({
+  entry,
+  canManage,
+  onRequestDelete,
+}: {
+  entry: ApiProductionEntry
+  canManage: boolean
+  onRequestDelete: () => void
+}) {
   return (
     <tr className="border-b border-border/60">
       <td className="px-3 py-2 font-medium">{STAGE_LABEL[entry.stage] ?? entry.stage}</td>
@@ -816,6 +1128,19 @@ function ProductionRow({ entry }: { entry: ApiProductionEntry }) {
       <td className="px-3 py-2">{entry.lineNo ?? '—'}</td>
       <td className="px-3 py-2">{formatDate(entry.date)}</td>
       <td className="px-3 py-2">{entry.notes ?? '—'}</td>
+      {canManage ? (
+        <td className="px-3 py-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={onRequestDelete}
+            title="Sil"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </td>
+      ) : null}
     </tr>
   )
 }
@@ -844,9 +1169,11 @@ function initialQualityForm(): QualityFormState {
 
 function QualityPanel({ orderId }: { orderId: string }) {
   const queryClient = useQueryClient()
+  const canManage = useCanManageOrderRecords()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<QualityFormState>(initialQualityForm)
   const [error, setError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ApiQualityEntry | null>(null)
 
   const qualityQuery = useQuery({
     queryKey: applicationQueryKeys.orderRecord.quality(orderId),
@@ -854,14 +1181,28 @@ function QualityPanel({ orderId }: { orderId: string }) {
     enabled: !!orderId,
   })
 
+  function invalidateQuality() {
+    return queryClient.invalidateQueries({
+      queryKey: applicationQueryKeys.orderRecord.quality(orderId),
+      refetchType: 'all',
+    })
+  }
+
   const addMutation = useMutation({
     mutationFn: (input: CreateQualityEntryInput) => createQualityEntry(orderId, input),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: applicationQueryKeys.orderRecord.quality(orderId),
-        refetchType: 'all',
-      }),
+    onSuccess: invalidateQuality,
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: (entryId: number) => deleteQualityEntry(orderId, entryId),
+    onSuccess: invalidateQuality,
+  })
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return
+    await deleteMutation.mutateAsync(pendingDelete.id)
+    setPendingDelete(null)
+  }
 
   function updateField(field: keyof QualityFormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -1051,20 +1392,28 @@ function QualityPanel({ orderId }: { orderId: string }) {
               <th className="px-3 py-2">Hata Türü</th>
               <th className="px-3 py-2">Tarih</th>
               <th className="px-3 py-2">Notlar</th>
+              {canManage ? <th className="px-3 py-2" /> : null}
             </tr>
           </thead>
           <tbody>
             {qualityQuery.isLoading ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={canManage ? 8 : 7} className="px-3 py-6 text-center text-muted-foreground">
                   Yükleniyor...
                 </td>
               </tr>
             ) : entries.length > 0 ? (
-              entries.map((entry) => <QualityRow key={entry.id} entry={entry} />)
+              entries.map((entry) => (
+                <QualityRow
+                  key={entry.id}
+                  entry={entry}
+                  canManage={canManage}
+                  onRequestDelete={() => setPendingDelete(entry)}
+                />
+              ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={canManage ? 8 : 7} className="px-3 py-6 text-center text-muted-foreground">
                   Henüz kalite girişi eklenmedi.
                 </td>
               </tr>
@@ -1072,11 +1421,34 @@ function QualityPanel({ orderId }: { orderId: string }) {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Kalite Girişini Sil"
+        description={
+          pendingDelete
+            ? `${pendingDelete.checkedQty.toLocaleString('tr-TR')} adetlik kalite kontrol girişini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+            : ''
+        }
+        confirmLabel="Sil"
+        destructive
+        isConfirming={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }
 
-function QualityRow({ entry }: { entry: ApiQualityEntry }) {
+function QualityRow({
+  entry,
+  canManage,
+  onRequestDelete,
+}: {
+  entry: ApiQualityEntry
+  canManage: boolean
+  onRequestDelete: () => void
+}) {
   return (
     <tr className="border-b border-border/60">
       <td className="px-3 py-2 tabular-nums">{entry.checkedQty.toLocaleString('tr-TR')}</td>
@@ -1086,6 +1458,19 @@ function QualityRow({ entry }: { entry: ApiQualityEntry }) {
       <td className="px-3 py-2">{entry.defectType ?? '—'}</td>
       <td className="px-3 py-2">{formatDate(entry.date)}</td>
       <td className="px-3 py-2">{entry.notes ?? '—'}</td>
+      {canManage ? (
+        <td className="px-3 py-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={onRequestDelete}
+            title="Sil"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </td>
+      ) : null}
     </tr>
   )
 }

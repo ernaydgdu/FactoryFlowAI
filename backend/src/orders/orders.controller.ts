@@ -25,7 +25,7 @@ import type {
   CreateProductionEntryDto,
   CreateQualityEntryDto,
   UpdateApprovalStageDto,
-  UpdateMaterialStatusDto,
+  UpdateMaterialDto,
   UpdateOrderDto,
 } from './dto/order.dto';
 
@@ -93,12 +93,21 @@ export class OrdersController {
 
   @Patch(':id/materials/:materialId')
   @Roles('ADMIN', 'MANAGER', 'PLANNER', 'SHOP_FLOOR_OPERATOR')
-  async updateMaterialStatus(
+  async updateMaterial(
     @Param('id', ParseIntPipe) id: number,
     @Param('materialId', ParseIntPipe) materialId: number,
-    @Body() body: UpdateMaterialStatusDto,
+    @Body() body: UpdateMaterialDto,
   ) {
-    return this.ordersService.updateMaterialStatus(id, materialId, body);
+    return this.ordersService.updateMaterial(id, materialId, body);
+  }
+
+  @Delete(':id/materials/:materialId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async deleteMaterial(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('materialId', ParseIntPipe) materialId: number,
+  ) {
+    return this.ordersService.deleteMaterial(id, materialId);
   }
 
   @Get(':id/production')
@@ -115,6 +124,15 @@ export class OrdersController {
     return this.ordersService.addProductionEntry(id, body);
   }
 
+  @Delete(':id/production/:entryId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async deleteProductionEntry(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('entryId', ParseIntPipe) entryId: number,
+  ) {
+    return this.ordersService.deleteProductionEntry(id, entryId);
+  }
+
   @Get(':id/quality')
   async getQualityEntries(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.getQualityEntries(id);
@@ -127,6 +145,15 @@ export class OrdersController {
     @Body() body: CreateQualityEntryDto,
   ) {
     return this.ordersService.addQualityEntry(id, body);
+  }
+
+  @Delete(':id/quality/:entryId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async deleteQualityEntry(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('entryId', ParseIntPipe) entryId: number,
+  ) {
+    return this.ordersService.deleteQualityEntry(id, entryId);
   }
 
   @Get(':id/color-sizes')

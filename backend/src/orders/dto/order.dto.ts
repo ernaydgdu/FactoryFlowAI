@@ -31,7 +31,15 @@ export class CreateMaterialDto {
   notes?: string;
 }
 
-export class UpdateMaterialStatusDto {
+export class UpdateMaterialDto {
+  materialName?: string;
+  supplierName?: string;
+  orderedQuantity?: number;
+  expectedArrival?: string;
+  fabricWidth?: number;
+  fabricWeight?: number;
+  unitPrice?: number;
+  currency?: string;
   status?: string;
   arrivedQuantity?: number;
   notes?: string;
