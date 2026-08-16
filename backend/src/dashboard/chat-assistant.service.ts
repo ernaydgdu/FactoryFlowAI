@@ -1,6 +1,8 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaService } from '../prisma/prisma.service';
+import { AlertsService } from './alerts.service';
+import { AnalyticsService } from './analytics.service';
 import {
   calculateFabricEfficiency,
   calculateFabricNeed,
@@ -15,414 +17,24 @@ import {
   type TeslimSekli,
 } from '../knowledge/textile-knowledge';
 import { searchKnowledgeLibrary } from '../knowledge/textile-library';
-import type { MaterialModel, OrderModel } from '../../generated/prisma/models';
-
-function dateOnlyUTC(d: Date): number {
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
-
-function todayRangeUTC(): { start: Date; end: Date } {
-  const now = new Date();
-  const start = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return { start, end };
-}
-
-function daysBetweenUTC(fromMs: number, toMs: number): number {
-  return Math.round((toMs - fromMs) / (24 * 60 * 60 * 1000));
-}
-
-function formatDateTR(d: Date): string {
-  return new Date(d).toLocaleDateString('tr-TR');
-}
-
-function extractNumbers(text: string): number[] {
-  const matches = text.match(/\d+(?:[.,]\d+)?/g);
-  if (!matches) return [];
-  return matches.map((match) => parseFloat(match.replace(',', '.')));
-}
-
-type OrderWithMaterials = OrderModel & { materials: MaterialModel[] };
-
-export type DashboardAlertType =
-  | 'MATERIAL_DELAY'
-  | 'MATERIAL_PENDING'
-  | 'NO_PRODUCTION'
-  | 'FIRE_RATE_HIGH'
-  | 'SECOND_QUALITY_HIGH'
-  | 'STOCK_CRITICAL'
-  | 'APPROVAL_STALLED';
-
-const APPROVAL_STAGE_LABEL: Record<string, string> = {
-  PP_NUMUNE: 'PP Numune',
-  PASTAL_ONAY: 'Pastal Onayı',
-  SARFIYAT_ONAY: 'Sarfiyat Onayı',
-  KESIM_ONAY: 'Kesim Onayı',
-};
-
-const APPROVAL_STAGE_ORDER_LIST = [
-  'PP_NUMUNE',
-  'PASTAL_ONAY',
-  'SARFIYAT_ONAY',
-  'KESIM_ONAY',
-] as const;
-
-export type DashboardAlertSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
-
-export type DashboardAlert = {
-  id: string;
-  type: DashboardAlertType;
-  severity: DashboardAlertSeverity;
-  message: string;
-  orderId?: number;
-  orderNo?: string;
-};
-
-const SEVERITY_RANK: Record<DashboardAlertSeverity, number> = {
-  HIGH: 0,
-  MEDIUM: 1,
-  LOW: 2,
-};
-
-export type QualitySummary = {
-  totalChecked: number;
-  totalFirstQuality: number;
-  totalSecondQuality: number;
-  totalRejected: number;
-  secondQualityRate: number;
-  rejectionRate: number;
-};
-
-export type SupplierPerformance = {
-  supplierName: string;
-  totalOrders: number;
-  onTimeCount: number;
-  lateCount: number;
-  pendingCount: number;
-  avgDelayDays: number;
-  reliabilityScore: number;
-};
+import {
+  APPROVAL_STAGE_LABEL,
+  APPROVAL_STAGE_ORDER_LIST,
+  dateOnlyUTC,
+  daysBetweenUTC,
+  extractNumbers,
+  formatDateTR,
+  todayRangeUTC,
+  type OrderWithMaterials,
+} from './dashboard-shared';
 
 @Injectable()
-export class DashboardService {
-  constructor(private prisma: PrismaService) {}
-
-  async getDashboard(tenantId?: string) {
-    const orders = await this.prisma.order.findMany({
-      where: tenantId ? { tenantId } : undefined,
-      include: { materials: true },
-    });
-
-    const totalOrders = orders.length;
-
-    const terminRiskOrders = orders.filter((order) =>
-      order.materials.some(
-        (material) =>
-          material.expectedArrival &&
-          dateOnlyUTC(material.expectedArrival) >
-            dateOnlyUTC(order.shipmentDate),
-      ),
-    ).length;
-
-    const { start, end } = todayRangeUTC();
-    const todayEntries = await this.prisma.productionEntry.findMany({
-      where: {
-        date: { gte: start, lt: end },
-        ...(tenantId ? { order: { tenantId } } : {}),
-      },
-    });
-
-    const totalProduction = todayEntries.reduce(
-      (sum, entry) => sum + entry.quantity,
-      0,
-    );
-    const cuttingToday = todayEntries
-      .filter((entry) => entry.stage === 'CUTTING')
-      .reduce((sum, entry) => sum + entry.quantity, 0);
-    const sewingToday = todayEntries
-      .filter((entry) => entry.stage === 'SEWING')
-      .reduce((sum, entry) => sum + entry.quantity, 0);
-
-    return {
-      totalOrders,
-      terminRiskOrders,
-      totalProduction,
-      cuttingToday,
-      sewingToday,
-    };
-  }
-
-  async getAlerts(tenantId?: string): Promise<DashboardAlert[]> {
-    const orders = await this.prisma.order.findMany({
-      where: tenantId ? { tenantId } : undefined,
-      include: { materials: true, qualityEntries: true },
-    });
-
-    const alerts: DashboardAlert[] = [];
-    const todayStartMs = dateOnlyUTC(new Date());
-
-    for (const order of orders) {
-      const exfMs = dateOnlyUTC(order.shipmentDate);
-
-      for (const material of order.materials) {
-        if (material.expectedArrival) {
-          const expectedMs = dateOnlyUTC(material.expectedArrival);
-          if (expectedMs > exfMs) {
-            const daysLate = daysBetweenUTC(exfMs, expectedMs);
-            alerts.push({
-              id: `delay-${material.id}`,
-              type: 'MATERIAL_DELAY',
-              severity: 'MEDIUM',
-              message: `⚠️ ${order.orderNo} - ${order.buyerName} siparişinin ${material.materialName} malzemesi EXF tarihinden ${daysLate} gün geç geliyor. Tedarikçi: ${material.supplierName}`,
-              orderId: order.id,
-              orderNo: order.orderNo,
-            });
-          }
-        }
-
-        if (material.status === 'PENDING') {
-          const daysUntilExf = daysBetweenUTC(todayStartMs, exfMs);
-          if (daysUntilExf < 7) {
-            alerts.push({
-              id: `pending-${material.id}`,
-              type: 'MATERIAL_PENDING',
-              severity: 'HIGH',
-              message: `🚨 ${order.orderNo} siparişinin ${material.materialName} malzemesi henüz gelmedi, EXF'ye ${daysUntilExf} gün kaldı!`,
-              orderId: order.id,
-              orderNo: order.orderNo,
-            });
-          }
-        }
-      }
-
-      if (order.qualityEntries.length > 0) {
-        const totalChecked = order.qualityEntries.reduce(
-          (sum, entry) => sum + entry.checkedQty,
-          0,
-        );
-
-        if (totalChecked > 0) {
-          const totalRejected = order.qualityEntries.reduce(
-            (sum, entry) => sum + entry.rejected,
-            0,
-          );
-          const totalSecondQuality = order.qualityEntries.reduce(
-            (sum, entry) => sum + entry.secondQuality,
-            0,
-          );
-
-          const rejectionRate = (totalRejected / totalChecked) * 100;
-          const secondQualityRate = (totalSecondQuality / totalChecked) * 100;
-
-          if (rejectionRate > 5) {
-            alerts.push({
-              id: `fire-rate-${order.id}`,
-              type: 'FIRE_RATE_HIGH',
-              severity: 'HIGH',
-              message: `🚨 ${order.orderNo} - ${order.buyerName} siparişinde fire oranı %${rejectionRate.toFixed(1)} - kabul edilebilir sınırın (%5) üzerinde!`,
-              orderId: order.id,
-              orderNo: order.orderNo,
-            });
-          } else if (secondQualityRate > 5) {
-            alerts.push({
-              id: `second-quality-${order.id}`,
-              type: 'SECOND_QUALITY_HIGH',
-              severity: 'MEDIUM',
-              message: `⚠️ ${order.orderNo} siparişinde 2. kalite oranı %${secondQualityRate.toFixed(1)} - normalin üzerinde, üretim sürecini kontrol edin`,
-              orderId: order.id,
-              orderNo: order.orderNo,
-            });
-          }
-        }
-      }
-    }
-
-    // StockLot modelinde tenantId alanı yok (stok kasıtlı olarak tenant'lar arası paylaşılan
-    // bir kaynak) — ama bir sipariş ile ilişkilendirilmiş lotlar (orderId dolu) o siparişin
-    // tenant'ına aitmiş gibi davranmalı; aksi halde bir tenant başka bir tenant'ın sipariş
-    // bazlı stok uyarısını görebilir. Siparişe bağlı olmayan (orderId=null) lotlar hâlâ
-    // tüm tenant'lar arasında paylaşılıyor (bilinen mimari sınırlama).
-    const stockLots = await this.prisma.stockLot.findMany({
-      where: tenantId
-        ? { OR: [{ orderId: null }, { order: { tenantId } }] }
-        : undefined,
-    });
-    const stockByMaterial = new Map<
-      string,
-      { totalReceived: number; totalRemaining: number }
-    >();
-    for (const lot of stockLots) {
-      const entry = stockByMaterial.get(lot.materialName) ?? {
-        totalReceived: 0,
-        totalRemaining: 0,
-      };
-      entry.totalReceived += lot.receivedQty;
-      entry.totalRemaining += lot.remainingQty;
-      stockByMaterial.set(lot.materialName, entry);
-    }
-
-    const STOCK_CRITICAL_RATIO = 0.15;
-    for (const [
-      materialName,
-      { totalReceived, totalRemaining },
-    ] of stockByMaterial) {
-      if (
-        totalReceived > 0 &&
-        totalRemaining < totalReceived * STOCK_CRITICAL_RATIO
-      ) {
-        alerts.push({
-          id: `stock-critical-${materialName}`,
-          type: 'STOCK_CRITICAL',
-          severity: 'HIGH',
-          message: `🚨 ${materialName} stoku kritik seviyede - sadece ${totalRemaining.toFixed(1)} birim kaldı (başlangıç: ${totalReceived.toFixed(1)})`,
-        });
-      }
-    }
-
-    const pendingApprovalStages = await this.prisma.approvalStage.findMany({
-      where: {
-        status: 'PENDING',
-        ...(tenantId ? { order: { tenantId } } : {}),
-      },
-      include: { order: true },
-    });
-
-    const APPROVAL_STALLED_DAYS = 3;
-    for (const stage of pendingApprovalStages) {
-      const daysPending = daysBetweenUTC(
-        dateOnlyUTC(stage.createdAt),
-        todayStartMs,
-      );
-      if (daysPending > APPROVAL_STALLED_DAYS) {
-        alerts.push({
-          id: `approval-stalled-${stage.id}`,
-          type: 'APPROVAL_STALLED',
-          severity: 'MEDIUM',
-          message: `⚠️ ${stage.order.orderNo} - ${stage.order.buyerName} siparişinde ${APPROVAL_STAGE_LABEL[stage.stageType] ?? stage.stageType} onayı ${daysPending} gündür bekliyor - süreç tıkanmış olabilir`,
-          orderId: stage.order.id,
-          orderNo: stage.order.orderNo,
-        });
-      }
-    }
-
-    const { start, end } = todayRangeUTC();
-    const todayEntriesCount = await this.prisma.productionEntry.count({
-      where: {
-        date: { gte: start, lt: end },
-        ...(tenantId ? { order: { tenantId } } : {}),
-      },
-    });
-
-    if (todayEntriesCount === 0) {
-      alerts.push({
-        id: 'no-production-today',
-        type: 'NO_PRODUCTION',
-        severity: 'LOW',
-        message: '📋 Bugün henüz üretim girişi yapılmadı',
-      });
-    }
-
-    return alerts.sort(
-      (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity],
-    );
-  }
-
-  async getQualitySummary(tenantId?: string): Promise<QualitySummary> {
-    const entries = await this.prisma.qualityEntry.findMany({
-      where: tenantId ? { order: { tenantId } } : undefined,
-    });
-
-    const totalChecked = entries.reduce(
-      (sum, entry) => sum + entry.checkedQty,
-      0,
-    );
-    const totalFirstQuality = entries.reduce(
-      (sum, entry) => sum + entry.firstQuality,
-      0,
-    );
-    const totalSecondQuality = entries.reduce(
-      (sum, entry) => sum + entry.secondQuality,
-      0,
-    );
-    const totalRejected = entries.reduce(
-      (sum, entry) => sum + entry.rejected,
-      0,
-    );
-
-    const secondQualityRate =
-      totalChecked > 0 ? (totalSecondQuality / totalChecked) * 100 : 0;
-    const rejectionRate =
-      totalChecked > 0 ? (totalRejected / totalChecked) * 100 : 0;
-
-    return {
-      totalChecked,
-      totalFirstQuality,
-      totalSecondQuality,
-      totalRejected,
-      secondQualityRate,
-      rejectionRate,
-    };
-  }
-
-  async getSupplierPerformance(
-    tenantId?: string,
-  ): Promise<SupplierPerformance[]> {
-    const materials = await this.prisma.material.findMany({
-      where: tenantId ? { order: { tenantId } } : undefined,
-      include: { order: true },
-    });
-
-    const bySupplier = new Map<string, typeof materials>();
-    for (const material of materials) {
-      const list = bySupplier.get(material.supplierName) ?? [];
-      list.push(material);
-      bySupplier.set(material.supplierName, list);
-    }
-
-    const results: SupplierPerformance[] = [];
-
-    for (const [supplierName, supplierMaterials] of bySupplier) {
-      const totalOrders = supplierMaterials.length;
-      let onTimeCount = 0;
-      let lateCount = 0;
-      let pendingCount = 0;
-      let totalDelayDays = 0;
-
-      for (const material of supplierMaterials) {
-        if (material.status === 'ARRIVED' && material.expectedArrival) {
-          const expectedMs = dateOnlyUTC(material.expectedArrival);
-          const shipmentMs = dateOnlyUTC(material.order.shipmentDate);
-
-          if (expectedMs <= shipmentMs) {
-            onTimeCount += 1;
-          } else {
-            lateCount += 1;
-            totalDelayDays += daysBetweenUTC(shipmentMs, expectedMs);
-          }
-        } else if (material.status === 'PENDING') {
-          pendingCount += 1;
-        }
-      }
-
-      const avgDelayDays = lateCount > 0 ? totalDelayDays / lateCount : 0;
-      const reliabilityScore =
-        totalOrders > 0 ? (onTimeCount / totalOrders) * 100 : 0;
-
-      results.push({
-        supplierName,
-        totalOrders,
-        onTimeCount,
-        lateCount,
-        pendingCount,
-        avgDelayDays,
-        reliabilityScore,
-      });
-    }
-
-    return results.sort((a, b) => b.reliabilityScore - a.reliabilityScore);
-  }
+export class ChatAssistantService {
+  constructor(
+    private prisma: PrismaService,
+    private alertsService: AlertsService,
+    private analyticsService: AnalyticsService,
+  ) {}
 
   async getAiAdvice(tenantId?: string): Promise<string> {
     const orders = await this.prisma.order.findMany({
@@ -430,7 +42,7 @@ export class DashboardService {
       include: { materials: true },
     });
 
-    const alerts = await this.getAlerts(tenantId);
+    const alerts = await this.alertsService.getAlerts(tenantId);
 
     const { start, end } = todayRangeUTC();
     const todayProductionEntries = await this.prisma.productionEntry.findMany({
@@ -831,7 +443,8 @@ export class DashboardService {
     question: string,
     tenantId?: string,
   ): Promise<string> {
-    const performance = await this.getSupplierPerformance(tenantId);
+    const performance =
+      await this.analyticsService.getSupplierPerformance(tenantId);
     if (performance.length === 0) {
       return 'Henüz değerlendirilecek tedarikçi verisi bulunmuyor.';
     }

@@ -1,5 +1,8 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
-import { DashboardService } from './dashboard.service';
+import { DashboardSummaryService } from './dashboard-summary.service';
+import { AlertsService } from './alerts.service';
+import { AnalyticsService } from './analytics.service';
+import { ChatAssistantService } from './chat-assistant.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
@@ -10,7 +13,12 @@ import {
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class DashboardController {
-  constructor(private dashboardService: DashboardService) {}
+  constructor(
+    private dashboardSummaryService: DashboardSummaryService,
+    private alertsService: AlertsService,
+    private analyticsService: AnalyticsService,
+    private chatAssistantService: ChatAssistantService,
+  ) {}
 
   @Get()
   async getDashboard(
@@ -18,7 +26,7 @@ export class DashboardController {
     @Query('tenantId') tenantId?: string,
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
-    return this.dashboardService.getDashboard(scope);
+    return this.dashboardSummaryService.getDashboard(scope);
   }
 
   @Get('alerts')
@@ -27,7 +35,7 @@ export class DashboardController {
     @Query('tenantId') tenantId?: string,
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
-    return this.dashboardService.getAlerts(scope);
+    return this.alertsService.getAlerts(scope);
   }
 
   @Get('quality-summary')
@@ -36,7 +44,7 @@ export class DashboardController {
     @Query('tenantId') tenantId?: string,
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
-    return this.dashboardService.getQualitySummary(scope);
+    return this.analyticsService.getQualitySummary(scope);
   }
 
   @Get('supplier-performance')
@@ -45,7 +53,7 @@ export class DashboardController {
     @Query('tenantId') tenantId?: string,
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
-    return this.dashboardService.getSupplierPerformance(scope);
+    return this.analyticsService.getSupplierPerformance(scope);
   }
 
   @Post('ai-advice')
@@ -54,7 +62,7 @@ export class DashboardController {
     @Query('tenantId') tenantId?: string,
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
-    const advice = await this.dashboardService.getAiAdvice(scope);
+    const advice = await this.chatAssistantService.getAiAdvice(scope);
     return { advice };
   }
 
@@ -65,7 +73,10 @@ export class DashboardController {
     @Query('tenantId') tenantId?: string,
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
-    const answer = await this.dashboardService.answerQuestion(question, scope);
+    const answer = await this.chatAssistantService.answerQuestion(
+      question,
+      scope,
+    );
     return { answer };
   }
 }
