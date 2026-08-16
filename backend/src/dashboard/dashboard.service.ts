@@ -369,6 +369,14 @@ export class DashboardService {
     }
 
     if (
+      (q.includes('birim maliyet') || q.includes('maliyet hesapla')) &&
+      /\d{2,}/.test(question)
+    ) {
+      const order = await this.findOrderFromQuestion(question, tenantId);
+      return this.answerUnitCost(order);
+    }
+
+    if (
       (q.includes('top') && q.includes('pastal')) ||
       q.includes('kaç pastal')
     ) {
@@ -425,6 +433,7 @@ export class DashboardService {
     return [
       'Şu konularda yardımcı olabilirim:',
       '• Kumaş ihtiyacı hesaplama — örn: "1040 için kumaş ne kadar gerekir?"',
+      '• Tahmini hammadde birim maliyeti — örn: "1040 için birim maliyet hesapla"',
       '• Top/pastal hesaplama — örn: "35 metre topdan 5.1 metre pastal ile kaç pastal çıkar?"',
       '• Kumaş verimliliği / pastal verimi — örn: "12 m² şablon, 1.5 en, 10 boy ile verimlilik nedir?"',
       '• Kesim işçilik maliyeti hesaplama — örn: "kesim maliyeti nasıl hesaplanır?"',
@@ -539,6 +548,37 @@ export class DashboardService {
     const totalNeed = calculateFabricNeed(order.totalQuantity, rate.avg);
 
     return `${order.orderNo} siparişi (${order.productName}, ${order.totalQuantity} adet) için tahmini kumaş ihtiyacı ${totalNeed.toFixed(1)} metre. (Sarfiyat oranı: ${formatConsumptionRate(rate)} + %3 fire dahil.)`;
+  }
+
+  private answerUnitCost(order: OrderWithMaterials | null): string {
+    if (!order) {
+      return 'Hangi sipariş için birim maliyet hesaplamak istediğinizi anlayamadım. Lütfen sipariş numarasını belirtin (örn: "1040 için birim maliyet hesapla").';
+    }
+
+    const rate = findConsumptionRate(order.productName);
+    if (!rate) {
+      return `${order.orderNo} siparişindeki "${order.productName}" ürünü için standart sarfiyat oranı bilgi tabanında bulunamadı, maliyet hesaplanamadı.`;
+    }
+
+    const fabricMaterials = order.materials.filter(
+      (material) =>
+        material.materialType.toLocaleLowerCase('tr-TR') === 'kumaş' &&
+        material.unitPrice != null,
+    );
+
+    if (fabricMaterials.length === 0) {
+      return `${order.orderNo} siparişi için kumaş fiyatı girilmemiş, tahmini hammadde maliyeti hesaplanamıyor. (Sarfiyat: ${formatConsumptionRate(rate)})`;
+    }
+
+    const avgUnitPrice =
+      fabricMaterials.reduce(
+        (sum, material) => sum + (material.unitPrice ?? 0),
+        0,
+      ) / fabricMaterials.length;
+    const currency = fabricMaterials[0].currency ?? 'USD';
+    const fabricCost = order.totalQuantity * rate.avg * avgUnitPrice;
+
+    return `${order.orderNo} siparişi (${order.productName}, ${order.totalQuantity} adet) için tahmini hammadde (kumaş) maliyeti: ${fabricCost.toFixed(2)} ${currency} (${order.totalQuantity} adet × ${rate.avg.toFixed(2)} m/adet sarfiyat × ${avgUnitPrice.toFixed(2)} ${currency} ortalama kumaş fiyatı). Not: Bu sadece hammadde maliyetidir; işçilik ve genel gider dahil değildir.`;
   }
 
   private answerGenericConsumptionRate(question: string): string {
