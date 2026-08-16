@@ -51,7 +51,8 @@ export type DashboardAlertType =
   | 'MATERIAL_PENDING'
   | 'NO_PRODUCTION'
   | 'FIRE_RATE_HIGH'
-  | 'SECOND_QUALITY_HIGH';
+  | 'SECOND_QUALITY_HIGH'
+  | 'STOCK_CRITICAL';
 
 export type DashboardAlertSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -220,6 +221,39 @@ export class DashboardService {
             });
           }
         }
+      }
+    }
+
+    const stockLots = await this.prisma.stockLot.findMany();
+    const stockByMaterial = new Map<
+      string,
+      { totalReceived: number; totalRemaining: number }
+    >();
+    for (const lot of stockLots) {
+      const entry = stockByMaterial.get(lot.materialName) ?? {
+        totalReceived: 0,
+        totalRemaining: 0,
+      };
+      entry.totalReceived += lot.receivedQty;
+      entry.totalRemaining += lot.remainingQty;
+      stockByMaterial.set(lot.materialName, entry);
+    }
+
+    const STOCK_CRITICAL_RATIO = 0.15;
+    for (const [
+      materialName,
+      { totalReceived, totalRemaining },
+    ] of stockByMaterial) {
+      if (
+        totalReceived > 0 &&
+        totalRemaining < totalReceived * STOCK_CRITICAL_RATIO
+      ) {
+        alerts.push({
+          id: `stock-critical-${materialName}`,
+          type: 'STOCK_CRITICAL',
+          severity: 'HIGH',
+          message: `🚨 ${materialName} stoku kritik seviyede - sadece ${totalRemaining.toFixed(1)} birim kaldı (başlangıç: ${totalReceived.toFixed(1)})`,
+        });
       }
     }
 
