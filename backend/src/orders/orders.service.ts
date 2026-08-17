@@ -16,6 +16,7 @@ import {
   type CompletionForecast,
 } from './forecast.util';
 import type {
+  CloseOrderDto,
   CreateMaterialDto,
   CreateOrderColorSizeDto,
   CreateOrderDto,
@@ -38,6 +39,14 @@ const APPROVAL_STAGE_ORDER = [
   'PASTAL_ONAY',
   'SARFIYAT_ONAY',
   'KESIM_ONAY',
+] as const;
+
+const PRODUCTION_STAGE_KEYS = [
+  'CUTTING',
+  'SEWING',
+  'IRONING',
+  'PACKING',
+  'SHIPPING',
 ] as const;
 
 const APPROVAL_STAGE_LABEL: Record<string, string> = {
@@ -1030,5 +1039,317 @@ export class OrdersService {
       where: { id: stageId },
       data: updateData,
     });
+  }
+
+  private async buildClosingData(orderId: number, tenantId?: string) {
+    const order = await this.findOrThrow(
+      () =>
+        this.prisma.order.findFirst({
+          where: { id: orderId, ...(tenantId ? { tenantId } : {}) },
+          include: {
+            materials: true,
+            colorSizes: true,
+            productionEntries: true,
+            qualityEntries: true,
+          },
+        }),
+      'Sipariş bulunamadı',
+    );
+
+    const approvalStages = await this.prisma.approvalStage.findMany({
+      where: { orderId },
+    });
+
+    const productWarehouse = await this.prisma.warehouse.findFirst({
+      where: { type: 'URUN' },
+    });
+    const finishedGoodsLot = productWarehouse
+      ? await this.prisma.stockLot.findFirst({
+          where: { orderId, warehouseId: productWarehouse.id },
+        })
+      : null;
+
+    const fabricMovements = await this.prisma.stockMovement.findMany({
+      where: {
+        orderId,
+        type: 'CIKIS',
+        reason: { contains: 'Otomatik kumaş tüketimi' },
+      },
+    });
+
+    const productionByStage = PRODUCTION_STAGE_KEYS.reduce(
+      (acc, stage) => {
+        acc[stage] = order.productionEntries
+          .filter((entry) => entry.stage === stage)
+          .reduce((sum, entry) => sum + entry.quantity, 0);
+        return acc;
+      },
+      {} as Record<(typeof PRODUCTION_STAGE_KEYS)[number], number>,
+    );
+
+    const totalChecked = order.qualityEntries.reduce(
+      (sum, q) => sum + q.checkedQty,
+      0,
+    );
+    const firstQuality = order.qualityEntries.reduce(
+      (sum, q) => sum + q.firstQuality,
+      0,
+    );
+    const secondQuality = order.qualityEntries.reduce(
+      (sum, q) => sum + q.secondQuality,
+      0,
+    );
+    const rejected = order.qualityEntries.reduce(
+      (sum, q) => sum + q.rejected,
+      0,
+    );
+    const secondQualityRate =
+      totalChecked > 0 ? (secondQuality / totalChecked) * 100 : 0;
+    const fireRate = totalChecked > 0 ? (rejected / totalChecked) * 100 : 0;
+
+    const match = findProductType(order.productName);
+    const estimatedNeedMeters = match
+      ? calculateFabricNeed(order.totalQuantity, match.rate.avg)
+      : null;
+    const actualConsumedMeters = fabricMovements.reduce(
+      (sum, m) => sum + m.quantity,
+      0,
+    );
+    const varianceMeters =
+      estimatedNeedMeters != null
+        ? actualConsumedMeters - estimatedNeedMeters
+        : null;
+    const variancePercent =
+      varianceMeters != null && estimatedNeedMeters
+        ? (varianceMeters / estimatedNeedMeters) * 100
+        : null;
+
+    const finishedGoods = {
+      packaged: finishedGoodsLot?.receivedQty ?? 0,
+      shipped: finishedGoodsLot
+        ? finishedGoodsLot.receivedQty - finishedGoodsLot.remainingQty
+        : 0,
+      remaining: finishedGoodsLot?.remainingQty ?? 0,
+    };
+
+    const summary = {
+      orderQuantity: order.totalQuantity,
+      productionByStage,
+      quality: {
+        totalChecked,
+        firstQuality,
+        secondQuality,
+        rejected,
+        secondQualityRate,
+        fireRate,
+      },
+      fabric: {
+        estimatedNeedMeters,
+        actualConsumedMeters,
+        varianceMeters,
+        variancePercent,
+      },
+      materials: order.materials.map((m) => ({
+        materialName: m.materialName,
+        orderedQuantity: m.orderedQuantity,
+        arrivedQuantity: m.arrivedQuantity,
+        unitPrice: m.unitPrice,
+        currency: m.currency,
+      })),
+      finishedGoods,
+    };
+
+    const approvalsComplete =
+      approvalStages.length === APPROVAL_STAGE_ORDER.length &&
+      approvalStages.every((s) => s.status === 'APPROVED');
+    const cuttingComplete = productionByStage.CUTTING >= order.totalQuantity;
+    const sewingComplete = productionByStage.SEWING >= order.totalQuantity;
+    const packingComplete = productionByStage.PACKING >= order.totalQuantity;
+    const shipmentComplete =
+      finishedGoodsLot != null && finishedGoodsLot.remainingQty === 0;
+    const qualityChecked = order.qualityEntries.length > 0;
+    const colorSizeTotal = order.colorSizes.reduce(
+      (sum, cs) => sum + cs.quantity,
+      0,
+    );
+    const colorSizeMatches =
+      order.colorSizes.length === 0 || colorSizeTotal === order.totalQuantity;
+
+    const missingItems: string[] = [];
+    if (!approvalsComplete) missingItems.push('Onay süreci tamamlanmadı');
+    if (!cuttingComplete)
+      missingItems.push(
+        `Kesim eksik (${productionByStage.CUTTING}/${order.totalQuantity})`,
+      );
+    if (!sewingComplete)
+      missingItems.push(
+        `Dikim eksik (${productionByStage.SEWING}/${order.totalQuantity})`,
+      );
+    if (!packingComplete)
+      missingItems.push(
+        `Paketleme eksik (${productionByStage.PACKING}/${order.totalQuantity})`,
+      );
+    if (!shipmentComplete) missingItems.push('Sevkiyat tamamlanmadı');
+    if (!qualityChecked) missingItems.push('Kalite kontrolü yapılmadı');
+    if (!colorSizeMatches)
+      missingItems.push(
+        'Renk/beden dağılımı toplam miktarla eşleşmiyor',
+      );
+
+    const readyToClose = missingItems.length === 0;
+
+    const checklist = {
+      approvalsComplete,
+      cuttingComplete,
+      sewingComplete,
+      packingComplete,
+      shipmentComplete,
+      qualityChecked,
+      colorSizeMatches,
+      readyToClose,
+      missingItems,
+      alreadyClosed: order.closedAt != null,
+      closedAt: order.closedAt,
+      closedBy: order.closedBy,
+    };
+
+    return { order, checklist, summary };
+  }
+
+  async getClosingSummary(orderId: number, tenantId?: string) {
+    const { checklist, summary } = await this.buildClosingData(
+      orderId,
+      tenantId,
+    );
+    return { checklist, summary };
+  }
+
+  async closeOrder(
+    orderId: number,
+    data: CloseOrderDto,
+    userLabel: string,
+    tenantId?: string,
+  ) {
+    const { order, checklist } = await this.buildClosingData(
+      orderId,
+      tenantId,
+    );
+
+    if (order.closedAt != null) {
+      throw new BadRequestException('Bu sipariş zaten kapalı.');
+    }
+
+    if (!checklist.readyToClose && !data.force) {
+      throw new BadRequestException(
+        `Sipariş kapatılamaz, eksikler: ${checklist.missingItems.join(', ')}`,
+      );
+    }
+
+    const closedBy =
+      !checklist.readyToClose && data.force
+        ? `${userLabel} tarafından eksiklerle kapatıldı`
+        : userLabel;
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { closedAt: new Date(), closedBy },
+    });
+  }
+
+  async reopenOrder(orderId: number, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { closedAt: null, closedBy: null },
+    });
+  }
+
+  async getPackingList(orderId: number, tenantId?: string) {
+    const order = await this.findOrThrow(
+      () =>
+        this.prisma.order.findFirst({
+          where: { id: orderId, ...(tenantId ? { tenantId } : {}) },
+          include: { colorSizes: true },
+        }),
+      'Sipariş bulunamadı',
+    );
+
+    const productWarehouse = await this.prisma.warehouse.findFirst({
+      where: { type: 'URUN' },
+    });
+    const lot = productWarehouse
+      ? await this.prisma.stockLot.findFirst({
+          where: { orderId, warehouseId: productWarehouse.id },
+        })
+      : null;
+
+    return {
+      order: {
+        orderNo: order.orderNo,
+        buyerName: order.buyerName,
+        productName: order.productName,
+        totalQuantity: order.totalQuantity,
+        shipmentDate: order.shipmentDate,
+      },
+      colorSizes: order.colorSizes.map((cs) => ({
+        color: cs.color,
+        size: cs.size,
+        quantity: cs.quantity,
+      })),
+      packingSummary: {
+        packaged: lot?.receivedQty ?? 0,
+        shipped: lot ? lot.receivedQty - lot.remainingQty : 0,
+        remaining: lot?.remainingQty ?? 0,
+      },
+      reportDate: new Date(),
+    };
+  }
+
+  async exportPackingListCsv(
+    orderId: number,
+    tenantId?: string,
+  ): Promise<{ csv: string; orderNo: string }> {
+    const data = await this.getPackingList(orderId, tenantId);
+
+    const escapeCsvField = (field: string): string => {
+      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+    const row = (fields: string[]) => fields.map(escapeCsvField).join(',');
+
+    const lines: string[] = [];
+    lines.push(row(['Sipariş No', 'Müşteri', 'Ürün', 'Toplam Miktar', 'EXF Tarihi', 'Rapor Tarihi']));
+    lines.push(
+      row([
+        data.order.orderNo,
+        data.order.buyerName,
+        data.order.productName,
+        String(data.order.totalQuantity),
+        data.order.shipmentDate.toISOString().slice(0, 10),
+        data.reportDate.toISOString().slice(0, 10),
+      ]),
+    );
+    lines.push('');
+    lines.push(row(['Renk', 'Beden', 'Miktar']));
+    if (data.colorSizes.length > 0) {
+      for (const cs of data.colorSizes) {
+        lines.push(row([cs.color, cs.size, String(cs.quantity)]));
+      }
+    }
+    lines.push('');
+    lines.push(row(['Paketlenen', 'Sevk Edilen', 'Kalan']));
+    lines.push(
+      row([
+        String(data.packingSummary.packaged),
+        String(data.packingSummary.shipped),
+        String(data.packingSummary.remaining),
+      ]),
+    );
+
+    // UTF-8 BOM — Excel'in Türkçe karakterleri (ş, ğ, ı vb.) doğru göstermesi için gerekli.
+    return { csv: '\uFEFF' + lines.join('\r\n'), orderNo: data.order.orderNo };
   }
 }

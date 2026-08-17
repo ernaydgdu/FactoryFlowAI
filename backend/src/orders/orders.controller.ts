@@ -21,6 +21,7 @@ import {
   type JwtPayloadUser,
 } from '../auth/decorators/current-user.decorator';
 import {
+  CloseOrderDto,
   CreateMaterialDto,
   CreateOrderColorSizeDto,
   CreateOrderDto,
@@ -317,5 +318,64 @@ export class OrdersController {
       body,
       this.scopeFor(user),
     );
+  }
+
+  @Get(':id/closing-summary')
+  async getClosingSummary(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getClosingSummary(id, this.scopeFor(user));
+  }
+
+  @Post(':id/close')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async closeOrder(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CloseOrderDto,
+  ) {
+    return this.ordersService.closeOrder(
+      id,
+      body,
+      user.email,
+      this.scopeFor(user),
+    );
+  }
+
+  @Post(':id/reopen')
+  @Roles('ADMIN', 'MANAGER')
+  async reopenOrder(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.reopenOrder(id, this.scopeFor(user));
+  }
+
+  @Get(':id/packing-list')
+  async getPackingList(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getPackingList(id, this.scopeFor(user));
+  }
+
+  @Get(':id/packing-list/export')
+  async exportPackingList(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { csv, orderNo } = await this.ordersService.exportPackingListCsv(
+      id,
+      this.scopeFor(user),
+    );
+
+    const today = new Date().toISOString().slice(0, 10);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="cekilistesi-${orderNo}-${today}.csv"`,
+    });
+    return csv;
   }
 }

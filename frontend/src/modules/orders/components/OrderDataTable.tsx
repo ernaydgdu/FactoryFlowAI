@@ -181,10 +181,13 @@ export function OrderDataTable({ orders, list, onDeleteRow }: OrderDataTableProp
       sortKey: 'productionStatus',
       filterKey: 'productionStatus',
       render: (o) => (
-        <StatusBadge
-          label={o.productionStatus}
-          tone={productionStatusTone[o.productionStatus]}
-        />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <StatusBadge
+            label={o.productionStatus}
+            tone={productionStatusTone[o.productionStatus]}
+          />
+          {o.closedAt ? <StatusBadge label="🔒 Kapalı" tone="muted" /> : null}
+        </div>
       ),
     },
     {

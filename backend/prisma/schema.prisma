@@ -46,6 +46,8 @@ model Order {
   stockLots     StockLot[]
   colorSizes    OrderColorSize[]
   approvalStages ApprovalStage[]
+  closedAt      DateTime?
+  closedBy      String?
 
   @@index([tenantId])
 }

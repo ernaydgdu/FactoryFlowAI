@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsIn,
   IsNotEmpty,
@@ -239,6 +240,12 @@ export class CreateOrderColorSizeDto {
   @IsNumber()
   @Min(0)
   quantity!: number;
+}
+
+export class CloseOrderDto {
+  @IsOptional()
+  @IsBoolean()
+  force?: boolean;
 }
 
 export class UpdateApprovalStageDto {

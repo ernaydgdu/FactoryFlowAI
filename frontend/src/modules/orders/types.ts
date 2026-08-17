@@ -43,6 +43,7 @@ export type Order = {
   colorCount: number
   colorSizeTotal: number
   cuttingReady: boolean
+  closedAt: string | null
 }
 
 export type OrderSortKey = keyof Pick<

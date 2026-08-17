@@ -27,6 +27,10 @@ export const applicationQueryKeys = {
       [...applicationQueryKeys.orderRecord.all, 'color-sizes', id] as const,
     approvalStages: (id: string) =>
       [...applicationQueryKeys.orderRecord.all, 'approval-stages', id] as const,
+    closingSummary: (id: string) =>
+      [...applicationQueryKeys.orderRecord.all, 'closing-summary', id] as const,
+    packingList: (id: string) =>
+      [...applicationQueryKeys.orderRecord.all, 'packing-list', id] as const,
     materialStockAvailability: (id: string, materialId: number) =>
       [
         ...applicationQueryKeys.orderRecord.all,

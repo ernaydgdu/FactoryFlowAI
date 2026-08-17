@@ -43,6 +43,8 @@ type ApiOrder = {
   colorSizeTotal?: number
   cuttingReady?: boolean
   colorSizes?: ApiOrderColorSize[]
+  closedAt?: string | null
+  closedBy?: string | null
 }
 
 export type ApiOrderDetail = ApiOrder
@@ -103,6 +105,7 @@ function mapOrder(raw: ApiOrder): Order {
     colorCount: raw.colorCount ?? 0,
     colorSizeTotal: raw.colorSizeTotal ?? 0,
     cuttingReady: raw.cuttingReady ?? false,
+    closedAt: raw.closedAt ?? null,
   }
 }
 
@@ -128,7 +131,7 @@ export type CreateOrderInput = {
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
   try {
-    const { data } = await api.post<ApiOrder>('/orders', input)
+    const { data } = await api.post<ApiOrderDetail>('/orders', input)
     return mapOrder(data)
   } catch (err) {
     if (isAxiosError(err) && err.response?.status === 409) {
@@ -508,4 +511,113 @@ export async function updateApprovalStage(
     }
     throw err
   }
+}
+
+export type ProductionStageKey = 'CUTTING' | 'SEWING' | 'IRONING' | 'PACKING' | 'SHIPPING'
+
+export type ClosingChecklist = {
+  approvalsComplete: boolean
+  cuttingComplete: boolean
+  sewingComplete: boolean
+  packingComplete: boolean
+  shipmentComplete: boolean
+  qualityChecked: boolean
+  colorSizeMatches: boolean
+  readyToClose: boolean
+  missingItems: string[]
+  alreadyClosed: boolean
+  closedAt: string | null
+  closedBy: string | null
+}
+
+export type ClosingSummary = {
+  orderQuantity: number
+  productionByStage: Record<ProductionStageKey, number>
+  quality: {
+    totalChecked: number
+    firstQuality: number
+    secondQuality: number
+    rejected: number
+    secondQualityRate: number
+    fireRate: number
+  }
+  fabric: {
+    estimatedNeedMeters: number | null
+    actualConsumedMeters: number
+    varianceMeters: number | null
+    variancePercent: number | null
+  }
+  materials: Array<{
+    materialName: string
+    orderedQuantity: number
+    arrivedQuantity: number
+    unitPrice: number | null
+    currency: string | null
+  }>
+  finishedGoods: { packaged: number; shipped: number; remaining: number }
+}
+
+export type OrderClosingSummary = {
+  checklist: ClosingChecklist
+  summary: ClosingSummary
+}
+
+export async function fetchClosingSummary(orderId: string): Promise<OrderClosingSummary> {
+  const { data } = await api.get<OrderClosingSummary>(`/orders/${orderId}/closing-summary`)
+  return data
+}
+
+export async function closeOrder(orderId: string, force?: boolean): Promise<ApiOrderDetail> {
+  try {
+    const { data } = await api.post<ApiOrderDetail>(`/orders/${orderId}/close`, { force })
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function reopenOrder(orderId: string): Promise<ApiOrderDetail> {
+  try {
+    const { data } = await api.post<ApiOrderDetail>(`/orders/${orderId}/reopen`, {})
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export type PackingListColorSize = {
+  color: string
+  size: string
+  quantity: number
+}
+
+export type PackingList = {
+  order: {
+    orderNo: string
+    buyerName: string
+    productName: string
+    totalQuantity: number
+    shipmentDate: string
+  }
+  colorSizes: PackingListColorSize[]
+  packingSummary: { packaged: number; shipped: number; remaining: number }
+  reportDate: string
+}
+
+export async function fetchPackingList(orderId: string): Promise<PackingList> {
+  const { data } = await api.get<PackingList>(`/orders/${orderId}/packing-list`)
+  return data
+}
+
+export async function exportPackingListCsv(orderId: string): Promise<Blob> {
+  const { data } = await api.get<Blob>(`/orders/${orderId}/packing-list/export`, {
+    responseType: 'blob',
+  })
+  return data
 }

@@ -1,5 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Check, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  Download,
+  Lock,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+  Unlock,
+  X,
+} from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -12,9 +23,11 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getQualityRateTone, QUALITY_RATE_TONE_CLASS } from '@/lib/quality-rate'
 import { cn } from '@/lib/utils'
 import { SIZE_PRESETS } from '@/modules/core/data/master-data'
 import {
+  closeOrder,
   createMaterial,
   createProductionEntry,
   createQualityEntry,
@@ -22,16 +35,20 @@ import {
   deleteMaterial,
   deleteProductionEntry,
   deleteQualityEntry,
+  exportPackingListCsv,
   fetchAiSuggestion,
   fetchApprovalStages,
+  fetchClosingSummary,
   fetchColorSizes,
   fetchMaterials,
   fetchMaterialStockAvailability,
   fetchOrderById,
   fetchOrderForecast,
+  fetchPackingList,
   fetchProductionEntries,
   fetchQualityEntries,
   fulfillMaterialFromStock,
+  reopenOrder,
   updateApprovalStage,
   updateMaterial,
   updateMaterialStatus,
@@ -47,6 +64,7 @@ import {
   type CreateQualityEntryInput,
   type MaterialStatusValue,
   type ProductionStage,
+  type ProductionStageKey,
   type UpdateMaterialInput,
 } from '@/infrastructure/api/orders-api.repository'
 
@@ -167,6 +185,8 @@ export function OrderDetailPage() {
               <TabsTrigger value="quality">Kalite</TabsTrigger>
               <TabsTrigger value="color-sizes">Renk/Beden</TabsTrigger>
               <TabsTrigger value="approval">Onay Süreci</TabsTrigger>
+              <TabsTrigger value="closing">Dosya Kapama</TabsTrigger>
+              <TabsTrigger value="packing-list">Çeki Listesi</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
@@ -217,6 +237,14 @@ export function OrderDetailPage() {
 
             <TabsContent value="approval">
               <ApprovalStagePanel orderId={id} />
+            </TabsContent>
+
+            <TabsContent value="closing">
+              <OrderClosingPanel orderId={id} />
+            </TabsContent>
+
+            <TabsContent value="packing-list">
+              <PackingListPanel orderId={id} />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -2380,5 +2408,448 @@ function ColorSizeRow({
         )}
       </td>
     </tr>
+  )
+}
+
+function FlowStep({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-border/60 bg-muted/20 p-2 text-center">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-lg font-bold tabular-nums">{value.toLocaleString('tr-TR')}</p>
+    </div>
+  )
+}
+
+function StatBox({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string
+  value: number
+  sub?: string
+  tone?: 'success' | 'warning' | 'danger'
+}) {
+  return (
+    <div className={cn('rounded-md border p-3', tone ? QUALITY_RATE_TONE_CLASS[tone] : 'border-border')}>
+      <p className="text-xs opacity-70">{label}</p>
+      <p className="text-lg font-bold tabular-nums">{value.toLocaleString('tr-TR')}</p>
+      {sub ? <p className="text-xs opacity-70">{sub}</p> : null}
+    </div>
+  )
+}
+
+function ChecklistRow({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2 px-4 py-2.5 text-sm">
+      <span>{ok ? '✅' : '❌'}</span>
+      <span className={cn(!ok && 'text-muted-foreground')}>{label}</span>
+    </div>
+  )
+}
+
+function OrderClosingPanel({ orderId }: { orderId: string }) {
+  const queryClient = useQueryClient()
+  const canManage = useCanManageOrderRecords()
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
+  const [forceCloseConfirmOpen, setForceCloseConfirmOpen] = useState(false)
+  const [reopenConfirmOpen, setReopenConfirmOpen] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const closingQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.closingSummary(orderId),
+    queryFn: () => fetchClosingSummary(orderId),
+  })
+
+  function invalidateAfterAction() {
+    return Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.closingSummary(orderId),
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.detail(orderId),
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.list(),
+        refetchType: 'all',
+      }),
+    ])
+  }
+
+  const closeMutation = useMutation({
+    mutationFn: (force: boolean) => closeOrder(orderId, force),
+    onSuccess: invalidateAfterAction,
+  })
+
+  const reopenMutation = useMutation({
+    mutationFn: () => reopenOrder(orderId),
+    onSuccess: invalidateAfterAction,
+  })
+
+  async function handleConfirmClose(force: boolean) {
+    setActionError(null)
+    try {
+      await closeMutation.mutateAsync(force)
+      setCloseConfirmOpen(false)
+      setForceCloseConfirmOpen(false)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Sipariş kapatılamadı.')
+    }
+  }
+
+  async function handleConfirmReopen() {
+    setActionError(null)
+    try {
+      await reopenMutation.mutateAsync()
+      setReopenConfirmOpen(false)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Sipariş yeniden açılamadı.')
+    }
+  }
+
+  if (closingQuery.isLoading) {
+    return <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+  }
+  if (closingQuery.isError || !closingQuery.data) {
+    return <p className="text-sm text-destructive">Kapanış özeti yüklenemedi.</p>
+  }
+
+  const { checklist, summary } = closingQuery.data
+  const firstQualityRate =
+    summary.quality.totalChecked > 0
+      ? (summary.quality.firstQuality / summary.quality.totalChecked) * 100
+      : 0
+  const varianceTone: 'success' | 'warning' | undefined =
+    summary.fabric.varianceMeters == null
+      ? undefined
+      : summary.fabric.varianceMeters > 0
+        ? 'warning'
+        : 'success'
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">Sipariş Hikayesi</h3>
+
+        <div className="rounded-lg border border-border p-4">
+          <p className="mb-3 text-sm font-medium">Üretim Akışı</p>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            <FlowStep label="Sipariş Adedi" value={summary.orderQuantity} />
+            {PRODUCTION_STAGES.map((stage) => (
+              <FlowStep
+                key={stage}
+                label={STAGE_LABEL[stage]}
+                value={summary.productionByStage[stage as ProductionStageKey]}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border p-4">
+          <p className="mb-3 text-sm font-medium">Kalite Özeti</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatBox label="Kontrol Edilen" value={summary.quality.totalChecked} />
+            <StatBox
+              label="1. Kalite"
+              value={summary.quality.firstQuality}
+              sub={`%${firstQualityRate.toFixed(1)}`}
+            />
+            <StatBox
+              label="2. Kalite"
+              value={summary.quality.secondQuality}
+              sub={`%${summary.quality.secondQualityRate.toFixed(1)}`}
+              tone={getQualityRateTone(summary.quality.secondQualityRate)}
+            />
+            <StatBox
+              label="Ret/Fire"
+              value={summary.quality.rejected}
+              sub={`%${summary.quality.fireRate.toFixed(1)}`}
+              tone={getQualityRateTone(summary.quality.fireRate)}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border p-4">
+          <p className="mb-3 text-sm font-medium">Kumaş Tüketimi</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-md border border-border p-3">
+              <p className="text-xs opacity-70">Tahmini İhtiyaç</p>
+              <p className="text-lg font-bold tabular-nums">
+                {summary.fabric.estimatedNeedMeters != null
+                  ? `${summary.fabric.estimatedNeedMeters.toFixed(1)} m`
+                  : 'Ürün tipi tanınmıyor'}
+              </p>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <p className="text-xs opacity-70">Gerçek Tüketim</p>
+              <p className="text-lg font-bold tabular-nums">
+                {summary.fabric.actualConsumedMeters.toFixed(1)} m
+              </p>
+            </div>
+            <div
+              className={cn(
+                'rounded-md border p-3',
+                varianceTone ? QUALITY_RATE_TONE_CLASS[varianceTone] : 'border-border',
+              )}
+            >
+              <p className="text-xs opacity-70">Fark</p>
+              <p className="text-lg font-bold tabular-nums">
+                {summary.fabric.varianceMeters != null
+                  ? `${summary.fabric.varianceMeters > 0 ? '+' : ''}${summary.fabric.varianceMeters.toFixed(1)} m`
+                  : '—'}
+              </p>
+              {summary.fabric.variancePercent != null ? (
+                <p className="text-xs opacity-70">
+                  {summary.fabric.variancePercent > 0 ? '+' : ''}
+                  {summary.fabric.variancePercent.toFixed(1)}%
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border">
+          <p className="px-4 pt-4 pb-2 text-sm font-medium">Malzeme Özeti</p>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+                <th className="px-4 py-2">Malzeme</th>
+                <th className="px-4 py-2">Sipariş Edilen</th>
+                <th className="px-4 py-2">Gelen</th>
+                <th className="px-4 py-2">Birim Fiyat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.materials.length > 0 ? (
+                summary.materials.map((m, i) => (
+                  <tr key={`${m.materialName}-${i}`} className="border-b border-border/60 last:border-b-0">
+                    <td className="px-4 py-2 font-medium">{m.materialName}</td>
+                    <td className="px-4 py-2 tabular-nums">
+                      {m.orderedQuantity.toLocaleString('tr-TR')}
+                    </td>
+                    <td className="px-4 py-2 tabular-nums">
+                      {m.arrivedQuantity.toLocaleString('tr-TR')}
+                    </td>
+                    <td className="px-4 py-2 tabular-nums">
+                      {m.unitPrice != null ? `${m.unitPrice.toLocaleString('tr-TR')} ${m.currency ?? ''}` : '—'}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                    Malzeme girişi yapılmadı.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="rounded-lg border border-border p-4">
+          <p className="mb-3 text-sm font-medium">Mamul/Sevkiyat</p>
+          <div className="grid grid-cols-3 gap-3">
+            <StatBox label="Paketlenen" value={summary.finishedGoods.packaged} />
+            <StatBox label="Sevk Edilen" value={summary.finishedGoods.shipped} />
+            <StatBox label="Kalan" value={summary.finishedGoods.remaining} />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">Kapanış Durumu</h3>
+
+        {checklist.alreadyClosed ? (
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+            🔒 Bu sipariş {formatDate(checklist.closedAt)} tarihinde {checklist.closedBy}
+            {checklist.closedBy?.includes('kapatıldı') ? '' : ' tarafından kapatıldı'}.
+          </div>
+        ) : checklist.readyToClose ? (
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-base font-semibold text-emerald-700 dark:text-emerald-400">
+            ✓ Dosya Kapanmaya Hazır
+          </div>
+        ) : (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-base font-semibold text-amber-700 dark:text-amber-400">
+            ⚠️ {checklist.missingItems.length} eksik var
+          </div>
+        )}
+
+        <div className="divide-y divide-border rounded-lg border border-border">
+          <ChecklistRow ok={checklist.approvalsComplete} label="Onay süreci tamamlandı" />
+          <ChecklistRow
+            ok={checklist.cuttingComplete}
+            label={`Kesim tamamlandı (${summary.productionByStage.CUTTING}/${summary.orderQuantity})`}
+          />
+          <ChecklistRow
+            ok={checklist.sewingComplete}
+            label={`Dikim tamamlandı (${summary.productionByStage.SEWING}/${summary.orderQuantity})`}
+          />
+          <ChecklistRow
+            ok={checklist.packingComplete}
+            label={`Paketleme tamamlandı (${summary.productionByStage.PACKING}/${summary.orderQuantity})`}
+          />
+          <ChecklistRow ok={checklist.shipmentComplete} label="Sevkiyat tamamlandı" />
+          <ChecklistRow ok={checklist.qualityChecked} label="Kalite kontrolü yapıldı" />
+          <ChecklistRow
+            ok={checklist.colorSizeMatches}
+            label="Renk/beden dağılımı toplam miktarla eşleşiyor"
+          />
+        </div>
+
+        {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
+
+        {canManage ? (
+          <div>
+            {checklist.alreadyClosed ? (
+              <Button variant="outline" onClick={() => setReopenConfirmOpen(true)}>
+                <Unlock className="size-4" /> Yeniden Aç
+              </Button>
+            ) : checklist.readyToClose ? (
+              <Button onClick={() => setCloseConfirmOpen(true)}>
+                <Lock className="size-4" /> Dosyayı Kapat
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="border-amber-500/40 text-amber-700 hover:text-amber-700 dark:text-amber-400"
+                onClick={() => setForceCloseConfirmOpen(true)}
+              >
+                <Lock className="size-4" /> Eksiklere Rağmen Kapat
+              </Button>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      <ConfirmDialog
+        open={closeConfirmOpen}
+        title="Dosyayı Kapat"
+        description="Bu siparişi kapatmak istediğinize emin misiniz?"
+        confirmLabel="Kapat"
+        isConfirming={closeMutation.isPending}
+        onConfirm={() => handleConfirmClose(false)}
+        onCancel={() => setCloseConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={forceCloseConfirmOpen}
+        title="Eksiklere Rağmen Kapat"
+        description={`Bu siparişte ${checklist.missingItems.length} eksik var: ${checklist.missingItems.join(', ')}. Yine de kapatmak istediğinize emin misiniz? Bu durum kayıt altına alınacaktır.`}
+        confirmLabel="Eksiklere Rağmen Kapat"
+        destructive
+        isConfirming={closeMutation.isPending}
+        onConfirm={() => handleConfirmClose(true)}
+        onCancel={() => setForceCloseConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={reopenConfirmOpen}
+        title="Siparişi Yeniden Aç"
+        description="Bu siparişi yeniden açmak istediğinize emin misiniz?"
+        confirmLabel="Yeniden Aç"
+        isConfirming={reopenMutation.isPending}
+        onConfirm={handleConfirmReopen}
+        onCancel={() => setReopenConfirmOpen(false)}
+      />
+    </div>
+  )
+}
+
+function PackingListPanel({ orderId }: { orderId: string }) {
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  const packingListQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.packingList(orderId),
+    queryFn: () => fetchPackingList(orderId),
+  })
+
+  async function handleExport() {
+    setExportError(null)
+    setIsExporting(true)
+    try {
+      const blob = await exportPackingListCsv(orderId)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      const orderNo = packingListQuery.data?.order.orderNo ?? orderId
+      link.download = `cekilistesi-${orderNo}-${todayIso()}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Dışa aktarma başarısız.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  if (packingListQuery.isLoading) {
+    return <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+  }
+  if (packingListQuery.isError || !packingListQuery.data) {
+    return <p className="text-sm text-destructive">Çeki listesi yüklenemedi.</p>
+  }
+
+  const data = packingListQuery.data
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Rapor Tarihi: {formatDate(data.reportDate)}</p>
+        <Button size="sm" variant="outline" onClick={handleExport} disabled={isExporting}>
+          <Download className="size-4" /> {isExporting ? 'İndiriliyor...' : 'İndir (CSV)'}
+        </Button>
+      </div>
+
+      {exportError ? <p className="text-sm text-destructive">{exportError}</p> : null}
+
+      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label="Sipariş No" value={data.order.orderNo} />
+        <Field label="Müşteri" value={data.order.buyerName} />
+        <Field label="Ürün" value={data.order.productName} />
+        <Field label="Toplam Miktar" value={data.order.totalQuantity.toLocaleString('tr-TR')} />
+        <Field label="EXF Tarihi" value={formatDate(data.order.shipmentDate)} />
+      </dl>
+
+      <div className="rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2">Renk</th>
+              <th className="px-3 py-2">Beden</th>
+              <th className="px-3 py-2">Miktar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.colorSizes.length > 0 ? (
+              data.colorSizes.map((cs, i) => (
+                <tr key={`${cs.color}-${cs.size}-${i}`} className="border-b border-border/60 last:border-b-0">
+                  <td className="px-3 py-2">{cs.color}</td>
+                  <td className="px-3 py-2">{cs.size}</td>
+                  <td className="px-3 py-2 tabular-nums">{cs.quantity.toLocaleString('tr-TR')}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">
+                  Renk/beden girişi yapılmadı.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <StatBox label="Paketlenen" value={data.packingSummary.packaged} />
+        <StatBox label="Sevk Edilen" value={data.packingSummary.shipped} />
+        <StatBox label="Kalan" value={data.packingSummary.remaining} />
+      </div>
+    </div>
   )
 }
