@@ -44,6 +44,20 @@ export async function fetchQualitySummary(): Promise<QualitySummary> {
   return data
 }
 
+export type RiskyOrder = {
+  orderId: number
+  orderNo: string
+  buyerName: string
+  productName: string
+  riskScore: number
+  risks: string[]
+}
+
+export async function fetchRiskyOrders(): Promise<RiskyOrder[]> {
+  const { data } = await api.get<RiskyOrder[]>('/dashboard/risky-orders')
+  return data
+}
+
 export type SupplierPerformance = {
   supplierName: string
   totalOrders: number

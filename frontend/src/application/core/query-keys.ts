@@ -37,6 +37,8 @@ export const applicationQueryKeys = {
       [...applicationQueryKeys.dashboardSummary.all, 'quality-summary'] as const,
     supplierPerformance: () =>
       [...applicationQueryKeys.dashboardSummary.all, 'supplier-performance'] as const,
+    riskyOrders: () =>
+      [...applicationQueryKeys.dashboardSummary.all, 'risky-orders'] as const,
   },
   // Real backend ProductionLine REST resource
   productionLine: {

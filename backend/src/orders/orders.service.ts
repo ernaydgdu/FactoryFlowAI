@@ -191,7 +191,7 @@ export class OrdersService {
     return this.computeAiSuggestion(order);
   }
 
-  private computeAiSuggestion(order: {
+  computeAiSuggestion(order: {
     productName: string;
     totalQuantity: number;
     materials: { materialType: string; orderedQuantity: number }[];

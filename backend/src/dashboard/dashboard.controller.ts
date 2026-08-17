@@ -3,6 +3,7 @@ import { DashboardSummaryService } from './dashboard-summary.service';
 import { AlertsService } from './alerts.service';
 import { AnalyticsService } from './analytics.service';
 import { ChatAssistantService } from './chat-assistant.service';
+import { RiskyOrdersService } from './risky-orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
@@ -18,6 +19,7 @@ export class DashboardController {
     private alertsService: AlertsService,
     private analyticsService: AnalyticsService,
     private chatAssistantService: ChatAssistantService,
+    private riskyOrdersService: RiskyOrdersService,
   ) {}
 
   @Get()
@@ -45,6 +47,15 @@ export class DashboardController {
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
     return this.analyticsService.getQualitySummary(scope);
+  }
+
+  @Get('risky-orders')
+  async getRiskyOrders(
+    @CurrentUser() user: JwtPayloadUser,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
+    return this.riskyOrdersService.getRiskyOrders(scope);
   }
 
   @Get('supplier-performance')

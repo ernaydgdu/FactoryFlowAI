@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Package, Scissors, Shirt, Sparkles, Truck } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
 import { AiAdvisorChat } from '@/components/dashboard/AiAdvisorChat'
@@ -24,6 +25,7 @@ import {
   fetchDashboard,
   fetchDashboardAlerts,
   fetchQualitySummary,
+  fetchRiskyOrders,
   fetchSupplierPerformance,
   type DashboardAlertSeverity,
   type SupplierPerformance,
@@ -65,6 +67,11 @@ export function DashboardPage() {
   const lineStatusQuery = useQuery({
     queryKey: applicationQueryKeys.productionLine.status(),
     queryFn: fetchLineStatus,
+  })
+
+  const riskyOrdersQuery = useQuery({
+    queryKey: applicationQueryKeys.dashboardSummary.riskyOrders(),
+    queryFn: fetchRiskyOrders,
   })
 
   const lines = lineStatusQuery.data ?? []
@@ -335,6 +342,56 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Riskli Siparişler</CardTitle>
+          <CardDescription>
+            Termin, malzeme, fire, onay ve tamamlanma tahmini risklerinin birleşik görünümü
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {riskyOrdersQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+          ) : riskyOrdersQuery.isError ? (
+            <p className="text-sm text-destructive">Riskli siparişler yüklenemedi.</p>
+          ) : riskyOrdersQuery.data && riskyOrdersQuery.data.length > 0 ? (
+            <div className="space-y-2">
+              {riskyOrdersQuery.data.map((order) => (
+                <Link
+                  key={order.orderId}
+                  to={`/orders/${order.orderId}`}
+                  className="flex flex-col gap-2 rounded-lg border border-border bg-background p-3 transition-colors hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">{order.orderNo}</span>
+                      <RiskScoreBadge score={order.riskScore} />
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {order.buyerName} · {order.productName}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {order.risks.map((risk) => (
+                      <span
+                        key={risk}
+                        className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                      >
+                        {risk}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm font-medium text-emerald-600">
+              ✓ Şu an risk taşıyan sipariş yok
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <AiAdvisorChat />
 
@@ -656,6 +713,21 @@ function LineStatusBadge({
       )}
     >
       {status}
+    </span>
+  )
+}
+
+function RiskScoreBadge({ score }: { score: number }) {
+  const style =
+    score >= 3
+      ? 'bg-red-900 text-white'
+      : score === 2
+        ? 'bg-destructive/10 text-destructive'
+        : 'bg-amber-500/10 text-amber-700'
+
+  return (
+    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold', style)}>
+      {score} risk
     </span>
   )
 }
