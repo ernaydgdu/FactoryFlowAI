@@ -479,7 +479,12 @@ function StockLotRow({
   return (
     <>
       <tr className={cn('border-b border-border/60', isOut && 'text-muted-foreground')}>
-        <td className="px-3 py-2 font-medium">{lot.materialName}</td>
+        <td className="px-3 py-2 font-medium">
+          {lot.materialName}
+          {isOut && lot.materialType === 'URUN' ? (
+            <span className="ml-1.5 text-xs font-normal text-muted-foreground">Sevk Edildi</span>
+          ) : null}
+        </td>
         <td className="px-3 py-2">{lot.materialType}</td>
         <td className="px-3 py-2">{lot.supplierName}</td>
         <td className="px-3 py-2">

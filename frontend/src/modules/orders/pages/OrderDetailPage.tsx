@@ -1116,6 +1116,9 @@ function ProductionPanel({
   const [pendingDelete, setPendingDelete] = useState<ApiProductionEntry | null>(null)
   const [fabricConsumptionNote, setFabricConsumptionNote] = useState<string | null>(null)
   const [finishedGoodsNote, setFinishedGoodsNote] = useState<string | null>(null)
+  const [shipmentNote, setShipmentNote] = useState<{ text: string; tone: 'success' | 'warning' } | null>(
+    null,
+  )
 
   const productionQuery = useQuery({
     queryKey: applicationQueryKeys.orderRecord.production(orderId),
@@ -1168,6 +1171,7 @@ function ProductionPanel({
 
     setFabricConsumptionNote(null)
     setFinishedGoodsNote(null)
+    setShipmentNote(null)
     try {
       const result = await addMutation.mutateAsync({
         stage: form.stage,
@@ -1185,6 +1189,22 @@ function ProductionPanel({
         setFinishedGoodsNote(
           `✓ ${result.finishedGoodsEntry.addedQty.toLocaleString('tr-TR')} adet mamul ${result.finishedGoodsEntry.warehouseName}'na eklendi`,
         )
+      }
+      if (result.shipmentEntry) {
+        const { deductedQty, warehouseName, remainingAfterShipment } = result.shipmentEntry
+        if (deductedQty < quantity) {
+          setShipmentNote({
+            text: `⚠️ Depoda yeterli mamul yoktu, sadece ${deductedQty.toLocaleString('tr-TR')} adet ${warehouseName}'ndan düşüldü (kalan: ${remainingAfterShipment.toLocaleString('tr-TR')} adet)`,
+            tone: 'warning',
+          })
+        } else {
+          setShipmentNote({
+            text: `✓ ${deductedQty.toLocaleString('tr-TR')} adet mamul ${warehouseName}'ndan sevk edildi (kalan: ${remainingAfterShipment.toLocaleString('tr-TR')} adet)`,
+            tone: 'success',
+          })
+        }
+      } else if (result.stage === 'SHIPPING' && result.notes) {
+        setShipmentNote({ text: result.notes, tone: 'warning' })
       }
       setForm(initialProductionForm())
       setShowForm(false)
@@ -1256,6 +1276,19 @@ function ProductionPanel({
       {finishedGoodsNote ? (
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400">
           {finishedGoodsNote}
+        </div>
+      ) : null}
+
+      {shipmentNote ? (
+        <div
+          className={cn(
+            'rounded-lg border px-4 py-3 text-sm font-medium',
+            shipmentNote.tone === 'success'
+              ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400'
+              : 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400',
+          )}
+        >
+          {shipmentNote.text}
         </div>
       ) : null}
 

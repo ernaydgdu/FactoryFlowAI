@@ -340,9 +340,16 @@ export type FinishedGoodsEntryResult = {
   warehouseName: string
 }
 
+export type ShipmentEntryResult = {
+  deductedQty: number
+  warehouseName: string
+  remainingAfterShipment: number
+}
+
 export type CreateProductionEntryResult = ApiProductionEntry & {
   fabricConsumption: FabricConsumptionResult | null
   finishedGoodsEntry: FinishedGoodsEntryResult | null
+  shipmentEntry: ShipmentEntryResult | null
 }
 
 export async function fetchProductionEntries(orderId: string): Promise<ApiProductionEntry[]> {

@@ -637,6 +637,56 @@ export class OrdersService {
         }
       }
 
+      let shipmentEntry: {
+        deductedQty: number;
+        warehouseName: string;
+        remainingAfterShipment: number;
+      } | null = null;
+
+      if (stage === 'SHIPPING') {
+        const productWarehouse = await tx.warehouse.findFirst({
+          where: { type: 'URUN' },
+        });
+        const lot = productWarehouse
+          ? await tx.stockLot.findFirst({
+              where: { orderId, warehouseId: productWarehouse.id },
+            })
+          : null;
+
+        if (!productWarehouse || !lot) {
+          const warning =
+            "⚠️ Sevkiyat kaydedildi ama Ürün Deposu'nda bu siparişe ait mamul bulunamadı - önce paketleme girişi yapılmalı";
+          notes = notes ? `${notes} ${warning}` : warning;
+        } else {
+          const deductedQty = Math.min(data.quantity, lot.remainingQty);
+          const updatedLot = await tx.stockLot.update({
+            where: { id: lot.id },
+            data: { remainingQty: lot.remainingQty - deductedQty },
+          });
+
+          await tx.stockMovement.create({
+            data: {
+              stockLotId: lot.id,
+              type: 'CIKIS',
+              quantity: deductedQty,
+              reason: `Sevkiyat - Sipariş #${orderId} müşteriye gönderildi`,
+              orderId,
+            },
+          });
+
+          if (deductedQty < data.quantity) {
+            const warning = `⚠️ Depoda yeterli mamul yoktu, sadece ${deductedQty} adet düşüldü`;
+            notes = notes ? `${notes} ${warning}` : warning;
+          }
+
+          shipmentEntry = {
+            deductedQty,
+            warehouseName: productWarehouse.name,
+            remainingAfterShipment: updatedLot.remainingQty,
+          };
+        }
+      }
+
       const entry = await tx.productionEntry.create({
         data: {
           orderId,
@@ -648,7 +698,7 @@ export class OrdersService {
         },
       });
 
-      return { ...entry, fabricConsumption, finishedGoodsEntry };
+      return { ...entry, fabricConsumption, finishedGoodsEntry, shipmentEntry };
     });
   }
 
