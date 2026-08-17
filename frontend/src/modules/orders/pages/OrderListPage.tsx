@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
 import { PageHeader } from '@/components/erp'
@@ -15,7 +16,6 @@ import { OrderQuickFilters } from '../components/OrderQuickFilters'
 import { computeOrderKpis } from '../hooks/use-order-list'
 import { useOrderList } from '../hooks/use-order-list'
 import type { Order, QuickFilter } from '../types'
-import { mockDeleteOrders } from '../utils/mock-actions'
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -24,14 +24,39 @@ function todayIso(): string {
 export function OrderListPage() {
   const list = useOrderList()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search')
+    if (searchFromUrl) {
+      list.setSearch(searchFromUrl)
+    }
+    // Sadece ilk yüklemede URL'den okunur — sonrasında arama kutusu kendi state'ini yönetir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [pendingDelete, setPendingDelete] = useState<Order | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [pdfComingSoon, setPdfComingSoon] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null)
 
   const deleteMutation = useMutation({
     mutationFn: (order: Order) => deleteOrder(order.id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.list(),
+        refetchType: 'all',
+      }),
+  })
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (orders: Order[]) => {
+      for (const order of orders) {
+        await deleteOrder(order.id)
+      }
+    },
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: applicationQueryKeys.orderRecord.list(),
@@ -81,12 +106,22 @@ export function OrderListPage() {
     setPdfComingSoon(true)
   }
 
+  const selectedOrders = list.allOrders.filter((o) => list.selectedIds.has(o.id))
+
   function handleDeleteSelected() {
-    const orderNos = list.allOrders
-      .filter((o) => list.selectedIds.has(o.id))
-      .map((o) => o.orderNo)
-    mockDeleteOrders(orderNos)
-    list.clearSelection()
+    setBulkDeleteError(null)
+    setBulkDeleteConfirmOpen(true)
+  }
+
+  async function handleConfirmBulkDelete() {
+    setBulkDeleteError(null)
+    try {
+      await bulkDeleteMutation.mutateAsync(selectedOrders)
+      list.clearSelection()
+      setBulkDeleteConfirmOpen(false)
+    } catch (err) {
+      setBulkDeleteError(err instanceof Error ? err.message : 'Siparişler silinemedi.')
+    }
   }
 
   function handleDeleteRow(order: Order) {
@@ -121,6 +156,12 @@ export function OrderListPage() {
       {deleteError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {deleteError}
+        </div>
+      )}
+
+      {bulkDeleteError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {bulkDeleteError}
         </div>
       )}
 
@@ -190,6 +231,17 @@ export function OrderListPage() {
         isConfirming={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}
         onCancel={() => setPendingDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={bulkDeleteConfirmOpen}
+        title="Siparişleri Sil"
+        description={`${selectedOrders.length} siparişi silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm malzeme, üretim, kalite kayıtları da silinecektir.`}
+        confirmLabel="Sil"
+        destructive
+        isConfirming={bulkDeleteMutation.isPending}
+        onConfirm={handleConfirmBulkDelete}
+        onCancel={() => setBulkDeleteConfirmOpen(false)}
       />
     </div>
   )

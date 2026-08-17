@@ -1,6 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { Bell, LogOut, Search, User } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState, type KeyboardEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
+import { applicationQueryKeys } from '@/application/core/query-keys'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,20 +16,33 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { appConfig, getRouteTitle } from '@/config/navigation'
 import { KEPLER_ROLE_LABELS } from '@/domain/platform/iam/types'
-import { ERP_NOTIFICATIONS } from '@/domain/data/workflows'
 import { useAuth } from '@/application/platform/iam/auth-context'
-import { cn } from '@/lib/utils'
+import { fetchDashboardAlerts } from '@/infrastructure/api/dashboard-api.repository'
 
 export function Navbar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { user, logout } = useAuth()
   const title = getRouteTitle(pathname)
-  const unread = ERP_NOTIFICATIONS.filter((n) => !n.read).length
+  const [searchValue, setSearchValue] = useState('')
+
+  const alertsQuery = useQuery({
+    queryKey: applicationQueryKeys.dashboardSummary.alerts(),
+    queryFn: fetchDashboardAlerts,
+  })
+  const actionableAlertCount = (alertsQuery.data ?? []).filter(
+    (a) => a.severity === 'HIGH' || a.severity === 'MEDIUM',
+  ).length
 
   function handleLogout() {
     logout()
     navigate('/login')
+  }
+
+  function handleSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return
+    const trimmed = searchValue.trim()
+    navigate(trimmed ? `/orders?search=${encodeURIComponent(trimmed)}` : '/orders')
   }
 
   const initials = user?.fullName
@@ -52,42 +68,29 @@ export function Navbar() {
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
             placeholder="Sipariş, model, müşteri ara..."
             className="flex h-9 w-64 rounded-md border border-input bg-background pl-9 pr-3 text-sm"
           />
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="size-4" />
-              {unread > 0 ? (
-                <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
-                  {unread}
-                </span>
-              ) : null}
-              <span className="sr-only">Bildirimler</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>ERP Bildirimleri ({unread} okunmamış)</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {ERP_NOTIFICATIONS.map((n) => (
-              <DropdownMenuItem key={n.id} asChild>
-                <Link
-                  to={n.link ?? '#'}
-                  className={cn('flex flex-col items-start gap-0.5 py-2', !n.read && 'bg-muted/50')}
-                >
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <SeverityDot severity={n.severity} />
-                    {n.title}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{n.message}</span>
-                </Link>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          onClick={() => navigate('/dashboard')}
+          title="Akıllı Uyarılar"
+        >
+          <Bell className="size-4" />
+          {actionableAlertCount > 0 ? (
+            <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
+              {actionableAlertCount}
+            </span>
+          ) : null}
+          <span className="sr-only">Bildirimler</span>
+        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -133,13 +136,4 @@ export function Navbar() {
       </div>
     </header>
   )
-}
-
-function SeverityDot({ severity }: { severity: 'critical' | 'warning' | 'info' }) {
-  const colors = {
-    critical: 'bg-destructive',
-    warning: 'bg-amber-500',
-    info: 'bg-primary',
-  }
-  return <span className={cn('size-2 shrink-0 rounded-full', colors[severity])} />
 }
