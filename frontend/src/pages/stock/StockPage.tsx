@@ -428,7 +428,14 @@ function StockLotRow({
         <td className="px-3 py-2 font-medium">{lot.materialName}</td>
         <td className="px-3 py-2">{lot.materialType}</td>
         <td className="px-3 py-2">{lot.supplierName}</td>
-        <td className="px-3 py-2">{lot.lotNo ?? '—'}</td>
+        <td className="px-3 py-2">
+          {lot.lotNo ?? '—'}
+          {lot.orderId != null ? (
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Sipariş #{lot.orderId}&apos;ten otomatik
+            </div>
+          ) : null}
+        </td>
         <td className="px-3 py-2 tabular-nums">{lot.receivedQty.toLocaleString('tr-TR')}</td>
         <td className="px-3 py-2 tabular-nums">{lot.remainingQty.toLocaleString('tr-TR')}</td>
         <td className="px-3 py-2 tabular-nums">

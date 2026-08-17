@@ -21,6 +21,8 @@ export type ApiMaterial = {
   notes: string | null
   createdAt: string
   updatedAt: string
+  stockLotId?: number | null
+  hasStockLot?: boolean
 }
 
 type ApiOrder = {

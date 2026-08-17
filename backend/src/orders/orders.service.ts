@@ -244,10 +244,17 @@ export class OrdersService {
 
   async getMaterials(orderId: number, tenantId?: string) {
     await this.findOrderOrThrow(orderId, tenantId);
-    return this.prisma.material.findMany({
+    const materials = await this.prisma.material.findMany({
       where: { orderId },
+      include: { stockLot: true },
       orderBy: { createdAt: 'asc' },
     });
+
+    return materials.map(({ stockLot, ...material }) => ({
+      ...material,
+      stockLotId: stockLot?.id ?? null,
+      hasStockLot: stockLot != null,
+    }));
   }
 
   async addMaterial(
@@ -257,7 +264,7 @@ export class OrdersService {
   ) {
     await this.findOrderOrThrow(orderId, tenantId);
 
-    return this.prisma.material.create({
+    const material = await this.prisma.material.create({
       data: {
         orderId,
         materialName: data.materialName.trim(),
@@ -276,6 +283,8 @@ export class OrdersService {
         notes: data.notes,
       },
     });
+
+    return { ...material, stockLotId: null, hasStockLot: false };
   }
 
   async updateMaterial(
@@ -284,7 +293,7 @@ export class OrdersService {
     data: UpdateMaterialDto,
     tenantId?: string,
   ) {
-    await this.findOrThrow(
+    const existingMaterial = await this.findOrThrow(
       () =>
         this.prisma.material.findFirst({
           where: {
@@ -292,6 +301,7 @@ export class OrdersService {
             orderId,
             ...(tenantId ? { order: { tenantId } } : {}),
           },
+          include: { stockLot: true },
         }),
       'Malzeme bulunamadı',
     );
@@ -316,9 +326,56 @@ export class OrdersService {
       updateData.arrivedQuantity = data.arrivedQuantity;
     if (data.notes !== undefined) updateData.notes = data.notes;
 
-    return this.prisma.material.update({
-      where: { id: materialId },
-      data: updateData,
+    const newStatus = data.status ?? existingMaterial.status;
+    const newArrivedQuantity =
+      data.arrivedQuantity ?? existingMaterial.arrivedQuantity;
+
+    const shouldSyncStockLot =
+      (newStatus === 'ARRIVED' || newStatus === 'PARTIAL') &&
+      newArrivedQuantity > 0;
+
+    return this.prisma.$transaction(async (tx) => {
+      const material = await tx.material.update({
+        where: { id: materialId },
+        data: updateData,
+      });
+
+      let stockLotId = existingMaterial.stockLot?.id ?? null;
+
+      if (shouldSyncStockLot) {
+        if (!existingMaterial.stockLot) {
+          const createdLot = await tx.stockLot.create({
+            data: {
+              materialName: material.materialName,
+              materialType: material.materialType,
+              supplierName: material.supplierName,
+              unitPrice: material.unitPrice,
+              currency: material.currency ?? 'USD',
+              receivedQty: newArrivedQuantity,
+              remainingQty: newArrivedQuantity,
+              receivedDate: new Date(),
+              orderId: material.orderId,
+              materialId: material.id,
+            },
+          });
+          stockLotId = createdLot.id;
+        } else if (newArrivedQuantity !== existingMaterial.arrivedQuantity) {
+          const delta = newArrivedQuantity - existingMaterial.arrivedQuantity;
+          const updatedRemaining = Math.max(
+            0,
+            existingMaterial.stockLot.remainingQty + delta,
+          );
+          await tx.stockLot.update({
+            where: { id: existingMaterial.stockLot.id },
+            data: {
+              receivedQty: newArrivedQuantity,
+              remainingQty: updatedRemaining,
+            },
+          });
+        }
+      }
+
+      return { ...material, stockLotId, hasStockLot: stockLotId != null };
     });
   }
 

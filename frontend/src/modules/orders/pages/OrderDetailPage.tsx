@@ -806,7 +806,12 @@ function MaterialRow({
 
   return (
     <tr className={cn('border-b border-border/60', isLate && 'bg-destructive/5 text-destructive')}>
-      <td className="px-3 py-2 font-medium">{material.materialName}</td>
+      <td className="px-3 py-2 font-medium">
+        {material.materialName}
+        {material.hasStockLot ? (
+          <span className="ml-1.5 text-xs font-normal text-muted-foreground">📦 Stoğa işlendi</span>
+        ) : null}
+      </td>
       <td className="px-3 py-2">{material.materialType}</td>
       <td className="px-3 py-2">{material.supplierName}</td>
       <td className="px-3 py-2 tabular-nums">{material.orderedQuantity.toLocaleString('tr-TR')}</td>
