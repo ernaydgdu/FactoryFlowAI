@@ -40,6 +40,7 @@ type ApiOrder = {
   colorCount?: number
   colorSizeTotal?: number
   cuttingReady?: boolean
+  colorSizes?: ApiOrderColorSize[]
 }
 
 export type ApiOrderDetail = ApiOrder

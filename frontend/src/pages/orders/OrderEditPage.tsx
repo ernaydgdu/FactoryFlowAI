@@ -77,6 +77,17 @@ export function OrderEditPage() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const colorSizeSum = (orderQuery.data?.colorSizes ?? []).reduce(
+    (sum, cs) => sum + cs.quantity,
+    0,
+  )
+  const totalQuantityNum = Number(form.totalQuantity)
+  const showColorSizeMismatchWarning =
+    colorSizeSum > 0 &&
+    form.totalQuantity !== '' &&
+    !Number.isNaN(totalQuantityNum) &&
+    totalQuantityNum !== colorSizeSum
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -219,6 +230,14 @@ export function OrderEditPage() {
           </form>
         </CardContent>
       </Card>
+
+      {showColorSizeMismatchWarning ? (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-400">
+          ⚠️ Bu siparişte {colorSizeSum.toLocaleString('tr-TR')} adet renk/beden girişi var. Toplam
+          miktarı {totalQuantityNum.toLocaleString('tr-TR')}&apos;ye değiştirirseniz bu değerler
+          uyuşmayacak (fark: {Math.abs(totalQuantityNum - colorSizeSum).toLocaleString('tr-TR')} adet)
+        </div>
+      ) : null}
 
       <div className="flex justify-end gap-3">
         <Button variant="outline" asChild>

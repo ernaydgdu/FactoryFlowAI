@@ -172,7 +172,10 @@ export function OrderDetailPage() {
                 <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <Field label="Müşteri" value={order.buyerName} />
                   <Field label="Ürün" value={order.productName} />
-                  <Field label="Toplam Miktar" value={order.totalQuantity.toLocaleString('tr-TR')} />
+                  <TotalQuantityField
+                    totalQuantity={order.totalQuantity}
+                    colorSizes={order.colorSizes ?? []}
+                  />
                   <Field label="EXF Tarihi" value={formatDate(order.shipmentDate)} />
                   <div>
                     <dt className="text-xs text-muted-foreground">Durum</dt>
@@ -225,6 +228,31 @@ function Field({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="mt-0.5 text-sm font-medium">{value}</dd>
+    </div>
+  )
+}
+
+function TotalQuantityField({
+  totalQuantity,
+  colorSizes,
+}: {
+  totalQuantity: number
+  colorSizes: { quantity: number }[]
+}) {
+  const colorSizeSum = colorSizes.reduce((sum, cs) => sum + cs.quantity, 0)
+  const hasMismatch = colorSizes.length > 0 && colorSizeSum !== totalQuantity
+
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">Toplam Miktar</dt>
+      <dd className="mt-0.5 text-sm font-medium">
+        {totalQuantity.toLocaleString('tr-TR')}
+        {hasMismatch ? (
+          <span className="ml-1.5 text-xs font-normal text-amber-600">
+            (Renk/Beden toplamı: {colorSizeSum.toLocaleString('tr-TR')} - fark var)
+          </span>
+        ) : null}
+      </dd>
     </div>
   )
 }
@@ -1596,10 +1624,18 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
   })
 
   function invalidate() {
-    return queryClient.invalidateQueries({
-      queryKey: applicationQueryKeys.orderRecord.colorSizes(orderId),
-      refetchType: 'all',
-    })
+    return Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.colorSizes(orderId),
+        refetchType: 'all',
+      }),
+      // Sipariş detayı da colorSizes içerdiğinden ("Genel" sekmesindeki
+      // tutarlılık göstergesi), o sorguyu da tazelemek gerekir.
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.detail(orderId),
+        refetchType: 'all',
+      }),
+    ])
   }
 
   const upsertMutation = useMutation({

@@ -150,7 +150,7 @@ export class OrdersService {
       () =>
         this.prisma.order.findFirst({
           where: { id: orderId, ...(tenantId ? { tenantId } : {}) },
-          include: { materials: true },
+          include: { materials: true, colorSizes: true },
         }),
       'Sipariş bulunamadı',
     );
