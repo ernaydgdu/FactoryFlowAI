@@ -335,8 +335,14 @@ export type FabricConsumptionResult = {
   success: boolean
 }
 
+export type FinishedGoodsEntryResult = {
+  addedQty: number
+  warehouseName: string
+}
+
 export type CreateProductionEntryResult = ApiProductionEntry & {
   fabricConsumption: FabricConsumptionResult | null
+  finishedGoodsEntry: FinishedGoodsEntryResult | null
 }
 
 export async function fetchProductionEntries(orderId: string): Promise<ApiProductionEntry[]> {

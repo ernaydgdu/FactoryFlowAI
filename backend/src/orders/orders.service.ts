@@ -579,6 +579,64 @@ export class OrdersService {
         }
       }
 
+      let finishedGoodsEntry: {
+        addedQty: number;
+        warehouseName: string;
+      } | null = null;
+
+      if (stage === 'PACKING') {
+        const productWarehouse = await tx.warehouse.findFirst({
+          where: { type: 'URUN' },
+        });
+
+        if (productWarehouse) {
+          const existingLot = await tx.stockLot.findFirst({
+            where: { orderId, warehouseId: productWarehouse.id },
+          });
+
+          let lotId: number;
+          if (existingLot) {
+            const updatedLot = await tx.stockLot.update({
+              where: { id: existingLot.id },
+              data: {
+                receivedQty: existingLot.receivedQty + data.quantity,
+                remainingQty: existingLot.remainingQty + data.quantity,
+              },
+            });
+            lotId = updatedLot.id;
+          } else {
+            const createdLot = await tx.stockLot.create({
+              data: {
+                materialName: `${order.orderNo} - ${order.productName}`,
+                materialType: 'URUN',
+                supplierName: 'Üretim',
+                warehouseId: productWarehouse.id,
+                orderId,
+                receivedQty: data.quantity,
+                remainingQty: data.quantity,
+                receivedDate: new Date(),
+              },
+            });
+            lotId = createdLot.id;
+          }
+
+          await tx.stockMovement.create({
+            data: {
+              stockLotId: lotId,
+              type: 'GIRIS',
+              quantity: data.quantity,
+              reason: `Paketleme - Sipariş #${orderId}'ten mamul girişi`,
+              orderId,
+            },
+          });
+
+          finishedGoodsEntry = {
+            addedQty: data.quantity,
+            warehouseName: productWarehouse.name,
+          };
+        }
+      }
+
       const entry = await tx.productionEntry.create({
         data: {
           orderId,
@@ -590,7 +648,7 @@ export class OrdersService {
         },
       });
 
-      return { ...entry, fabricConsumption };
+      return { ...entry, fabricConsumption, finishedGoodsEntry };
     });
   }
 
