@@ -28,6 +28,7 @@ const LineStatusPage = lazyPage(
   () => import('@/pages/line-status/LineStatusPage'),
   'LineStatusPage',
 )
+const UsersPage = lazyPage(() => import('@/pages/users/UsersPage'), 'UsersPage')
 
 function L({ children }: { children: ReactNode }) {
   return <LazyRoute>{children}</LazyRoute>
@@ -55,6 +56,7 @@ export function AppRouter() {
         <Route path="/finished-goods" element={<L><FinishedGoodsPage /></L>} />
         <Route path="/suppliers" element={<L><SupplierPerformancePage /></L>} />
         <Route path="/line-status" element={<L><LineStatusPage /></L>} />
+        <Route path="/users" element={<L><UsersPage /></L>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

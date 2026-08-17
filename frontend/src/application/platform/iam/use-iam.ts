@@ -48,3 +48,10 @@ export function useUpdateUserMutation(actorUserId: string) {
     },
   })
 }
+
+export function useChangePasswordMutation() {
+  return useMutation({
+    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
+      iamApplicationService.command.changePassword(currentPassword, newPassword),
+  })
+}

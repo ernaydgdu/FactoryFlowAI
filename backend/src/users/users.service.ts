@@ -1,5 +1,6 @@
 import {
   Injectable,
+  BadRequestException,
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
@@ -25,7 +26,7 @@ export class UsersService {
 
   async getUsers(factoryId?: string) {
     return this.prisma.user.findMany({
-      where: factoryId ? { factoryId, isActive: true } : { isActive: true },
+      where: factoryId ? { factoryId } : {},
       select: USER_SELECT,
       orderBy: { fullName: 'asc' },
     });
@@ -60,6 +61,7 @@ export class UsersService {
     if (data.fullName) updateData.fullName = data.fullName.trim();
     if (data.role) updateData.role = data.role;
     if (data.factoryId) updateData.factoryId = data.factoryId;
+    if (data.status) updateData.isActive = data.status === 'ACTIVE';
     if (data.password) {
       updateData.password = await bcrypt.hash(data.password, 10);
     }
@@ -69,5 +71,31 @@ export class UsersService {
       data: updateData,
       select: USER_SELECT,
     });
+  }
+
+  async changeOwnPassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Kullanıcı bulunamadı');
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, existing.password);
+    if (!isMatch) {
+      throw new BadRequestException('Mevcut şifre hatalı.');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+      select: USER_SELECT,
+    });
+    return { success: true };
   }
 }

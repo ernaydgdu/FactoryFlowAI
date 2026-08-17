@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MinLength,
 } from 'class-validator';
 
 const USER_ROLES = [
@@ -13,6 +14,8 @@ const USER_ROLES = [
   'SHOP_FLOOR_OPERATOR',
   'VIEWER',
 ] as const;
+
+const USER_STATUSES = ['ACTIVE', 'DISABLED'] as const;
 
 export class LoginDto {
   @IsEmail()
@@ -80,6 +83,16 @@ export class UpdateUserDto {
   password?: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn(USER_STATUSES)
   status?: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  currentPassword!: string;
+
+  @IsString()
+  @MinLength(6)
+  newPassword!: string;
 }

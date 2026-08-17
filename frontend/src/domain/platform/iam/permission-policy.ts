@@ -133,6 +133,7 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
 }
 
 const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
+  { prefix: '/users', permission: 'platform.users.manage' },
   { prefix: '/master-data', permission: 'platform.settings' },
   { prefix: '/settings/users', permission: 'platform.users.manage' },
   { prefix: '/settings', permission: 'platform.settings' },

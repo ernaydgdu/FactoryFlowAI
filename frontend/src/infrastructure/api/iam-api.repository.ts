@@ -15,6 +15,8 @@ type ApiUser = {
   fullName: string
   role: string
   factoryId: string
+  isActive?: boolean
+  createdAt?: string
 }
 
 function mapUser(raw: ApiUser): UserAccount {
@@ -24,7 +26,8 @@ function mapUser(raw: ApiUser): UserAccount {
     fullName: raw.fullName,
     role: raw.role as KeplerRole,
     factoryId: raw.factoryId,
-    status: 'ACTIVE',
+    status: raw.isActive === false ? 'DISABLED' : 'ACTIVE',
+    createdAt: raw.createdAt,
   }
 }
 
@@ -87,6 +90,17 @@ export class IamApiRepository implements IIamRepository {
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 404) {
         throw new UserAccountDomainError('Kullanıcı bulunamadı.')
+      }
+      throw err
+    }
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      await api.patch('/users/me/password', { currentPassword, newPassword })
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 400) {
+        throw new UserAccountDomainError('Mevcut şifre hatalı.')
       }
       throw err
     }

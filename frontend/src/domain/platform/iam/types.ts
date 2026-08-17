@@ -19,6 +19,7 @@ export type UserAccount = {
   role: KeplerRole
   factoryId: string
   status: UserAccountStatus
+  createdAt?: string
 }
 
 export type AuthSession = {

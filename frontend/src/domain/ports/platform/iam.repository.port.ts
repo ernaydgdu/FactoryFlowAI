@@ -32,4 +32,5 @@ export interface IIamRepository {
   listUsers(factoryId?: string): Promise<UserAccount[]>
   createUser(input: IamCreateUserInput, actorUserId: string): Promise<UserAccount>
   updateUser(userId: string, input: IamUpdateUserInput, actorUserId: string): Promise<UserAccount>
+  changePassword(currentPassword: string, newPassword: string): Promise<void>
 }

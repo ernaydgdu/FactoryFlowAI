@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Activity, Boxes, ClipboardList, LayoutDashboard, Star } from 'lucide-react'
+import { Activity, Boxes, ClipboardList, LayoutDashboard, Star, Users } from 'lucide-react'
 
 export type NavLinkItem = {
   title: string
@@ -48,6 +48,11 @@ export const navGroups: NavGroup[] = [
     icon: Star,
     items: [{ title: 'Tedarikçi Performansı', href: '/suppliers' }],
   },
+  {
+    title: 'Yönetim',
+    icon: Users,
+    items: [{ title: 'Kullanıcı Yönetimi', href: '/users' }],
+  },
 ]
 
 export const footerNavItems: FooterNavItem[] = []
@@ -67,6 +72,7 @@ export const routeTitles: Record<string, string> = {
   '/finished-goods': 'Mamul Envanteri',
   '/suppliers': 'Tedarikçi Performansı',
   '/line-status': 'Hat Durumu',
+  '/users': 'Kullanıcı Yönetimi',
 }
 
 export function getRouteTitle(pathname: string): string {

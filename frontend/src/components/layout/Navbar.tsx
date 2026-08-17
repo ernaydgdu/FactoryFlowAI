@@ -18,6 +18,7 @@ import { appConfig, getRouteTitle } from '@/config/navigation'
 import { KEPLER_ROLE_LABELS } from '@/domain/platform/iam/types'
 import { useAuth } from '@/application/platform/iam/auth-context'
 import { fetchDashboardAlerts } from '@/infrastructure/api/dashboard-api.repository'
+import { ProfileModal } from './ProfileModal'
 
 export function Navbar() {
   const navigate = useNavigate()
@@ -25,6 +26,7 @@ export function Navbar() {
   const { user, logout } = useAuth()
   const title = getRouteTitle(pathname)
   const [searchValue, setSearchValue] = useState('')
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const alertsQuery = useQuery({
     queryKey: applicationQueryKeys.dashboardSummary.alerts(),
@@ -123,7 +125,7 @@ export function Navbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setProfileOpen(true)}>
               <User className="size-4" />
               Profil
             </DropdownMenuItem>
@@ -134,6 +136,8 @@ export function Navbar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </header>
   )
 }

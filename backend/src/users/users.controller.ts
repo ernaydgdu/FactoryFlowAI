@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -13,7 +14,11 @@ import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { CreateUserDto, UpdateUserDto } from '../auth/dto/auth.dto';
+import {
+  ChangePasswordDto,
+  CreateUserDto,
+  UpdateUserDto,
+} from '../auth/dto/auth.dto';
 import {
   CurrentUser,
   type JwtPayloadUser,
@@ -40,12 +45,28 @@ export class UsersController {
     return this.usersService.createUser(body);
   }
 
+  @Patch('me/password')
+  async changeOwnPassword(
+    @CurrentUser() user: JwtPayloadUser,
+    @Body() body: ChangePasswordDto,
+  ) {
+    return this.usersService.changeOwnPassword(
+      user.sub,
+      body.currentPassword,
+      body.newPassword,
+    );
+  }
+
   @Patch(':id')
   @Roles('ADMIN')
   async updateUser(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateUserDto,
   ) {
+    if (id === user.sub && body.status === 'DISABLED') {
+      throw new BadRequestException('Kendi hesabınızı pasifleştiremezsiniz.');
+    }
     return this.usersService.updateUser(id, body);
   }
 }

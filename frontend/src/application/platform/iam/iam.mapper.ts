@@ -28,3 +28,7 @@ export function commandCreateUser(input: CreateUserDto, actorUserId: string) {
 export function commandUpdateUser(userId: string, input: UpdateUserDto, actorUserId: string) {
   return runIamAdminWriteCommand(() => iamRepo().updateUser(userId, input, actorUserId))
 }
+
+export function commandChangePassword(currentPassword: string, newPassword: string) {
+  return iamRepo().changePassword(currentPassword, newPassword)
+}

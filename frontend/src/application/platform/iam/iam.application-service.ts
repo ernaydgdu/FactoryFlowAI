@@ -1,4 +1,5 @@
 import {
+  commandChangePassword,
   commandCreateUser,
   commandLogin,
   commandUpdateUser,
@@ -15,5 +16,6 @@ export const iamApplicationService = {
     login: commandLogin,
     createUser: commandCreateUser,
     updateUser: commandUpdateUser,
+    changePassword: commandChangePassword,
   },
 }
