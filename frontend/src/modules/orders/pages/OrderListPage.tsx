@@ -5,7 +5,7 @@ import { applicationQueryKeys } from '@/application/core/query-keys'
 import { PageHeader } from '@/components/erp'
 import { Card, CardContent } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { deleteOrder } from '@/infrastructure/api/orders-api.repository'
+import { deleteOrder, exportOrdersCsv } from '@/infrastructure/api/orders-api.repository'
 
 import { OrderDataTable } from '../components/OrderDataTable'
 import { OrderKpiBar } from '../components/OrderKpiBar'
@@ -15,17 +15,20 @@ import { OrderQuickFilters } from '../components/OrderQuickFilters'
 import { computeOrderKpis } from '../hooks/use-order-list'
 import { useOrderList } from '../hooks/use-order-list'
 import type { Order, QuickFilter } from '../types'
-import {
-  mockDeleteOrders,
-  mockExportExcel,
-  mockExportPdf,
-} from '../utils/mock-actions'
+import { mockDeleteOrders } from '../utils/mock-actions'
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 export function OrderListPage() {
   const list = useOrderList()
   const queryClient = useQueryClient()
   const [pendingDelete, setPendingDelete] = useState<Order | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [pdfComingSoon, setPdfComingSoon] = useState(false)
 
   const deleteMutation = useMutation({
     mutationFn: (order: Order) => deleteOrder(order.id),
@@ -54,12 +57,28 @@ export function OrderListPage() {
 
   const selectedCount = list.selectedIds.size
 
-  function handleExportExcel() {
-    mockExportExcel(selectedCount, list.totalCount)
+  async function handleExportExcel() {
+    setExportError(null)
+    setIsExporting(true)
+    try {
+      const blob = await exportOrdersCsv()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `siparis-raporu-${todayIso()}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Dışa aktarma başarısız.')
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   function handleExportPdf() {
-    mockExportPdf(selectedCount, list.totalCount)
+    setPdfComingSoon(true)
   }
 
   function handleDeleteSelected() {
@@ -105,6 +124,18 @@ export function OrderListPage() {
         </div>
       )}
 
+      {exportError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {exportError}
+        </div>
+      )}
+
+      {pdfComingSoon && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+          PDF dışa aktarma yakında kullanıma sunulacak.
+        </div>
+      )}
+
       <OrderKpiBar kpis={computeOrderKpis(list.allOrders)} />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
@@ -114,6 +145,7 @@ export function OrderListPage() {
             onSearchChange={list.setSearch}
             selectedCount={selectedCount}
             totalCount={list.totalCount}
+            isExporting={isExporting}
             onExportExcel={handleExportExcel}
             onExportPdf={handleExportPdf}
             onDeleteSelected={handleDeleteSelected}

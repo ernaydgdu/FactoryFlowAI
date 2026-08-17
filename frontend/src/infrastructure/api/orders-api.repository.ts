@@ -111,6 +111,13 @@ export async function fetchOrders(): Promise<Order[]> {
   return data.map(mapOrder)
 }
 
+export async function exportOrdersCsv(): Promise<Blob> {
+  const { data } = await api.get<Blob>('/orders/export', {
+    responseType: 'blob',
+  })
+  return data
+}
+
 export type CreateOrderInput = {
   orderNo: string
   buyerName: string

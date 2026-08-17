@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
+import { dateOnlyUTC } from '../dashboard/dashboard-shared';
 import {
   calculateFabricNeed,
   findProductType,
@@ -24,6 +25,13 @@ import type {
   UpdateMaterialDto,
   UpdateOrderDto,
 } from './dto/order.dto';
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  PLANNING: 'Beklemede',
+  IN_PRODUCTION: 'Üretimde',
+  COMPLETED: 'Tamamlandı',
+  SHIPPED: 'Sevk Edildi',
+};
 
 const APPROVAL_STAGE_ORDER = [
   'PP_NUMUNE',
@@ -101,6 +109,65 @@ export class OrdersService {
         cuttingReady,
       };
     });
+  }
+
+  async exportOrdersCsv(tenantId?: string): Promise<string> {
+    const orders = await this.prisma.order.findMany({
+      where: tenantId ? { tenantId } : undefined,
+      include: { materials: true, approvalStages: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const header = [
+      'Sipariş No',
+      'Müşteri',
+      'Ürün',
+      'Toplam Miktar',
+      'EXF Tarihi',
+      'Durum',
+      'Termin Riski',
+      'Kesime Hazır mı',
+      'Oluşturulma Tarihi',
+    ];
+
+    const rows = orders.map((order) => {
+      const shipmentMs = dateOnlyUTC(order.shipmentDate);
+      const terminRisk = order.materials.some(
+        (m) =>
+          m.expectedArrival != null &&
+          dateOnlyUTC(m.expectedArrival) > shipmentMs,
+      );
+      const cuttingReady = order.approvalStages.some(
+        (stage) =>
+          stage.stageType === 'KESIM_ONAY' && stage.status === 'APPROVED',
+      );
+
+      return [
+        order.orderNo,
+        order.buyerName,
+        order.productName,
+        String(order.totalQuantity),
+        order.shipmentDate.toISOString().slice(0, 10),
+        ORDER_STATUS_LABEL[order.status] ?? order.status,
+        terminRisk ? 'Evet' : 'Hayır',
+        cuttingReady ? 'Evet' : 'Hayır',
+        order.createdAt.toISOString().slice(0, 10),
+      ];
+    });
+
+    const escapeCsvField = (field: string): string => {
+      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+
+    const lines = [header, ...rows].map((row) =>
+      row.map(escapeCsvField).join(','),
+    );
+
+    // UTF-8 BOM — Excel'in Türkçe karakterleri (ş, ğ, ı vb.) doğru göstermesi için gerekli.
+    return '\uFEFF' + lines.join('\r\n');
   }
 
   async createOrder(data: CreateOrderDto, tenantId: string) {

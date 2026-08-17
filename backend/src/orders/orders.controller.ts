@@ -8,8 +8,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -58,6 +60,23 @@ export class OrdersController {
     @Body() body: CreateOrderDto,
   ) {
     return this.ordersService.createOrder(body, user.tenantId);
+  }
+
+  @Get('export')
+  async exportOrders(
+    @CurrentUser() user: JwtPayloadUser,
+    @Query('tenantId') tenantId: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
+    const csv = await this.ordersService.exportOrdersCsv(scope);
+
+    const today = new Date().toISOString().slice(0, 10);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="siparis-raporu-${today}.csv"`,
+    });
+    return csv;
   }
 
   @Get(':id')

@@ -15,6 +15,7 @@ type OrderListToolbarProps = {
   onSearchChange: (value: string) => void
   selectedCount: number
   totalCount: number
+  isExporting: boolean
   onExportExcel: () => void
   onExportPdf: () => void
   onDeleteSelected: () => void
@@ -25,6 +26,7 @@ export function OrderListToolbar({
   onSearchChange,
   selectedCount,
   totalCount,
+  isExporting,
   onExportExcel,
   onExportPdf,
   onDeleteSelected,
@@ -42,11 +44,16 @@ export function OrderListToolbar({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onExportExcel}>
+          <Button variant="outline" size="sm" onClick={onExportExcel} disabled={isExporting}>
             <FileSpreadsheet className="size-4" />
-            Excel
+            {isExporting ? 'İndiriliyor...' : 'Excel'}
           </Button>
-          <Button variant="outline" size="sm" onClick={onExportPdf}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExportPdf}
+            title="Yakında kullanıma sunulacak"
+          >
             <FileText className="size-4" />
             PDF
           </Button>
