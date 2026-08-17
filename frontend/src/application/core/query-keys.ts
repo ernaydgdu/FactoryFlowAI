@@ -27,6 +27,13 @@ export const applicationQueryKeys = {
       [...applicationQueryKeys.orderRecord.all, 'color-sizes', id] as const,
     approvalStages: (id: string) =>
       [...applicationQueryKeys.orderRecord.all, 'approval-stages', id] as const,
+    materialStockAvailability: (id: string, materialId: number) =>
+      [
+        ...applicationQueryKeys.orderRecord.all,
+        'material-stock-availability',
+        id,
+        materialId,
+      ] as const,
   },
   // Real backend GET /api/dashboard summary
   dashboardSummary: {

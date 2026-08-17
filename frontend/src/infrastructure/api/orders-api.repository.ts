@@ -266,6 +266,47 @@ export async function deleteMaterial(orderId: string, materialId: number): Promi
   await api.delete(`/orders/${orderId}/materials/${materialId}`)
 }
 
+export type MaterialStockAvailabilityLot = {
+  lotId: number
+  lotNo: string | null
+  remainingQty: number
+  receivedDate: string
+}
+
+export type MaterialStockAvailability = {
+  availableQty: number
+  lots: MaterialStockAvailabilityLot[]
+}
+
+export async function fetchMaterialStockAvailability(
+  orderId: string,
+  materialId: number,
+): Promise<MaterialStockAvailability> {
+  const { data } = await api.get<MaterialStockAvailability>(
+    `/orders/${orderId}/materials/${materialId}/stock-availability`,
+  )
+  return data
+}
+
+export async function fulfillMaterialFromStock(
+  orderId: string,
+  materialId: number,
+  quantity: number,
+): Promise<ApiMaterial> {
+  try {
+    const { data } = await api.post<ApiMaterial>(
+      `/orders/${orderId}/materials/${materialId}/fulfill-from-stock`,
+      { quantity },
+    )
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
 export type ProductionStage = 'CUTTING' | 'SEWING' | 'IRONING' | 'PACKING' | 'SHIPPING'
 
 export type ApiProductionEntry = {

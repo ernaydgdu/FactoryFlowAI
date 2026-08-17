@@ -26,10 +26,12 @@ import {
   fetchApprovalStages,
   fetchColorSizes,
   fetchMaterials,
+  fetchMaterialStockAvailability,
   fetchOrderById,
   fetchOrderForecast,
   fetchProductionEntries,
   fetchQualityEntries,
+  fulfillMaterialFromStock,
   updateApprovalStage,
   updateMaterial,
   updateMaterialStatus,
@@ -332,6 +334,20 @@ function MaterialsPanel({ orderId, exfDate }: { orderId: string; exfDate: string
     })
   }
 
+  function invalidateMaterialsAndStock() {
+    return Promise.all([
+      invalidateMaterials(),
+      queryClient.invalidateQueries({
+        queryKey: [...applicationQueryKeys.orderRecord.all, 'material-stock-availability', orderId],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.stockRecord.all,
+        refetchType: 'all',
+      }),
+    ])
+  }
+
   const addMutation = useMutation({
     mutationFn: (input: CreateMaterialInput) => createMaterial(orderId, input),
     onSuccess: invalidateMaterials,
@@ -564,6 +580,7 @@ function MaterialsPanel({ orderId, exfDate }: { orderId: string; exfDate: string
               materialsQuery.data.map((m) => (
                 <MaterialRow
                   key={m.id}
+                  orderId={orderId}
                   material={m}
                   lateDays={computeLateDays(m.expectedArrival, exfDate)}
                   onStatusChange={(status) => statusMutation.mutate({ materialId: m.id, status })}
@@ -576,6 +593,7 @@ function MaterialsPanel({ orderId, exfDate }: { orderId: string; exfDate: string
                     editMutation.isPending && editMutation.variables?.materialId === m.id
                   }
                   onRequestDelete={() => setPendingDelete(m)}
+                  onFulfilled={invalidateMaterialsAndStock}
                 />
               ))
             ) : (
@@ -632,6 +650,7 @@ function materialToEditForm(material: ApiMaterial): MaterialEditFormState {
 }
 
 function MaterialRow({
+  orderId,
   material,
   lateDays,
   onStatusChange,
@@ -640,7 +659,9 @@ function MaterialRow({
   onSaveEdit,
   isSaving,
   onRequestDelete,
+  onFulfilled,
 }: {
+  orderId: string
   material: ApiMaterial
   lateDays: number
   onStatusChange: (status: MaterialStatusValue) => void
@@ -649,6 +670,7 @@ function MaterialRow({
   onSaveEdit: (input: UpdateMaterialInput) => Promise<unknown>
   isSaving: boolean
   onRequestDelete: () => void
+  onFulfilled: () => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState<MaterialEditFormState>(() => materialToEditForm(material))
@@ -805,6 +827,7 @@ function MaterialRow({
   }
 
   return (
+    <>
     <tr className={cn('border-b border-border/60', isLate && 'bg-destructive/5 text-destructive')}>
       <td className="px-3 py-2 font-medium">
         {material.materialName}
@@ -874,6 +897,118 @@ function MaterialRow({
           </div>
         </td>
       ) : null}
+    </tr>
+    {material.status === 'PENDING' ? (
+      <MaterialStockSuggestionRow
+        orderId={orderId}
+        material={material}
+        canManage={canManage}
+        colSpan={canManage ? 12 : 11}
+        onFulfilled={onFulfilled}
+      />
+    ) : null}
+    </>
+  )
+}
+
+function MaterialStockSuggestionRow({
+  orderId,
+  material,
+  canManage,
+  colSpan,
+  onFulfilled,
+}: {
+  orderId: string
+  material: ApiMaterial
+  canManage: boolean
+  colSpan: number
+  onFulfilled: () => void
+}) {
+  const [showForm, setShowForm] = useState(false)
+  const [quantity, setQuantity] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const availabilityQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.materialStockAvailability(orderId, material.id),
+    queryFn: () => fetchMaterialStockAvailability(orderId, material.id),
+  })
+
+  const fulfillMutation = useMutation({
+    mutationFn: (qty: number) => fulfillMaterialFromStock(orderId, material.id, qty),
+    onSuccess: () => {
+      setShowForm(false)
+      setQuantity('')
+      setError(null)
+      onFulfilled()
+    },
+  })
+
+  const availableQty = availabilityQuery.data?.availableQty ?? 0
+  if (availableQty <= 0) return null
+
+  function handleOpenForm() {
+    const defaultQty = Math.min(material.orderedQuantity, availableQty)
+    setQuantity(String(defaultQty))
+    setError(null)
+    setShowForm(true)
+  }
+
+  async function handleConfirm() {
+    setError(null)
+    const qty = Number(quantity)
+    if (!quantity || Number.isNaN(qty) || qty <= 0) {
+      setError('Miktar geçerli bir sayı olmalıdır.')
+      return
+    }
+    if (qty > availableQty) {
+      setError(`Stokta yeterli miktar yok, mevcut: ${availableQty}`)
+      return
+    }
+    try {
+      await fulfillMutation.mutateAsync(qty)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Stoktan karşılama başarısız.')
+    }
+  }
+
+  return (
+    <tr className="border-b border-border/60 bg-emerald-500/5">
+      <td colSpan={colSpan} className="px-3 py-2">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <span className="font-medium text-emerald-700 dark:text-emerald-400">
+            📦 Stokta {availableQty.toLocaleString('tr-TR')} birim mevcut
+          </span>
+          {canManage && !showForm ? (
+            <Button size="sm" variant="outline" onClick={handleOpenForm}>
+              Stoktan Karşıla
+            </Button>
+          ) : null}
+          {showForm ? (
+            <>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="h-8 w-32"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowForm(false)}
+                disabled={fulfillMutation.isPending}
+              >
+                İptal
+              </Button>
+              <Button size="sm" onClick={handleConfirm} disabled={fulfillMutation.isPending}>
+                {fulfillMutation.isPending ? 'Kaydediliyor...' : 'Onayla'}
+              </Button>
+            </>
+          ) : null}
+          {error ? <span className="text-xs text-destructive">{error}</span> : null}
+        </div>
+      </td>
     </tr>
   )
 }

@@ -379,6 +379,123 @@ export class OrdersService {
     });
   }
 
+  async getMaterialStockAvailability(
+    orderId: number,
+    materialId: number,
+    tenantId?: string,
+  ) {
+    const material = await this.findOrThrow(
+      () =>
+        this.prisma.material.findFirst({
+          where: {
+            id: materialId,
+            orderId,
+            ...(tenantId ? { order: { tenantId } } : {}),
+          },
+        }),
+      'Malzeme bulunamadı',
+    );
+
+    const lots = await this.prisma.stockLot.findMany({
+      where: {
+        materialName: { equals: material.materialName, mode: 'insensitive' },
+        remainingQty: { gt: 0 },
+      },
+      orderBy: { receivedDate: 'asc' },
+    });
+
+    const availableQty = lots.reduce((sum, lot) => sum + lot.remainingQty, 0);
+
+    return {
+      availableQty,
+      lots: lots.map((lot) => ({
+        lotId: lot.id,
+        lotNo: lot.lotNo,
+        remainingQty: lot.remainingQty,
+        receivedDate: lot.receivedDate,
+      })),
+    };
+  }
+
+  async fulfillMaterialFromStock(
+    orderId: number,
+    materialId: number,
+    quantity: number,
+    tenantId?: string,
+  ) {
+    if (quantity <= 0) {
+      throw new BadRequestException('Miktar sıfırdan büyük olmalı.');
+    }
+
+    const material = await this.findOrThrow(
+      () =>
+        this.prisma.material.findFirst({
+          where: {
+            id: materialId,
+            orderId,
+            ...(tenantId ? { order: { tenantId } } : {}),
+          },
+        }),
+      'Malzeme bulunamadı',
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      const lots = await tx.stockLot.findMany({
+        where: {
+          materialName: {
+            equals: material.materialName,
+            mode: 'insensitive',
+          },
+          remainingQty: { gt: 0 },
+        },
+        orderBy: { receivedDate: 'asc' },
+      });
+
+      const totalAvailable = lots.reduce(
+        (sum, lot) => sum + lot.remainingQty,
+        0,
+      );
+      if (quantity > totalAvailable) {
+        throw new BadRequestException(
+          `Stokta yeterli miktar yok, mevcut: ${totalAvailable}`,
+        );
+      }
+
+      let remaining = quantity;
+      for (const lot of lots) {
+        if (remaining <= 0) break;
+
+        const useQty = Math.min(lot.remainingQty, remaining);
+        await tx.stockLot.update({
+          where: { id: lot.id },
+          data: { remainingQty: lot.remainingQty - useQty },
+        });
+        await tx.stockMovement.create({
+          data: {
+            stockLotId: lot.id,
+            type: 'CIKIS',
+            quantity: useQty,
+            reason: `Sipariş #${orderId} malzeme ihtiyacı için stoktan karşılandı`,
+            orderId,
+          },
+        });
+        remaining -= useQty;
+      }
+
+      const newArrivedQuantity = material.arrivedQuantity + quantity;
+      const newStatus =
+        newArrivedQuantity >= material.orderedQuantity ? 'ARRIVED' : 'PARTIAL';
+
+      return tx.material.update({
+        where: { id: materialId },
+        data: {
+          arrivedQuantity: newArrivedQuantity,
+          status: newStatus,
+        },
+      });
+    });
+  }
+
   async deleteMaterial(orderId: number, materialId: number, tenantId?: string) {
     await this.findOrThrow(
       () =>

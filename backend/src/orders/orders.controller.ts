@@ -24,6 +24,7 @@ import {
   CreateOrderDto,
   CreateProductionEntryDto,
   CreateQualityEntryDto,
+  FulfillFromStockDto,
   UpdateApprovalStageDto,
   UpdateMaterialDto,
   UpdateOrderDto,
@@ -132,6 +133,35 @@ export class OrdersController {
       id,
       materialId,
       body,
+      this.scopeFor(user),
+    );
+  }
+
+  @Get(':id/materials/:materialId/stock-availability')
+  async getMaterialStockAvailability(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('materialId', ParseIntPipe) materialId: number,
+  ) {
+    return this.ordersService.getMaterialStockAvailability(
+      id,
+      materialId,
+      this.scopeFor(user),
+    );
+  }
+
+  @Post(':id/materials/:materialId/fulfill-from-stock')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async fulfillMaterialFromStock(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('materialId', ParseIntPipe) materialId: number,
+    @Body() body: FulfillFromStockDto,
+  ) {
+    return this.ordersService.fulfillMaterialFromStock(
+      id,
+      materialId,
+      body.quantity,
       this.scopeFor(user),
     );
   }

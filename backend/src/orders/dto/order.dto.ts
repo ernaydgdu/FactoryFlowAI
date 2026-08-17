@@ -169,6 +169,12 @@ export class UpdateMaterialDto {
   notes?: string;
 }
 
+export class FulfillFromStockDto {
+  @IsNumber()
+  @Min(0)
+  quantity!: number;
+}
+
 export class CreateProductionEntryDto {
   @IsString()
   @IsNotEmpty()
