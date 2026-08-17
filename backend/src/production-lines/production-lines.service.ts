@@ -15,7 +15,31 @@ export type LineStatus = {
   todayProduction: number;
   fillRate: number;
   activeOrders: LineStatusOrder[];
+  currentHour: number;
+  workdayStartHour: number;
+  workdayEndHour: number;
+  expectedProgressByNow: number;
+  onPace: boolean;
+  paceMessage: string | null;
 };
+
+// Mesai saatleri varsayımı — gerçek fabrika vardiya takvimi bağlanana
+// kadar sabit tutulur.
+const WORKDAY_START_HOUR = 8;
+const WORKDAY_END_HOUR = 18;
+const WORKDAY_TOTAL_HOURS = WORKDAY_END_HOUR - WORKDAY_START_HOUR;
+
+// Şu ana kadar üretilmiş olması beklenen miktarı, mesai içindeki geçen
+// süre oranına göre hesaplar (mesai öncesi 0, mesai sonrası tam kapasite).
+function computeExpectedProgress(capacity: number, now: Date): number {
+  const elapsedHours =
+    now.getHours() + now.getMinutes() / 60 - WORKDAY_START_HOUR;
+
+  if (elapsedHours <= 0) return 0;
+  if (elapsedHours >= WORKDAY_TOTAL_HOURS) return capacity;
+
+  return Math.round((elapsedHours / WORKDAY_TOTAL_HOURS) * capacity);
+}
 
 @Injectable()
 export class ProductionLinesService {
@@ -59,6 +83,9 @@ export class ProductionLinesService {
       orderBy: { date: 'desc' },
     });
 
+    const now = new Date();
+    const currentHour = now.getHours();
+
     return lines.map((line) => {
       const entries = todayEntries.filter((entry) => entry.lineNo === line.name);
       const todayProduction = entries.reduce((sum, entry) => sum + entry.quantity, 0);
@@ -79,12 +106,24 @@ export class ProductionLinesService {
         });
       }
 
+      const expectedProgressByNow = computeExpectedProgress(line.capacity, now);
+      const onPace = todayProduction >= expectedProgressByNow;
+      const paceMessage = onPace
+        ? null
+        : `Beklenen ${expectedProgressByNow} adet, gerçekleşen ${todayProduction} adet - ${expectedProgressByNow - todayProduction} adet geride`;
+
       return {
         lineName: line.name,
         capacity: line.capacity,
         todayProduction,
         fillRate,
         activeOrders,
+        currentHour,
+        workdayStartHour: WORKDAY_START_HOUR,
+        workdayEndHour: WORKDAY_END_HOUR,
+        expectedProgressByNow,
+        onPace,
+        paceMessage,
       };
     });
   }

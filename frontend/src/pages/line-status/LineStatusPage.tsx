@@ -30,6 +30,9 @@ const FILL_RATE_TEXT_CLASS: Record<'idle' | 'low' | 'good' | 'over', string> = {
 function LineCard({ line }: { line: LineStatus }) {
   const tone = fillRateTone(line.fillRate)
   const idle = line.todayProduction === 0
+  const withinWorkday =
+    line.currentHour >= line.workdayStartHour && line.currentHour < line.workdayEndHour
+  const showPace = withinWorkday && !idle
 
   return (
     <Card>
@@ -57,6 +60,14 @@ function LineCard({ line }: { line: LineStatus }) {
             style={{ width: `${Math.min(line.fillRate, 100)}%` }}
           />
         </div>
+
+        {showPace ? (
+          line.onPace ? (
+            <p className="text-xs font-medium text-emerald-600">✓ Hedefin ilerisinde/hedefte</p>
+          ) : (
+            <p className="text-xs font-medium text-amber-600">⚠️ {line.paceMessage}</p>
+          )
+        ) : null}
 
         {line.activeOrders.length > 0 ? (
           <div className="space-y-2">

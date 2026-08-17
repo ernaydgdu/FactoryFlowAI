@@ -73,6 +73,13 @@ export function DashboardPage() {
       ? lines.reduce((sum, line) => sum + line.fillRate, 0) / lines.length
       : 0
   const idleLineCount = lines.filter((line) => line.todayProduction === 0).length
+  const behindPaceCount = lines.filter(
+    (line) =>
+      line.todayProduction > 0 &&
+      !line.onPace &&
+      line.currentHour >= line.workdayStartHour &&
+      line.currentHour < line.workdayEndHour,
+  ).length
 
   // Tek seferlik siparişler yanıltıcı olmasın diye en az 2 sipariş verilmiş tedarikçiler arasından bakılır.
   const riskySupplier = (supplierPerformanceQuery.data ?? [])
@@ -316,6 +323,11 @@ export function DashboardPage() {
                 <p className="text-xs opacity-80">
                   {lines.length} hat · {idleLineCount} boşta
                 </p>
+                {behindPaceCount > 0 ? (
+                  <p className="mt-1 text-xs font-semibold text-amber-600">
+                    ⚠️ {behindPaceCount} hat hedefin gerisinde
+                  </p>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Tanımlı hat yok.</p>

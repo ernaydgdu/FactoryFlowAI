@@ -21,6 +21,12 @@ export type LineStatus = {
   todayProduction: number
   fillRate: number
   activeOrders: LineStatusOrder[]
+  currentHour: number
+  workdayStartHour: number
+  workdayEndHour: number
+  expectedProgressByNow: number
+  onPace: boolean
+  paceMessage: string | null
 }
 
 export async function fetchProductionLines(): Promise<ApiProductionLine[]> {
