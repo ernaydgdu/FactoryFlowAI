@@ -94,6 +94,14 @@ export class OrdersController {
     return this.ordersService.getAiSuggestion(id, this.scopeFor(user));
   }
 
+  @Get(':id/forecast')
+  async getForecast(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getCompletionForecast(id, this.scopeFor(user));
+  }
+
   @Get(':id/materials')
   async getMaterials(
     @CurrentUser() user: JwtPayloadUser,

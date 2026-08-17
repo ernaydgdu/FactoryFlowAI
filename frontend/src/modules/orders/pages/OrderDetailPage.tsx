@@ -27,6 +27,7 @@ import {
   fetchColorSizes,
   fetchMaterials,
   fetchOrderById,
+  fetchOrderForecast,
   fetchProductionEntries,
   fetchQualityEntries,
   updateApprovalStage,
@@ -852,6 +853,76 @@ type ProductionFormState = {
   notes: string
 }
 
+function CompletionForecastCard({ orderId }: { orderId: string }) {
+  const forecastQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.forecast(orderId),
+    queryFn: () => fetchOrderForecast(orderId),
+    enabled: !!orderId,
+  })
+
+  const forecast = forecastQuery.data
+
+  if (forecastQuery.isLoading) {
+    return (
+      <div className="rounded-lg border border-border p-4">
+        <p className="text-sm text-muted-foreground">Tamamlanma tahmini hesaplanıyor...</p>
+      </div>
+    )
+  }
+
+  if (!forecast || !forecast.hasEnoughData) {
+    return (
+      <div className="rounded-lg border border-border bg-muted/30 p-4">
+        <p className="mb-1 text-sm font-medium">Tamamlanma Tahmini</p>
+        <p className="text-sm text-muted-foreground">
+          Tahmin için yeterli üretim verisi yok (son 7 günde giriş gerekli).
+        </p>
+      </div>
+    )
+  }
+
+  const completionDate = new Date(forecast.estimatedCompletionDate as string).toLocaleDateString(
+    'tr-TR',
+    { day: '2-digit', month: 'short', year: 'numeric' },
+  )
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg border p-4',
+        forecast.willMeetDeadline
+          ? 'border-emerald-500/30 bg-emerald-500/5'
+          : 'border-destructive/30 bg-destructive/5',
+      )}
+    >
+      <p className="mb-2 text-sm font-medium">Tamamlanma Tahmini</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="text-xs text-muted-foreground">Günlük ortalama</p>
+          <p className="text-sm font-semibold tabular-nums">
+            {forecast.dailyAverageRate?.toLocaleString('tr-TR')} adet/gün
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Tahmini bitiş</p>
+          <p className="text-sm font-semibold">{completionDate}</p>
+        </div>
+      </div>
+      <div className="mt-3">
+        {forecast.willMeetDeadline ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+            ✓ Termine yetişecek
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1 text-sm font-semibold text-destructive">
+            ⚠️ {forecast.delayDays} gün gecikme riski
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function initialProductionForm(): ProductionFormState {
   return {
     stage: 'CUTTING',
@@ -883,10 +954,16 @@ function ProductionPanel({
   })
 
   function invalidateProduction() {
-    return queryClient.invalidateQueries({
-      queryKey: applicationQueryKeys.orderRecord.production(orderId),
-      refetchType: 'all',
-    })
+    return Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.production(orderId),
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.forecast(orderId),
+        refetchType: 'all',
+      }),
+    ])
   }
 
   const addMutation = useMutation({
@@ -961,6 +1038,8 @@ function ProductionPanel({
         </div>
         <OrderProgressBar value={progressPercent} />
       </div>
+
+      <CompletionForecastCard orderId={orderId} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {PRODUCTION_STAGES.map((stage) => (

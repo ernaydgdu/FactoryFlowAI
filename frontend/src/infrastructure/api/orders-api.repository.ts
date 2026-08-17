@@ -185,6 +185,20 @@ export async function fetchAiSuggestion(orderId: string): Promise<OrderAiSuggest
   return data
 }
 
+export type OrderCompletionForecast = {
+  hasEnoughData: boolean
+  dailyAverageRate: number | null
+  estimatedCompletionDate: string | null
+  daysRemaining: number | null
+  willMeetDeadline: boolean | null
+  delayDays: number | null
+}
+
+export async function fetchOrderForecast(orderId: string): Promise<OrderCompletionForecast> {
+  const { data } = await api.get<OrderCompletionForecast>(`/orders/${orderId}/forecast`)
+  return data
+}
+
 export type CreateMaterialInput = {
   materialName: string
   materialType: string

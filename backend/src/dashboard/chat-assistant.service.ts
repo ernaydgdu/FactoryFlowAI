@@ -17,6 +17,7 @@ import {
   type TeslimSekli,
 } from '../knowledge/textile-knowledge';
 import { searchKnowledgeLibrary } from '../knowledge/textile-library';
+import { computeCompletionForecast } from '../orders/forecast.util';
 import {
   APPROVAL_STAGE_LABEL,
   APPROVAL_STAGE_ORDER_LIST,
@@ -194,6 +195,17 @@ export class ChatAssistantService {
       return this.answerApprovalOverview(question, tenantId);
     }
 
+    if (
+      q.includes('ne zaman biter') ||
+      q.includes('ne zaman bitecek') ||
+      q.includes('tahmini bitiş') ||
+      q.includes('bitme tarihi') ||
+      q.includes('tamamlanma tahmini')
+    ) {
+      const order = await this.findOrderFromQuestion(question, tenantId);
+      return this.answerCompletionForecast(order);
+    }
+
     if (q.includes('termin') || q.includes('gecikme')) {
       const order = await this.findOrderFromQuestion(question, tenantId);
       return this.answerTerminStatus(order);
@@ -224,6 +236,7 @@ export class ChatAssistantService {
       '• Kesim emri türü önerisi — örn: "2 beden 1 renk için nasıl kesim emri açmalıyım?"',
       '• Tedarikçi güvenilirliği — örn: "ÖZEGE güvenilir mi?"',
       '• Sipariş termin durumu — örn: "1040 termin durumu nedir?"',
+      '• Sipariş tamamlanma tahmini — örn: "1040 ne zaman biter?"',
       '• Sipariş üretim durumu — örn: "1040 ne durumda?"',
       '• Sipariş onay durumu — örn: "1040 onay durumu" veya "1040 hangi aşamada?"',
       '• Onay bekleyen / kesime hazır siparişler — örn: "hangi siparişler onay bekliyor?" veya "kesime hazır siparişler"',
@@ -514,6 +527,38 @@ export class ChatAssistantService {
     }
 
     return `${order.orderNo} siparişi (EXF: ${formatDateTR(order.shipmentDate)}) için termin riski var: ${parts.join(' ')}`;
+  }
+
+  private async answerCompletionForecast(
+    order: OrderWithMaterials | null,
+  ): Promise<string> {
+    if (!order) {
+      return 'Hangi sipariş için sorduğunuzu anlayamadım. Lütfen sipariş numarasını belirtin (örn: "1040 ne zaman biter?").';
+    }
+
+    const entries = await this.prisma.productionEntry.findMany({
+      where: { orderId: order.id },
+    });
+
+    const forecast = computeCompletionForecast(
+      entries,
+      order.totalQuantity,
+      order.shipmentDate,
+    );
+
+    if (!forecast.hasEnoughData) {
+      return `${order.orderNo} siparişi için tahmin yapabilecek yeterli üretim verisi yok (son 7 günde üretim girişi gerekli).`;
+    }
+
+    const completionDate = formatDateTR(
+      new Date(forecast.estimatedCompletionDate as string),
+    );
+    const exfDate = formatDateTR(order.shipmentDate);
+    const statusText = forecast.willMeetDeadline
+      ? 'termine yetişecek'
+      : `${forecast.delayDays} gün gecikme riski var`;
+
+    return `${order.orderNo} siparişi mevcut üretim hızıyla (günde ${forecast.dailyAverageRate} adet) tahminen ${completionDate} tarihinde bitecek. EXF tarihiniz ${exfDate} - ${statusText}.`;
   }
 
   private async answerProductionStatus(

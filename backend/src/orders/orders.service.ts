@@ -9,6 +9,10 @@ import {
   calculateFabricNeed,
   findProductType,
 } from '../knowledge/textile-knowledge';
+import {
+  computeCompletionForecast,
+  type CompletionForecast,
+} from './forecast.util';
 import type {
   CreateMaterialDto,
   CreateOrderColorSizeDto,
@@ -379,6 +383,22 @@ export class OrdersService {
     );
     await this.prisma.productionEntry.delete({ where: { id: entryId } });
     return { success: true };
+  }
+
+  async getCompletionForecast(
+    orderId: number,
+    tenantId?: string,
+  ): Promise<CompletionForecast> {
+    const order = await this.findOrderOrThrow(orderId, tenantId);
+    const entries = await this.prisma.productionEntry.findMany({
+      where: { orderId },
+    });
+
+    return computeCompletionForecast(
+      entries,
+      order.totalQuantity,
+      order.shipmentDate,
+    );
   }
 
   async getQualityEntries(orderId: number, tenantId?: string) {

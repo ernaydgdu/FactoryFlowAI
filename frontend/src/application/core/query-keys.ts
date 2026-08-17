@@ -20,6 +20,8 @@ export const applicationQueryKeys = {
     production: (id: string) => [...applicationQueryKeys.orderRecord.all, 'production', id] as const,
     aiSuggestion: (id: string) =>
       [...applicationQueryKeys.orderRecord.all, 'ai-suggestion', id] as const,
+    forecast: (id: string) =>
+      [...applicationQueryKeys.orderRecord.all, 'forecast', id] as const,
     quality: (id: string) => [...applicationQueryKeys.orderRecord.all, 'quality', id] as const,
     colorSizes: (id: string) =>
       [...applicationQueryKeys.orderRecord.all, 'color-sizes', id] as const,
