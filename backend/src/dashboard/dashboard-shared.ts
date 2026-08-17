@@ -36,7 +36,8 @@ export type DashboardAlertType =
   | 'FIRE_RATE_HIGH'
   | 'SECOND_QUALITY_HIGH'
   | 'STOCK_CRITICAL'
-  | 'APPROVAL_STALLED';
+  | 'APPROVAL_STALLED'
+  | 'LINE_BEHIND_PACE';
 
 export const APPROVAL_STAGE_LABEL: Record<string, string> = {
   PP_NUMUNE: 'PP Numune',

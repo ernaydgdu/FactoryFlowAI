@@ -1,6 +1,11 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { todayRangeUTC } from '../dashboard/dashboard-shared';
+import {
+  computeExpectedProgress,
+  WORKDAY_START_HOUR,
+  WORKDAY_END_HOUR,
+} from '../common/line-pace.util';
 import type { CreateProductionLineDto } from './dto/production-line.dto';
 
 export type LineStatusOrder = {
@@ -22,24 +27,6 @@ export type LineStatus = {
   onPace: boolean;
   paceMessage: string | null;
 };
-
-// Mesai saatleri varsayımı — gerçek fabrika vardiya takvimi bağlanana
-// kadar sabit tutulur.
-const WORKDAY_START_HOUR = 8;
-const WORKDAY_END_HOUR = 18;
-const WORKDAY_TOTAL_HOURS = WORKDAY_END_HOUR - WORKDAY_START_HOUR;
-
-// Şu ana kadar üretilmiş olması beklenen miktarı, mesai içindeki geçen
-// süre oranına göre hesaplar (mesai öncesi 0, mesai sonrası tam kapasite).
-function computeExpectedProgress(capacity: number, now: Date): number {
-  const elapsedHours =
-    now.getHours() + now.getMinutes() / 60 - WORKDAY_START_HOUR;
-
-  if (elapsedHours <= 0) return 0;
-  if (elapsedHours >= WORKDAY_TOTAL_HOURS) return capacity;
-
-  return Math.round((elapsedHours / WORKDAY_TOTAL_HOURS) * capacity);
-}
 
 @Injectable()
 export class ProductionLinesService {

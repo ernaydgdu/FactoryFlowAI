@@ -8,7 +8,8 @@ type PrismaMock = {
   order: { findMany: MockFn };
   stockLot: { findMany: MockFn };
   approvalStage: { findMany: MockFn };
-  productionEntry: { count: MockFn };
+  productionEntry: { count: MockFn; findMany: MockFn };
+  productionLine: { findMany: MockFn };
 };
 
 function createPrismaMock(): PrismaMock {
@@ -16,7 +17,8 @@ function createPrismaMock(): PrismaMock {
     order: { findMany: jest.fn() },
     stockLot: { findMany: jest.fn() },
     approvalStage: { findMany: jest.fn() },
-    productionEntry: { count: jest.fn() },
+    productionEntry: { count: jest.fn(), findMany: jest.fn() },
+    productionLine: { findMany: jest.fn() },
   };
 }
 
@@ -34,6 +36,8 @@ describe('AlertsService.getAlerts', () => {
     prisma.stockLot.findMany.mockResolvedValue([]);
     prisma.approvalStage.findMany.mockResolvedValue([]);
     prisma.productionEntry.count.mockResolvedValue(1);
+    prisma.productionEntry.findMany.mockResolvedValue([]);
+    prisma.productionLine.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [AlertsService, { provide: PrismaService, useValue: prisma }],

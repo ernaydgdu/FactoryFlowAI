@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  computeExpectedProgress,
+  isWithinWorkday,
+} from '../common/line-pace.util';
+import {
   APPROVAL_STAGE_LABEL,
   dateOnlyUTC,
   daysBetweenUTC,
@@ -181,6 +185,49 @@ export class AlertsService {
         severity: 'LOW',
         message: '📋 Bugün henüz üretim girişi yapılmadı',
       });
+    }
+
+    const now = new Date();
+    if (isWithinWorkday(now)) {
+      const lines = await this.prisma.productionLine.findMany({
+        where: tenantId ? { tenantId } : undefined,
+      });
+
+      if (lines.length > 0) {
+        const todayLineEntries = await this.prisma.productionEntry.findMany({
+          where: {
+            lineNo: { not: null },
+            date: { gte: start, lt: end },
+            ...(tenantId ? { order: { tenantId } } : {}),
+          },
+        });
+
+        for (const line of lines) {
+          const entries = todayLineEntries.filter(
+            (entry) => entry.lineNo === line.name,
+          );
+          if (entries.length === 0) continue; // boşta hat - atla
+
+          const todayProduction = entries.reduce(
+            (sum, entry) => sum + entry.quantity,
+            0,
+          );
+          const expectedProgressByNow = computeExpectedProgress(
+            line.capacity,
+            now,
+          );
+          const onPace = todayProduction >= expectedProgressByNow;
+
+          if (!onPace) {
+            alerts.push({
+              id: `line-behind-pace-${line.id}`,
+              type: 'LINE_BEHIND_PACE',
+              severity: 'MEDIUM',
+              message: `⚠️ ${line.name} hattı bugünkü hedefin gerisinde - beklenen ${expectedProgressByNow} adet, gerçekleşen ${todayProduction} adet`,
+            });
+          }
+        }
+      }
     }
 
     return alerts.sort(
