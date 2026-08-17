@@ -11,6 +11,7 @@ import { PlatformModule } from './platform/platform.module';
 import { OrdersModule } from './orders/orders.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { StockModule } from './stock/stock.module';
+import { ProductionLinesModule } from './production-lines/production-lines.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { StockModule } from './stock/stock.module';
     OrdersModule,
     DashboardModule,
     StockModule,
+    ProductionLinesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -36,6 +36,12 @@ export const applicationQueryKeys = {
     supplierPerformance: () =>
       [...applicationQueryKeys.dashboardSummary.all, 'supplier-performance'] as const,
   },
+  // Real backend ProductionLine REST resource
+  productionLine: {
+    all: ['production-line'] as const,
+    list: () => [...applicationQueryKeys.productionLine.all, 'list'] as const,
+    status: () => [...applicationQueryKeys.productionLine.all, 'status'] as const,
+  },
   // Real backend StockLot/StockMovement REST resource
   stockRecord: {
     all: ['stock-record'] as const,

@@ -155,6 +155,17 @@ model StockLot {
   @@index([orderId])
 }
 
+model ProductionLine {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // örn "LINE-1", "LINE-2"
+  capacity  Int      @default(0) // günlük hedef üretim kapasitesi (adet)
+  tenantId  String   @default("kepler-default")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
 model StockMovement {
   id          Int      @id @default(autoincrement())
   stockLotId  Int

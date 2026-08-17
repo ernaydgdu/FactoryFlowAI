@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Boxes, ClipboardList, LayoutDashboard, Star } from 'lucide-react'
+import { Activity, Boxes, ClipboardList, LayoutDashboard, Star } from 'lucide-react'
 
 export type NavLinkItem = {
   title: string
@@ -35,6 +35,11 @@ export const navGroups: NavGroup[] = [
     items: [{ title: 'Stok Yönetimi', href: '/stock' }],
   },
   {
+    title: 'Üretim',
+    icon: Activity,
+    items: [{ title: 'Hat Durumu', href: '/line-status' }],
+  },
+  {
     title: 'Tedarikçi Performansı',
     icon: Star,
     items: [{ title: 'Tedarikçi Performansı', href: '/suppliers' }],
@@ -55,6 +60,7 @@ export const routeTitles: Record<string, string> = {
   '/orders/new': 'Yeni Sipariş',
   '/stock': 'Stok Yönetimi',
   '/suppliers': 'Tedarikçi Performansı',
+  '/line-status': 'Hat Durumu',
 }
 
 export function getRouteTitle(pathname: string): string {

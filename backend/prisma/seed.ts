@@ -36,6 +36,14 @@ const SEED_USERS = [
   },
 ];
 
+const SEED_PRODUCTION_LINES = [
+  { name: 'LINE-1', capacity: 500 },
+  { name: 'LINE-2', capacity: 500 },
+  { name: 'LINE-3', capacity: 500 },
+  { name: 'LINE-4', capacity: 500 },
+  { name: 'LINE-5', capacity: 500 },
+];
+
 async function main() {
   for (const seed of SEED_USERS) {
     const hashedPassword = await bcrypt.hash(seed.password, 10);
@@ -60,6 +68,19 @@ async function main() {
     });
   }
   console.log(`Seeded ${SEED_USERS.length} users.`);
+
+  for (const line of SEED_PRODUCTION_LINES) {
+    await prisma.productionLine.upsert({
+      where: { name: line.name },
+      update: { capacity: line.capacity, tenantId: 'kepler-default' },
+      create: {
+        name: line.name,
+        capacity: line.capacity,
+        tenantId: 'kepler-default',
+      },
+    });
+  }
+  console.log(`Seeded ${SEED_PRODUCTION_LINES.length} production lines.`);
 }
 
 main()

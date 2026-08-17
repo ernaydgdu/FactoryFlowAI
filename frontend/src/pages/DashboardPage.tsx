@@ -28,6 +28,7 @@ import {
   type DashboardAlertSeverity,
   type SupplierPerformance,
 } from '@/infrastructure/api/dashboard-api.repository'
+import { fetchLineStatus } from '@/infrastructure/api/production-lines-api.repository'
 import { getQualityRateTone, QUALITY_RATE_TONE_CLASS } from '@/lib/quality-rate'
 import { getReliabilityTone } from '@/lib/reliability-rate'
 import { cn } from '@/lib/utils'
@@ -60,6 +61,18 @@ export function DashboardPage() {
     queryKey: applicationQueryKeys.dashboardSummary.supplierPerformance(),
     queryFn: fetchSupplierPerformance,
   })
+
+  const lineStatusQuery = useQuery({
+    queryKey: applicationQueryKeys.productionLine.status(),
+    queryFn: fetchLineStatus,
+  })
+
+  const lines = lineStatusQuery.data ?? []
+  const avgFillRate =
+    lines.length > 0
+      ? lines.reduce((sum, line) => sum + line.fillRate, 0) / lines.length
+      : 0
+  const idleLineCount = lines.filter((line) => line.todayProduction === 0).length
 
   // Tek seferlik siparişler yanıltıcı olmasın diye en az 2 sipariş verilmiş tedarikçiler arasından bakılır.
   const riskySupplier = (supplierPerformanceQuery.data ?? [])
@@ -140,7 +153,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid gap-4 lg:grid-cols-6">
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Akıllı Uyarılar</CardTitle>
@@ -272,6 +285,40 @@ export function DashboardPage() {
               <p className="text-sm text-muted-foreground">
                 Yeterli veri yok (en az 2 sipariş gerekli).
               </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Hat Doluluğu</CardTitle>
+            <CardDescription>Ortalama doluluk oranı</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {lineStatusQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Yükleniyor...</p>
+            ) : lineStatusQuery.isError ? (
+              <p className="text-sm text-destructive">Hat verisi yüklenemedi.</p>
+            ) : lines.length > 0 ? (
+              <div
+                className={cn(
+                  'rounded-lg border px-3 py-2',
+                  avgFillRate <= 0
+                    ? 'border-border bg-muted/30 text-muted-foreground'
+                    : avgFillRate < 50
+                      ? QUALITY_RATE_TONE_CLASS.danger
+                      : avgFillRate <= 90
+                        ? QUALITY_RATE_TONE_CLASS.success
+                        : QUALITY_RATE_TONE_CLASS.warning,
+                )}
+              >
+                <p className="text-lg font-bold tabular-nums">%{avgFillRate.toFixed(1)}</p>
+                <p className="text-xs opacity-80">
+                  {lines.length} hat · {idleLineCount} boşta
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Tanımlı hat yok.</p>
             )}
           </CardContent>
         </Card>
