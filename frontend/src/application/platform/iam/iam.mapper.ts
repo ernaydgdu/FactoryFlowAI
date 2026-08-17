@@ -1,5 +1,5 @@
 import { resolveIamRepository } from '@/infrastructure/api/iam-repository.factory'
-import { UserAccountDomainError } from '@/domain/platform/iam/user-account.service'
+import { UserAccountDomainError } from '@/domain/platform/iam/errors'
 import { runIamAdminWriteCommand } from './iam-permission.guard'
 import type { CreateUserDto, LoginDto, LoginResultDto, UpdateUserDto } from './iam.dto'
 

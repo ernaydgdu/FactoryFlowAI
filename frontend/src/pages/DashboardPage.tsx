@@ -19,7 +19,6 @@ import {
   productionLines,
   quickActions,
 } from '@/config/dashboard'
-import { OPERATIONAL_DASHBOARD } from '@/domain/data/workflows'
 import {
   fetchAiAdvice,
   fetchDashboard,
@@ -38,8 +37,6 @@ const ALERT_SEVERITY_STYLE: Record<DashboardAlertSeverity, string> = {
   MEDIUM: 'border-amber-500/30 bg-amber-500/5 text-amber-700',
   LOW: 'border-blue-500/30 bg-blue-500/5 text-blue-700',
 }
-
-const ops = OPERATIONAL_DASHBOARD
 
 export function DashboardPage() {
   const dashboardQuery = useQuery({
@@ -281,97 +278,6 @@ export function DashboardPage() {
       </div>
 
       <AiAdvisorChat />
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <OpsListCard title="Bugün Kesilecek" description="Kesim emri bekleyen siparişler" items={ops.todayCutting.map((i) => ({ primary: i.orderNo, secondary: i.style, value: `${i.qty} adet` }))} />
-        <OpsListCard title="Bugün Dikilecek" description="Hat bazlı kalan üretim" items={ops.todaySewing.map((i) => ({ primary: i.orderNo, secondary: i.line, value: `${i.qty} adet` }))} />
-        <OpsListCard title="Bugün Sevk Edilecek" description="EXF yaklaşan siparişler" items={ops.todayShipping.map((i) => ({ primary: i.orderNo, secondary: i.customer, value: i.exf }))} />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <OpsListCard title="Kritik Kumaşlar" description="Termin riski — stok yetersiz" items={ops.criticalFabrics.map((i) => ({ primary: i.code, secondary: i.name, value: `${i.daysLeft} gün` }))} valueClass="text-destructive" />
-        <OpsListCard title="Kritik Aksesuarlar" description="Minimum stok altı" items={ops.criticalAccessories.map((i) => ({ primary: i.code, secondary: i.name, value: `${i.qty} ad` }))} valueClass="text-destructive" />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <OpsListCard title="Geciken Satın Almalar" description="PO termin aşımı" items={ops.delayedPurchases.map((i) => ({ primary: i.poNo, secondary: i.supplier, value: `${i.daysLate} gün geç` }))} valueClass="text-amber-700" />
-        <OpsListCard title="Termin Riski" description="EXF blocker analizi" items={ops.terminRisk.map((i) => ({ primary: i.orderNo, secondary: i.blocker, value: `${i.daysLeft} gün` }))} valueClass="text-destructive" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>En Yoğun Hatlar</CardTitle>
-            <CardDescription>Yük ve verim</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {ops.busyLines.map((line) => (
-              <div key={line.line} className="rounded-lg border p-3">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">{line.line}</span>
-                  <span className="text-muted-foreground">Verim %{line.efficiency}</span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full bg-primary" style={{ width: `${line.load}%` }} />
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">Yük %{line.load}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Kapasite Kullanımı</CardTitle>
-            <CardDescription>Departman bazlı doluluk</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {ops.capacityUsage.map((cap) => (
-              <div key={cap.department}>
-                <div className="flex justify-between text-sm">
-                  <span>{cap.department}</span>
-                  <span className="font-medium">%{cap.used}</span>
-                </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn('h-full rounded-full', cap.used > 90 ? 'bg-destructive' : 'bg-primary')}
-                    style={{ width: `${cap.used}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Üretim Takvimi</CardTitle>
-            <CardDescription>5 günlük plan özeti</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="pb-2">Tarih</th>
-                  <th className="pb-2">Kesim</th>
-                  <th className="pb-2">Dikim</th>
-                  <th className="pb-2">Sevk</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ops.productionCalendar.map((day) => (
-                  <tr key={day.date} className="border-b border-border/60">
-                    <td className="py-2 font-medium">{day.date}</td>
-                    <td className="py-2 tabular-nums">{day.cutting}</td>
-                    <td className="py-2 tabular-nums">{day.sewing}</td>
-                    <td className="py-2 tabular-nums">{day.shipping}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -695,34 +601,3 @@ function LineStatusBadge({
   )
 }
 
-function OpsListCard({
-  title,
-  description,
-  items,
-  valueClass,
-}: {
-  title: string
-  description: string
-  items: { primary: string; secondary: string; value: string }[]
-  valueClass?: string
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {items.map((item) => (
-          <div key={item.primary} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-            <div className="min-w-0">
-              <p className="truncate font-medium">{item.primary}</p>
-              <p className="truncate text-xs text-muted-foreground">{item.secondary}</p>
-            </div>
-            <span className={cn('shrink-0 text-xs font-medium', valueClass)}>{item.value}</span>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  )
-}

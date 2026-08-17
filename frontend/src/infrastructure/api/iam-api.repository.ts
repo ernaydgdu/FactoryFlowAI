@@ -6,7 +6,7 @@ import type {
   IamUpdateUserInput,
 } from '@/domain/ports/platform/iam.repository.port'
 import type { KeplerRole, UserAccount } from '@/domain/platform/iam/types'
-import { UserAccountDomainError } from '@/domain/platform/iam/user-account.service'
+import { UserAccountDomainError } from '@/domain/platform/iam/errors'
 import { api, isAxiosError } from '@/services/api'
 
 type ApiUser = {

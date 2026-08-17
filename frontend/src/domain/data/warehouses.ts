@@ -1,28 +1,19 @@
-import type { Warehouse as LegacyWarehouse, WarehouseType } from '../types'
-import { warehouseRepository, warehouseTypeRepository } from '../master-data'
-import { lazyArray } from './lazy-cache'
+import type { Warehouse } from '../types'
 
-function resolveWarehouseType(w: { type?: WarehouseType; warehouseTypeId: string }): WarehouseType {
-  if (w.type) return w.type
-  const wt = warehouseTypeRepository.getById(w.warehouseTypeId)
-  return (wt?.legacyType ?? 'Hammadde') as WarehouseType
+export const WAREHOUSES: Warehouse[] = [
+  { id: 'wh-1', code: 'KMS-01', name: 'Kumaş Deposu', type: 'Hammadde', location: 'Bursa' },
+  { id: 'wh-2', code: 'AKS-01', name: 'Aksesuar Deposu', type: 'Hammadde', location: 'Bursa' },
+  { id: 'wh-3', code: 'MAM-01', name: 'Mamül Deposu', type: 'Mamül', location: 'İstanbul' },
+]
+
+export function getWarehouseByCode(code: string): Warehouse | undefined {
+  return WAREHOUSES.find((w) => w.code === code)
 }
 
-/** Geriye dönük uyumluluk — master data warehouse → legacy format */
-export const WAREHOUSES = lazyArray((): LegacyWarehouse[] =>
-  warehouseRepository.getActive().map((w) => ({
-    id: w.id,
-    code: w.code,
-    name: w.name,
-    type: resolveWarehouseType(w),
-    location: w.location,
-  })),
-)
+export function getWarehouseName(code: string): string {
+  return getWarehouseByCode(code)?.name ?? code
+}
 
-export { getWarehouseByCode, getWarehouseName } from '../master-data'
-
-export function getWarehouseById(id: string): LegacyWarehouse | undefined {
-  const w = warehouseRepository.getById(id)
-  if (!w) return undefined
-  return { id: w.id, code: w.code, name: w.name, type: resolveWarehouseType(w), location: w.location }
+export function getWarehouseById(id: string): Warehouse | undefined {
+  return WAREHOUSES.find((w) => w.id === id)
 }

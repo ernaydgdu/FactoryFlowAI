@@ -98,7 +98,7 @@ export type ProductCard = {
   sizeSetId: string
   colors: ProductColor[]
   bom: BomLine[]
-  status: import('./textile-erp').ProductCardRevision['status']
+  status: string
 }
 
 export type MrpLine = {

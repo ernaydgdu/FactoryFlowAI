@@ -1,5 +1,4 @@
 export * from './logger'
 export * from './performance-monitor'
 export * from './async-queue'
-export * from './master-data-bootstrap'
 export * from './lazy-route'
