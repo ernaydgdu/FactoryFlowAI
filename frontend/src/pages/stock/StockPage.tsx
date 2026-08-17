@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search } from 'lucide-react'
+import { Download, Plus, Search } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
 import { PageHeader } from '@/components/erp'
@@ -17,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import {
   consumeStockLot,
   createStockLot,
+  exportStockLotsCsv,
   fetchFifoSuggestion,
   fetchStockLots,
   fetchWarehouses,
@@ -51,7 +53,12 @@ function formatValue(value: number): string {
 
 export function StockPage() {
   const queryClient = useQueryClient()
-  const [warehouseFilter, setWarehouseFilter] = useState<string>('all')
+  const [searchParams] = useSearchParams()
+  const [warehouseFilter, setWarehouseFilter] = useState<string>(
+    () => searchParams.get('warehouseId') ?? 'all',
+  )
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const warehousesQuery = useQuery({
     queryKey: applicationQueryKeys.stockRecord.warehouses(),
@@ -90,32 +97,63 @@ export function StockPage() {
     )
     .reduce((sum, lot) => sum + lot.remainingQty * (lot.unitPrice ?? 0), 0)
 
+  async function handleExport() {
+    setExportError(null)
+    setIsExporting(true)
+    try {
+      const blob = await exportStockLotsCsv(warehouseFilterId)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `stok-raporu-${todayIso()}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Dışa aktarma başarısız.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Stok Yönetimi"
         description="Kumaş ve aksesuar stok lotları, hareketleri ve FIFO önerileri."
         actions={
-          <div className="grid gap-1.5">
-            <Label htmlFor="warehouseFilter" className="sr-only">
-              Depo Filtresi
-            </Label>
-            <select
-              id="warehouseFilter"
-              value={warehouseFilter}
-              onChange={(e) => setWarehouseFilter(e.target.value)}
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-            >
-              <option value="all">Tümü</option>
-              {warehouses.map((wh) => (
-                <option key={wh.id} value={wh.id}>
-                  {wh.name}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-end gap-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="warehouseFilter" className="sr-only">
+                Depo Filtresi
+              </Label>
+              <select
+                id="warehouseFilter"
+                value={warehouseFilter}
+                onChange={(e) => setWarehouseFilter(e.target.value)}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+              >
+                <option value="all">Tümü</option>
+                {warehouses.map((wh) => (
+                  <option key={wh.id} value={wh.id}>
+                    {wh.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button size="sm" variant="outline" onClick={handleExport} disabled={isExporting}>
+              <Download className="size-4" /> {isExporting ? 'İndiriliyor...' : 'Dışa Aktar (CSV)'}
+            </Button>
           </div>
         }
       />
+
+      {exportError ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {exportError}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
@@ -163,6 +201,7 @@ export function StockPage() {
 }
 
 type StockFormState = {
+  code: string
   materialName: string
   materialType: string
   supplierName: string
@@ -176,6 +215,7 @@ type StockFormState = {
 
 function initialStockForm(): StockFormState {
   return {
+    code: '',
     materialName: '',
     materialType: 'KUMAŞ',
     supplierName: '',
@@ -229,6 +269,7 @@ function StockLotsPanel({
 
     try {
       await addMutation.mutateAsync({
+        code: form.code.trim() || undefined,
         materialName: form.materialName.trim(),
         materialType: form.materialType.trim(),
         supplierName: form.supplierName.trim(),
@@ -273,6 +314,15 @@ function StockLotsPanel({
               value={form.materialName}
               onChange={(e) => updateField('materialName', e.target.value)}
               placeholder="Pamuklu Kumaş"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="code">Malzeme Kodu (Opsiyonel)</Label>
+            <Input
+              id="code"
+              value={form.code}
+              onChange={(e) => updateField('code', e.target.value)}
+              placeholder="MLZ-001"
             />
           </div>
           <div className="grid gap-1.5">
@@ -381,6 +431,7 @@ function StockLotsPanel({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2">Kod</th>
               <th className="px-3 py-2">Malzeme Adı</th>
               <th className="px-3 py-2">Tip</th>
               <th className="px-3 py-2">Tedarikçi</th>
@@ -396,7 +447,7 @@ function StockLotsPanel({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
                   Yükleniyor...
                 </td>
               </tr>
@@ -417,7 +468,7 @@ function StockLotsPanel({
               ))
             ) : (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
                   Henüz stok girişi yapılmadı.
                 </td>
               </tr>
@@ -479,6 +530,7 @@ function StockLotRow({
   return (
     <>
       <tr className={cn('border-b border-border/60', isOut && 'text-muted-foreground')}>
+        <td className="px-3 py-2">{lot.code ?? '—'}</td>
         <td className="px-3 py-2 font-medium">
           {lot.materialName}
           {isOut && lot.materialType === 'URUN' ? (
@@ -510,7 +562,7 @@ function StockLotRow({
       </tr>
       {isConsuming ? (
         <tr className="border-b border-border/60 bg-muted/20">
-          <td colSpan={10} className="px-3 py-3">
+          <td colSpan={11} className="px-3 py-3">
             <form onSubmit={handleConsume} className="flex flex-wrap items-end gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor={`consumeQty-${lot.id}`}>Miktar</Label>

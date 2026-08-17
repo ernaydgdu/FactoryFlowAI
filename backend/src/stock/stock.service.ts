@@ -53,7 +53,28 @@ export class StockService {
   }
 
   async getWarehouses() {
-    return this.prisma.warehouse.findMany({ orderBy: { name: 'asc' } });
+    const warehouses = await this.prisma.warehouse.findMany({
+      orderBy: { name: 'asc' },
+      include: { stockLots: true },
+    });
+
+    return warehouses.map(({ stockLots, ...warehouse }) => {
+      const totalValueByCurrency = new Map<string, number>();
+      for (const lot of stockLots) {
+        if (lot.unitPrice == null) continue;
+        const value = lot.unitPrice * lot.remainingQty;
+        totalValueByCurrency.set(
+          lot.currency,
+          (totalValueByCurrency.get(lot.currency) ?? 0) + value,
+        );
+      }
+
+      return {
+        ...warehouse,
+        lotCount: stockLots.length,
+        totalValueByCurrency: Object.fromEntries(totalValueByCurrency),
+      };
+    });
   }
 
   async createLot(data: CreateStockLotDto) {
@@ -64,6 +85,7 @@ export class StockService {
     return this.prisma.$transaction(async (tx) => {
       const lot = await tx.stockLot.create({
         data: {
+          code: data.code?.trim() || undefined,
           materialName: data.materialName.trim(),
           materialType: data.materialType.trim(),
           supplierName: data.supplierName.trim(),
@@ -142,6 +164,58 @@ export class StockService {
       where: { stockLotId: lotId },
       orderBy: { date: 'asc' },
     });
+  }
+
+  async exportLotsCsv(warehouseId?: number): Promise<string> {
+    const lots = await this.prisma.stockLot.findMany({
+      where: warehouseId ? { warehouseId } : undefined,
+      include: { warehouse: true },
+      orderBy: { receivedDate: 'asc' },
+    });
+
+    const header = [
+      'Depo Kodu',
+      'Depo Adı',
+      'Malzeme Kodu',
+      'Malzeme Adı',
+      'Tip',
+      'Tedarikçi',
+      'Lot No',
+      'Gelen Miktar',
+      'Kalan Miktar',
+      'Birim Fiyat',
+      'Para Birimi',
+      'Geliş Tarihi',
+    ];
+
+    const rows = lots.map((lot) => [
+      lot.warehouse?.code ?? '',
+      lot.warehouse?.name ?? '',
+      lot.code ?? '',
+      lot.materialName,
+      lot.materialType,
+      lot.supplierName,
+      lot.lotNo ?? '',
+      String(lot.receivedQty),
+      String(lot.remainingQty),
+      lot.unitPrice != null ? String(lot.unitPrice) : '',
+      lot.currency,
+      lot.receivedDate.toISOString().slice(0, 10),
+    ]);
+
+    const escapeCsvField = (field: string): string => {
+      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+
+    const lines = [header, ...rows].map((row) =>
+      row.map(escapeCsvField).join(','),
+    );
+
+    // UTF-8 BOM — Excel'in Türkçe karakterleri (ş, ğ, ı vb.) doğru göstermesi için gerekli.
+    return '\uFEFF' + lines.join('\r\n');
   }
 
   async getFifoSuggestion(

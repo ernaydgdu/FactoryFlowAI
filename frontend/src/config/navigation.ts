@@ -32,7 +32,10 @@ export const navGroups: NavGroup[] = [
   {
     title: 'Stok Yönetimi',
     icon: Boxes,
-    items: [{ title: 'Stok Yönetimi', href: '/stock' }],
+    items: [
+      { title: 'Stok Yönetimi', href: '/stock' },
+      { title: 'Depolar', href: '/warehouses' },
+    ],
   },
   {
     title: 'Üretim',
@@ -59,6 +62,7 @@ export const routeTitles: Record<string, string> = {
   '/orders': 'Sipariş Listesi',
   '/orders/new': 'Yeni Sipariş',
   '/stock': 'Stok Yönetimi',
+  '/warehouses': 'Depolar',
   '/suppliers': 'Tedarikçi Performansı',
   '/line-status': 'Hat Durumu',
 }

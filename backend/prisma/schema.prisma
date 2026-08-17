@@ -139,6 +139,7 @@ model QualityEntry {
 
 model StockLot {
   id              Int      @id @default(autoincrement())
+  code            String?  // kullanıcının kendi girdiği malzeme kodu (opsiyonel)
   materialName    String
   materialType    String   // KUMAŞ, AKSESUAR
   supplierName    String
@@ -176,6 +177,7 @@ model ProductionLine {
 
 model Warehouse {
   id        Int             @id @default(autoincrement())
+  code      String          @unique // "KMS-01", "AKS-01", "URN-01", "LN1-HM" vb.
   name      String          @unique // "Kumaş Deposu", "Aksesuar Deposu", "Ürün Deposu", "LINE-1 Hammadde Deposu" vb.
   type      String          // KUMAS, AKSESUAR, URUN, ATOLYE_HAMMADDE
   lineId    Int?            // ATOLYE_HAMMADDE tipindeyse hangi ProductionLine'a ait

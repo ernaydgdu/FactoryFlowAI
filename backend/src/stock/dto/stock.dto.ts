@@ -9,6 +9,10 @@ import {
 } from 'class-validator';
 
 export class CreateStockLotDto {
+  @IsOptional()
+  @IsString()
+  code?: string;
+
   @IsString()
   @IsNotEmpty()
   materialName!: string;

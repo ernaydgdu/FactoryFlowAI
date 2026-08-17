@@ -2,6 +2,7 @@ import { api, isAxiosError } from '@/services/api'
 
 export type ApiStockLot = {
   id: number
+  code: string | null
   materialName: string
   materialType: string
   supplierName: string
@@ -19,6 +20,7 @@ export type ApiStockLot = {
 }
 
 export type CreateStockLotInput = {
+  code?: string
   materialName: string
   materialType: string
   supplierName: string
@@ -46,15 +48,26 @@ export async function fetchStockLots(
 
 export type ApiWarehouse = {
   id: number
+  code: string
   name: string
   type: string
   lineId: number | null
+  lotCount: number
+  totalValueByCurrency: Record<string, number>
   createdAt: string
   updatedAt: string
 }
 
 export async function fetchWarehouses(): Promise<ApiWarehouse[]> {
   const { data } = await api.get<ApiWarehouse[]>('/stock/warehouses')
+  return data
+}
+
+export async function exportStockLotsCsv(warehouseId?: number): Promise<Blob> {
+  const { data } = await api.get<Blob>('/stock/lots/export', {
+    params: warehouseId ? { warehouseId } : undefined,
+    responseType: 'blob',
+  })
   return data
 }
 

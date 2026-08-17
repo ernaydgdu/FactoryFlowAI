@@ -7,8 +7,10 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { StockService } from './stock.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -32,6 +34,22 @@ export class StockController {
   @Get('warehouses')
   async getWarehouses() {
     return this.stockService.getWarehouses();
+  }
+
+  @Get('lots/export')
+  async exportLots(
+    @Query('warehouseId') warehouseIdRaw: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const warehouseId = warehouseIdRaw ? parseInt(warehouseIdRaw, 10) : undefined;
+    const csv = await this.stockService.exportLotsCsv(warehouseId);
+
+    const today = new Date().toISOString().slice(0, 10);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="stok-raporu-${today}.csv"`,
+    });
+    return csv;
   }
 
   @Post('lots')

@@ -83,16 +83,21 @@ async function main() {
   console.log(`Seeded ${SEED_PRODUCTION_LINES.length} production lines.`);
 
   const SEED_WAREHOUSES = [
-    { name: 'Kumaş Deposu', type: 'KUMAS' },
-    { name: 'Aksesuar Deposu', type: 'AKSESUAR' },
-    { name: 'Ürün Deposu', type: 'URUN' },
+    { name: 'Kumaş Deposu', type: 'KUMAS', code: 'KMS-01' },
+    { name: 'Aksesuar Deposu', type: 'AKSESUAR', code: 'AKS-01' },
+    { name: 'Ürün Deposu', type: 'URUN', code: 'URN-01' },
   ];
 
   for (const wh of SEED_WAREHOUSES) {
     await prisma.warehouse.upsert({
       where: { name: wh.name },
-      update: { type: wh.type, tenantId: 'kepler-default' },
-      create: { name: wh.name, type: wh.type, tenantId: 'kepler-default' },
+      update: { type: wh.type, code: wh.code, tenantId: 'kepler-default' },
+      create: {
+        name: wh.name,
+        type: wh.type,
+        code: wh.code,
+        tenantId: 'kepler-default',
+      },
     });
   }
 
@@ -101,17 +106,21 @@ async function main() {
   });
   for (const line of productionLines) {
     const name = `${line.name} Hammadde Deposu`;
+    const lineNumber = line.name.replace(/\D/g, '');
+    const code = `LN${lineNumber}-HM`;
     await prisma.warehouse.upsert({
       where: { name },
       update: {
         type: 'ATOLYE_HAMMADDE',
         lineId: line.id,
+        code,
         tenantId: 'kepler-default',
       },
       create: {
         name,
         type: 'ATOLYE_HAMMADDE',
         lineId: line.id,
+        code,
         tenantId: 'kepler-default',
       },
     });
