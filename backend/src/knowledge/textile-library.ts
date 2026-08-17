@@ -1,3 +1,5 @@
+import { wordsMatch } from '../common/text-match.util';
+
 export interface KnowledgeCard {
   id: string;
   baslik: string;
@@ -1453,6 +1455,9 @@ export type KnowledgeCardMatch = {
 
 const EXACT_MATCH_SCORE = 1;
 const STEM_MATCH_SCORE = 0.5;
+// Kök eşleşmesi (ilk MIN_STEM_LENGTH karakter) yakalayamadığı yazım
+// hatalarını (ör. "pastl" ~ "pastal") telafi eden, daha zayıf üçüncü kademe.
+const FUZZY_MATCH_SCORE = 0.4;
 // Türkçe çekim ekleri (nasıl→nasıldı, hesaplama→hesaplanır vb.) genellikle
 // kelimenin ilk birkaç harfini değiştirmez; bu eşik altındaki kelimeler için
 // kök eşleştirmesi devre dışı bırakılır (kısa kelimelerde yanlış pozitif riski yüksek).
@@ -1536,6 +1541,16 @@ export function searchKnowledgeLibrary(
       );
       if (stemMatch) {
         score += STEM_MATCH_SCORE * documentFrequencyWeight(stemMatch);
+        continue;
+      }
+
+      if (word.length >= 4) {
+        const fuzzyMatch = [...keywordWords].find((keyword) =>
+          wordsMatch(word, keyword),
+        );
+        if (fuzzyMatch) {
+          score += FUZZY_MATCH_SCORE * documentFrequencyWeight(fuzzyMatch);
+        }
       }
     }
 

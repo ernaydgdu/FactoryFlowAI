@@ -18,6 +18,8 @@ import {
 } from '../knowledge/textile-knowledge';
 import { searchKnowledgeLibrary } from '../knowledge/textile-library';
 import { computeCompletionForecast } from '../orders/forecast.util';
+import { normalizeTr } from '../common/text-match.util';
+import { pickBestIntent, type IntentDefinition } from './intent-matcher.util';
 import {
   APPROVAL_STAGE_LABEL,
   APPROVAL_STAGE_ORDER_LIST,
@@ -28,6 +30,150 @@ import {
   todayRangeUTC,
   type OrderWithMaterials,
 } from './dashboard-shared';
+
+type OrderLookup = {
+  order: OrderWithMaterials | null;
+  clarification: string | null;
+};
+
+// Orijinal if-else zincirindeki sıra korunur — eşit (skor 1) çakışmalar bu
+// sıraya göre sessizce çözülür (bkz. intent-matcher.util.ts).
+const INTENT_DEFINITIONS: IntentDefinition[] = [
+  {
+    id: 'capabilities',
+    label: 'yeteneklerim hakkında bilgi',
+    clauses: [
+      [
+        [
+          'neler sorabilirim',
+          'ne yapabilirsin',
+          'yardım',
+          'komutların',
+          'yapabileceklerin',
+        ],
+      ],
+    ],
+  },
+  {
+    id: 'genericConsumptionRate',
+    label: 'standart kumaş sarfiyat oranı',
+    clauses: [
+      [
+        ['sarfiyat', 'sarfiyatı', 'sarfiyat oranı'],
+        [
+          'ne kadar',
+          'kaç',
+          'ne miktar',
+          'gerekir',
+          'gerekiyor',
+          'lazım',
+          'ihtiyaç',
+        ],
+      ],
+    ],
+  },
+  {
+    id: 'fabricQuantity',
+    label: 'sipariş için kumaş ihtiyacı hesaplama',
+    clauses: [
+      [
+        ['kumaş'],
+        [
+          'kaç metre',
+          'ne kadar',
+          'ne miktar',
+          'gerekir',
+          'gerekiyor',
+          'lazım',
+          'ihtiyaç var',
+          'ihtiyaç',
+        ],
+      ],
+    ],
+  },
+  {
+    id: 'unitCost',
+    label: 'sipariş birim maliyeti hesaplama',
+    clauses: [[['birim maliyet', 'maliyet hesapla', 'maliyeti hesapla']]],
+    gate: (q) => /\d{2,}/.test(q),
+  },
+  {
+    id: 'topUsage',
+    label: 'top/pastal hesaplama',
+    clauses: [
+      [
+        ['top', 'topu', 'topundan'],
+        ['pastal', 'pastalı'],
+      ],
+      [['kaç pastal']],
+    ],
+  },
+  {
+    id: 'fabricEfficiency',
+    label: 'kumaş/pastal verimliliği hesaplama',
+    clauses: [[['verimlilik', 'verim', 'faydalanma', 'pastal verimi']]],
+  },
+  {
+    id: 'cuttingCostHelp',
+    label: 'kesim işçilik maliyeti hesaplama',
+    clauses: [[['kesim maliyeti', 'işçilik maliyeti']]],
+  },
+  {
+    id: 'warehouseMethod',
+    label: 'depo yönetim yöntemi önerisi (FIFO/LIFO)',
+    clauses: [
+      [['depo'], ['fifo']],
+      [['depo'], ['lifo']],
+      [['depo'], ['hangi'], ['yöntem', 'yontem']],
+    ],
+  },
+  {
+    id: 'cuttingOrderType',
+    label: 'kesim emri türü önerisi',
+    clauses: [[['kesim emri'], ['nasıl', 'kaç beden']]],
+  },
+  {
+    id: 'supplierPerformance',
+    label: 'tedarikçi güvenilirlik/performans bilgisi',
+    clauses: [[['güvenilir', 'güvenilirlik', 'performans']]],
+  },
+  {
+    id: 'orderApprovalStatus',
+    label: 'sipariş onay/aşama durumu',
+    clauses: [[['onay', 'onaylı', 'onaylandı', 'aşama', 'hangi aşamada']]],
+    gate: (q) => /\d{2,}/.test(q),
+  },
+  {
+    id: 'approvalOverview',
+    label: 'onay bekleyen / kesime hazır sipariş listesi',
+    clauses: [[['kesime hazır']], [['onay'], ['bekliyor', 'bekleyen']]],
+  },
+  {
+    id: 'completionForecast',
+    label: 'sipariş tamamlanma tahmini',
+    clauses: [
+      [
+        [
+          'ne zaman biter',
+          'ne zaman bitecek',
+          'tahmini bitiş',
+          'bitme tarihi',
+          'tamamlanma tahmini',
+        ],
+      ],
+    ],
+  },
+  {
+    id: 'terminStatus',
+    label: 'sipariş termin durumu',
+    clauses: [[['termin', 'gecikme']]],
+  },
+  {
+    id: 'productionStatus',
+    label: 'sipariş üretim durumu',
+    clauses: [[['durum', 'ne durumda', 'vaziyet', 'ne aşamada']]],
+  },
+];
 
 @Injectable()
 export class ChatAssistantService {
@@ -108,120 +254,88 @@ export class ChatAssistantService {
   }
 
   async answerQuestion(question: string, tenantId?: string): Promise<string> {
-    const q = question.toLocaleLowerCase('tr-TR');
+    const { intentId, clarification } = pickBestIntent(
+      question,
+      INTENT_DEFINITIONS,
+    );
 
-    if (
-      q.includes('neler sorabilirim') ||
-      q.includes('ne yapabilirsin') ||
-      q.includes('yardım')
-    ) {
-      return this.answerCapabilities();
+    if (clarification) {
+      return clarification;
     }
 
-    if (
-      q.includes('sarfiyat') &&
-      (q.includes('ne kadar') || q.includes('kaç'))
-    ) {
-      return this.answerGenericConsumptionRate(question);
-    }
+    switch (intentId) {
+      case 'capabilities':
+        return this.answerCapabilities();
 
-    if (
-      q.includes('kumaş') &&
-      (q.includes('kaç metre') || q.includes('ne kadar'))
-    ) {
-      const order = await this.findOrderFromQuestion(question, tenantId);
-      return this.answerFabricQuantity(order);
-    }
+      case 'genericConsumptionRate':
+        return this.answerGenericConsumptionRate(question);
 
-    if (
-      (q.includes('birim maliyet') || q.includes('maliyet hesapla')) &&
-      /\d{2,}/.test(question)
-    ) {
-      const order = await this.findOrderFromQuestion(question, tenantId);
-      return this.answerUnitCost(order);
-    }
+      case 'fabricQuantity': {
+        const lookup = await this.findOrderFromQuestion(question, tenantId);
+        if (lookup.clarification) return lookup.clarification;
+        return this.answerFabricQuantity(lookup.order);
+      }
 
-    if (
-      (q.includes('top') && q.includes('pastal')) ||
-      q.includes('kaç pastal')
-    ) {
-      return this.answerTopUsage(question);
-    }
+      case 'unitCost': {
+        const lookup = await this.findOrderFromQuestion(question, tenantId);
+        if (lookup.clarification) return lookup.clarification;
+        return this.answerUnitCost(lookup.order);
+      }
 
-    if (
-      q.includes('verimlilik') ||
-      q.includes('faydalanma') ||
-      q.includes('pastal verimi')
-    ) {
-      return this.answerFabricEfficiency(question);
-    }
+      case 'topUsage':
+        return this.answerTopUsage(question);
 
-    if (q.includes('kesim maliyeti') || q.includes('işçilik maliyeti')) {
-      return this.answerCuttingCostHelp();
-    }
+      case 'fabricEfficiency':
+        return this.answerFabricEfficiency(question);
 
-    if (
-      q.includes('depo') &&
-      (q.includes('fifo') ||
-        q.includes('lifo') ||
-        (q.includes('hangi') && q.includes('yöntem')))
-    ) {
-      return this.answerWarehouseMethod(question);
-    }
+      case 'cuttingCostHelp':
+        return this.answerCuttingCostHelp();
 
-    if (
-      q.includes('kesim emri') &&
-      (q.includes('nasıl') || q.includes('kaç beden'))
-    ) {
-      return this.answerCuttingOrderType(question);
-    }
+      case 'warehouseMethod':
+        return this.answerWarehouseMethod(question);
 
-    if (q.includes('güvenilir') || q.includes('performans')) {
-      return this.answerSupplierPerformance(question, tenantId);
-    }
+      case 'cuttingOrderType':
+        return this.answerCuttingOrderType(question);
 
-    if (
-      /\d{2,}/.test(question) &&
-      (q.includes('onay') || q.includes('aşama'))
-    ) {
-      const order = await this.findOrderFromQuestion(question, tenantId);
-      return this.answerOrderApprovalStatus(order);
-    }
+      case 'supplierPerformance':
+        return this.answerSupplierPerformance(question, tenantId);
 
-    if (
-      q.includes('kesime hazır') ||
-      (q.includes('onay') && (q.includes('bekliyor') || q.includes('bekleyen')))
-    ) {
-      return this.answerApprovalOverview(question, tenantId);
-    }
+      case 'orderApprovalStatus': {
+        const lookup = await this.findOrderFromQuestion(question, tenantId);
+        if (lookup.clarification) return lookup.clarification;
+        return this.answerOrderApprovalStatus(lookup.order);
+      }
 
-    if (
-      q.includes('ne zaman biter') ||
-      q.includes('ne zaman bitecek') ||
-      q.includes('tahmini bitiş') ||
-      q.includes('bitme tarihi') ||
-      q.includes('tamamlanma tahmini')
-    ) {
-      const order = await this.findOrderFromQuestion(question, tenantId);
-      return this.answerCompletionForecast(order);
-    }
+      case 'approvalOverview':
+        return this.answerApprovalOverview(question, tenantId);
 
-    if (q.includes('termin') || q.includes('gecikme')) {
-      const order = await this.findOrderFromQuestion(question, tenantId);
-      return this.answerTerminStatus(order);
-    }
+      case 'completionForecast': {
+        const lookup = await this.findOrderFromQuestion(question, tenantId);
+        if (lookup.clarification) return lookup.clarification;
+        return this.answerCompletionForecast(lookup.order);
+      }
 
-    if (q.includes('durum') || q.includes('ne durumda')) {
-      const order = await this.findOrderFromQuestion(question, tenantId);
-      return this.answerProductionStatus(order);
-    }
+      case 'terminStatus': {
+        const lookup = await this.findOrderFromQuestion(question, tenantId);
+        if (lookup.clarification) return lookup.clarification;
+        return this.answerTerminStatus(lookup.order);
+      }
 
-    const libraryMatch = searchKnowledgeLibrary(question);
-    if (libraryMatch) {
-      return `📚 ${libraryMatch.card.baslik}\n\n${libraryMatch.card.icerik}`;
-    }
+      case 'productionStatus': {
+        const lookup = await this.findOrderFromQuestion(question, tenantId);
+        if (lookup.clarification) return lookup.clarification;
+        return this.answerProductionStatus(lookup.order);
+      }
 
-    return 'Bu soruyu şu an anlayamadım. Şunları sorabilirsin: kumaş miktarı, termin durumu, üretim durumu. Tüm yeteneklerimi görmek için "neler sorabilirim?" diye sorabilirsiniz.';
+      default: {
+        const libraryMatch = searchKnowledgeLibrary(question);
+        if (libraryMatch) {
+          return `📚 ${libraryMatch.card.baslik}\n\n${libraryMatch.card.icerik}`;
+        }
+
+        return 'Bu soruyu şu an anlayamadım. Şunları sorabilirsin: kumaş miktarı, termin durumu, üretim durumu. Tüm yeteneklerimi görmek için "neler sorabilirim?" diye sorabilirsiniz.';
+      }
+    }
   }
 
   private answerCapabilities(): string {
@@ -375,25 +489,60 @@ export class ChatAssistantService {
     return `${bedenSayisi} beden, ${renkSayisi} renk için önerilen kesim emri türü: ${recommendation.tur}. ${recommendation.aciklama}`;
   }
 
+  // Sipariş numarası (herhangi bir yazımda: "1040", "1040 nolu", "#1040",
+  // "SIP-1040" — hepsinden yalnızca rakamlar süzülür) ya da müşteri adıyla
+  // ("ZARA siparişi ne durumda") sipariş bulmaya çalışır. Müşteri adına
+  // birden fazla sipariş sahipse netleştirme mesajı döner.
   private async findOrderFromQuestion(
     question: string,
     tenantId?: string,
-  ): Promise<OrderWithMaterials | null> {
+  ): Promise<OrderLookup> {
     const numberMatches = question.match(/\d{2,}/g);
-    if (!numberMatches) return null;
-
-    for (const num of numberMatches) {
-      const order = await this.prisma.order.findFirst({
-        where: {
-          orderNo: { contains: num },
-          ...(tenantId ? { tenantId } : {}),
-        },
-        include: { materials: true },
-      });
-      if (order) return order;
+    if (numberMatches) {
+      for (const num of numberMatches) {
+        const order = await this.prisma.order.findFirst({
+          where: {
+            orderNo: { contains: num },
+            ...(tenantId ? { tenantId } : {}),
+          },
+          include: { materials: true },
+        });
+        if (order) return { order, clarification: null };
+      }
     }
 
-    return null;
+    const allOrders = await this.prisma.order.findMany({
+      where: tenantId ? { tenantId } : undefined,
+      include: { materials: true },
+    });
+
+    const normalizedQuestion = normalizeTr(question);
+    const buyerNames = [...new Set(allOrders.map((o) => o.buyerName))].filter(
+      (name) => name.trim().length > 0,
+    );
+    // En uzun (en spesifik) müşteri adı önce denenir — kısa bir ad başka
+    // bir müşteri adının alt dizesi olabilir (ör. "Zara" / "Zara Home").
+    const matchedBuyer = [...buyerNames]
+      .sort((a, b) => b.length - a.length)
+      .find((name) => normalizedQuestion.includes(normalizeTr(name)));
+
+    if (!matchedBuyer) {
+      return { order: null, clarification: null };
+    }
+
+    const matches = allOrders
+      .filter((o) => o.buyerName === matchedBuyer)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    if (matches.length === 1) {
+      return { order: matches[0], clarification: null };
+    }
+
+    const orderNumbers = matches.map((o) => o.orderNo).join(', ');
+    return {
+      order: null,
+      clarification: `Birden fazla ${matchedBuyer} siparişi var: ${orderNumbers}. Hangisini kastediyorsunuz?`,
+    };
   }
 
   private answerFabricQuantity(order: OrderWithMaterials | null): string {
