@@ -56,8 +56,14 @@ export const applicationQueryKeys = {
   // Real backend StockLot/StockMovement REST resource
   stockRecord: {
     all: ['stock-record'] as const,
-    lots: (materialType?: string) =>
-      [...applicationQueryKeys.stockRecord.all, 'lots', materialType ?? 'all'] as const,
+    lots: (materialType?: string, warehouseId?: number) =>
+      [
+        ...applicationQueryKeys.stockRecord.all,
+        'lots',
+        materialType ?? 'all',
+        warehouseId ?? 'all',
+      ] as const,
+    warehouses: () => [...applicationQueryKeys.stockRecord.all, 'warehouses'] as const,
     movements: (lotId: number) =>
       [...applicationQueryKeys.stockRecord.all, 'movements', lotId] as const,
     fifoSuggestion: (materialName: string, neededQty: number) =>

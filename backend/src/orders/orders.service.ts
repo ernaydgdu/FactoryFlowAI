@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import type { Prisma } from '../../generated/prisma/client';
 import {
   calculateFabricNeed,
   findProductType,
@@ -525,18 +526,114 @@ export class OrdersService {
     data: CreateProductionEntryDto,
     tenantId?: string,
   ) {
-    await this.findOrderOrThrow(orderId, tenantId);
+    const order = await this.findOrThrow(
+      () =>
+        this.prisma.order.findFirst({
+          where: { id: orderId, ...(tenantId ? { tenantId } : {}) },
+        }),
+      'Sipariş bulunamadı',
+    );
 
-    return this.prisma.productionEntry.create({
-      data: {
-        orderId,
-        stage: data.stage.trim(),
-        quantity: data.quantity,
-        date: data.date ? new Date(data.date) : undefined,
-        lineNo: data.lineNo,
-        notes: data.notes,
-      },
+    const stage = data.stage.trim();
+
+    return this.prisma.$transaction(async (tx) => {
+      let fabricConsumption: {
+        consumedQty: number;
+        warehouseName: string;
+        success: boolean;
+      } | null = null;
+      let notes = data.notes;
+
+      if (stage === 'CUTTING' && data.lineNo) {
+        const match = findProductType(order.productName);
+        if (match) {
+          const consumedQty = calculateFabricNeed(
+            data.quantity,
+            match.rate.avg,
+          );
+
+          const line = await tx.productionLine.findFirst({
+            where: { name: data.lineNo },
+          });
+          const warehouse = line
+            ? await tx.warehouse.findFirst({
+                where: { lineId: line.id, type: 'ATOLYE_HAMMADDE' },
+              })
+            : null;
+
+          if (warehouse) {
+            fabricConsumption = await this.consumeFabricFromWarehouse(
+              tx,
+              orderId,
+              data.lineNo,
+              warehouse.id,
+              warehouse.name,
+              consumedQty,
+            );
+            if (!fabricConsumption.success) {
+              const warning =
+                '⚠️ Otomatik kumaş erimesi başarısız - depoda yeterli stok yok';
+              notes = notes ? `${notes} ${warning}` : warning;
+            }
+          }
+        }
+      }
+
+      const entry = await tx.productionEntry.create({
+        data: {
+          orderId,
+          stage,
+          quantity: data.quantity,
+          date: data.date ? new Date(data.date) : undefined,
+          lineNo: data.lineNo,
+          notes,
+        },
+      });
+
+      return { ...entry, fabricConsumption };
     });
+  }
+
+  private async consumeFabricFromWarehouse(
+    tx: Prisma.TransactionClient,
+    orderId: number,
+    lineNo: string,
+    warehouseId: number,
+    warehouseName: string,
+    neededQty: number,
+  ): Promise<{ consumedQty: number; warehouseName: string; success: boolean }> {
+    const lots = await tx.stockLot.findMany({
+      where: { warehouseId, remainingQty: { gt: 0 } },
+      orderBy: { receivedDate: 'asc' },
+    });
+
+    const totalAvailable = lots.reduce((sum, lot) => sum + lot.remainingQty, 0);
+    if (totalAvailable < neededQty) {
+      return { consumedQty: 0, warehouseName, success: false };
+    }
+
+    let remaining = neededQty;
+    for (const lot of lots) {
+      if (remaining <= 0) break;
+
+      const useQty = Math.min(lot.remainingQty, remaining);
+      await tx.stockLot.update({
+        where: { id: lot.id },
+        data: { remainingQty: lot.remainingQty - useQty },
+      });
+      await tx.stockMovement.create({
+        data: {
+          stockLotId: lot.id,
+          type: 'CIKIS',
+          quantity: useQty,
+          reason: `Otomatik kumaş tüketimi - Kesim - Sipariş #${orderId} - Hat: ${lineNo}`,
+          orderId,
+        },
+      });
+      remaining -= useQty;
+    }
+
+    return { consumedQty: neededQty, warehouseName, success: true };
   }
 
   async deleteProductionEntry(

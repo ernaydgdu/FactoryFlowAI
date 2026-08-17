@@ -81,6 +81,70 @@ async function main() {
     });
   }
   console.log(`Seeded ${SEED_PRODUCTION_LINES.length} production lines.`);
+
+  const SEED_WAREHOUSES = [
+    { name: 'Kumaş Deposu', type: 'KUMAS' },
+    { name: 'Aksesuar Deposu', type: 'AKSESUAR' },
+    { name: 'Ürün Deposu', type: 'URUN' },
+  ];
+
+  for (const wh of SEED_WAREHOUSES) {
+    await prisma.warehouse.upsert({
+      where: { name: wh.name },
+      update: { type: wh.type, tenantId: 'kepler-default' },
+      create: { name: wh.name, type: wh.type, tenantId: 'kepler-default' },
+    });
+  }
+
+  const productionLines = await prisma.productionLine.findMany({
+    where: { name: { in: SEED_PRODUCTION_LINES.map((l) => l.name) } },
+  });
+  for (const line of productionLines) {
+    const name = `${line.name} Hammadde Deposu`;
+    await prisma.warehouse.upsert({
+      where: { name },
+      update: {
+        type: 'ATOLYE_HAMMADDE',
+        lineId: line.id,
+        tenantId: 'kepler-default',
+      },
+      create: {
+        name,
+        type: 'ATOLYE_HAMMADDE',
+        lineId: line.id,
+        tenantId: 'kepler-default',
+      },
+    });
+  }
+  console.log(
+    `Seeded ${SEED_WAREHOUSES.length + productionLines.length} warehouses.`,
+  );
+
+  const kumasDepo = await prisma.warehouse.findUnique({
+    where: { name: 'Kumaş Deposu' },
+  });
+  const aksesuarDepo = await prisma.warehouse.findUnique({
+    where: { name: 'Aksesuar Deposu' },
+  });
+  const unassignedLots = await prisma.stockLot.findMany({
+    where: { warehouseId: null },
+  });
+  for (const lot of unassignedLots) {
+    const materialType = lot.materialType.toLocaleUpperCase('tr-TR');
+    const warehouseId =
+      materialType === 'KUMAŞ'
+        ? kumasDepo?.id
+        : materialType === 'AKSESUAR'
+          ? aksesuarDepo?.id
+          : undefined;
+    if (warehouseId) {
+      await prisma.stockLot.update({
+        where: { id: lot.id },
+        data: { warehouseId },
+      });
+    }
+  }
+  console.log(`Assigned warehouse to existing stock lots where applicable.`);
 }
 
 main()

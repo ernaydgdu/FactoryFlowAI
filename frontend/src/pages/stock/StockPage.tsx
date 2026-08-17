@@ -19,7 +19,9 @@ import {
   createStockLot,
   fetchFifoSuggestion,
   fetchStockLots,
+  fetchWarehouses,
   type ApiStockLot,
+  type ApiWarehouse,
   type ConsumeStockLotInput,
   type CreateStockLotInput,
   type FifoSuggestion,
@@ -49,15 +51,24 @@ function formatValue(value: number): string {
 
 export function StockPage() {
   const queryClient = useQueryClient()
+  const [warehouseFilter, setWarehouseFilter] = useState<string>('all')
+
+  const warehousesQuery = useQuery({
+    queryKey: applicationQueryKeys.stockRecord.warehouses(),
+    queryFn: () => fetchWarehouses(),
+  })
+  const warehouses = warehousesQuery.data ?? []
+
+  const warehouseFilterId = warehouseFilter === 'all' ? undefined : Number(warehouseFilter)
 
   const lotsQuery = useQuery({
-    queryKey: applicationQueryKeys.stockRecord.lots(),
-    queryFn: () => fetchStockLots(),
+    queryKey: applicationQueryKeys.stockRecord.lots(undefined, warehouseFilterId),
+    queryFn: () => fetchStockLots(undefined, warehouseFilterId),
   })
 
   function invalidateLots() {
     return queryClient.invalidateQueries({
-      queryKey: applicationQueryKeys.stockRecord.lots(),
+      queryKey: applicationQueryKeys.stockRecord.all,
       refetchType: 'all',
     })
   }
@@ -84,6 +95,26 @@ export function StockPage() {
       <PageHeader
         title="Stok Yönetimi"
         description="Kumaş ve aksesuar stok lotları, hareketleri ve FIFO önerileri."
+        actions={
+          <div className="grid gap-1.5">
+            <Label htmlFor="warehouseFilter" className="sr-only">
+              Depo Filtresi
+            </Label>
+            <select
+              id="warehouseFilter"
+              value={warehouseFilter}
+              onChange={(e) => setWarehouseFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              <option value="all">Tümü</option>
+              {warehouses.map((wh) => (
+                <option key={wh.id} value={wh.id}>
+                  {wh.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -121,6 +152,7 @@ export function StockPage() {
         <CardContent className="pt-6">
           <StockLotsPanel
             lots={lots}
+            warehouses={warehouses}
             isLoading={lotsQuery.isLoading}
             onChanged={invalidateLots}
           />
@@ -139,6 +171,7 @@ type StockFormState = {
   unitPrice: string
   currency: string
   receivedDate: string
+  warehouseId: string
 }
 
 function initialStockForm(): StockFormState {
@@ -151,15 +184,18 @@ function initialStockForm(): StockFormState {
     unitPrice: '',
     currency: 'USD',
     receivedDate: todayIso(),
+    warehouseId: '',
   }
 }
 
 function StockLotsPanel({
   lots,
+  warehouses,
   isLoading,
   onChanged,
 }: {
   lots: ApiStockLot[]
+  warehouses: ApiWarehouse[]
   isLoading: boolean
   onChanged: () => void
 }) {
@@ -201,6 +237,7 @@ function StockLotsPanel({
         unitPrice: form.unitPrice ? Number(form.unitPrice) : undefined,
         currency: form.currency.trim() || undefined,
         receivedDate: form.receivedDate || undefined,
+        warehouseId: form.warehouseId ? Number(form.warehouseId) : undefined,
       })
       setForm(initialStockForm())
       setShowForm(false)
@@ -313,6 +350,22 @@ function StockLotsPanel({
               onChange={(e) => updateField('receivedDate', e.target.value)}
             />
           </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="warehouseId">Depo</Label>
+            <select
+              id="warehouseId"
+              value={form.warehouseId}
+              onChange={(e) => updateField('warehouseId', e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              <option value="">Seçilmedi</option>
+              {warehouses.map((wh) => (
+                <option key={wh.id} value={wh.id}>
+                  {wh.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-4">
             <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
               İptal
@@ -332,6 +385,7 @@ function StockLotsPanel({
               <th className="px-3 py-2">Tip</th>
               <th className="px-3 py-2">Tedarikçi</th>
               <th className="px-3 py-2">Lot No</th>
+              <th className="px-3 py-2">Depo</th>
               <th className="px-3 py-2">Gelen Miktar</th>
               <th className="px-3 py-2">Kalan Miktar</th>
               <th className="px-3 py-2">Birim Fiyat</th>
@@ -342,7 +396,7 @@ function StockLotsPanel({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={10} className="px-3 py-6 text-center text-muted-foreground">
                   Yükleniyor...
                 </td>
               </tr>
@@ -363,7 +417,7 @@ function StockLotsPanel({
               ))
             ) : (
               <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={10} className="px-3 py-6 text-center text-muted-foreground">
                   Henüz stok girişi yapılmadı.
                 </td>
               </tr>
@@ -436,6 +490,7 @@ function StockLotRow({
             </div>
           ) : null}
         </td>
+        <td className="px-3 py-2">{lot.warehouseName ?? '—'}</td>
         <td className="px-3 py-2 tabular-nums">{lot.receivedQty.toLocaleString('tr-TR')}</td>
         <td className="px-3 py-2 tabular-nums">{lot.remainingQty.toLocaleString('tr-TR')}</td>
         <td className="px-3 py-2 tabular-nums">
@@ -450,7 +505,7 @@ function StockLotRow({
       </tr>
       {isConsuming ? (
         <tr className="border-b border-border/60 bg-muted/20">
-          <td colSpan={9} className="px-3 py-3">
+          <td colSpan={10} className="px-3 py-3">
             <form onSubmit={handleConsume} className="flex flex-wrap items-end gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor={`consumeQty-${lot.id}`}>Miktar</Label>

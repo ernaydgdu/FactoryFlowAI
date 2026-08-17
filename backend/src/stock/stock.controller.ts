@@ -21,8 +21,17 @@ export class StockController {
   constructor(private stockService: StockService) {}
 
   @Get('lots')
-  async getLots(@Query('materialType') materialType?: string) {
-    return this.stockService.getLots(materialType);
+  async getLots(
+    @Query('materialType') materialType?: string,
+    @Query('warehouseId') warehouseIdRaw?: string,
+  ) {
+    const warehouseId = warehouseIdRaw ? parseInt(warehouseIdRaw, 10) : undefined;
+    return this.stockService.getLots(materialType, warehouseId);
+  }
+
+  @Get('warehouses')
+  async getWarehouses() {
+    return this.stockService.getWarehouses();
   }
 
   @Post('lots')

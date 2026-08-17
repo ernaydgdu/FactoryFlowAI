@@ -152,22 +152,41 @@ model StockLot {
   order           Order?   @relation(fields: [orderId], references: [id])
   materialId      Int?     @unique
   material        Material? @relation(fields: [materialId], references: [id])
+  warehouseId     Int?
+  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
   movements       StockMovement[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([orderId])
+  @@index([warehouseId])
 }
 
 model ProductionLine {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique // örn "LINE-1", "LINE-2"
-  capacity  Int      @default(0) // günlük hedef üretim kapasitesi (adet)
-  tenantId  String   @default("kepler-default")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int         @id @default(autoincrement())
+  name       String      @unique // örn "LINE-1", "LINE-2"
+  capacity   Int         @default(0) // günlük hedef üretim kapasitesi (adet)
+  tenantId   String      @default("kepler-default")
+  warehouses Warehouse[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   @@index([tenantId])
+}
+
+model Warehouse {
+  id        Int             @id @default(autoincrement())
+  name      String          @unique // "Kumaş Deposu", "Aksesuar Deposu", "Ürün Deposu", "LINE-1 Hammadde Deposu" vb.
+  type      String          // KUMAS, AKSESUAR, URUN, ATOLYE_HAMMADDE
+  lineId    Int?            // ATOLYE_HAMMADDE tipindeyse hangi ProductionLine'a ait
+  line      ProductionLine? @relation(fields: [lineId], references: [id])
+  stockLots StockLot[]
+  tenantId  String          @default("kepler-default")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([tenantId])
+  @@index([lineId])
 }
 
 model StockMovement {

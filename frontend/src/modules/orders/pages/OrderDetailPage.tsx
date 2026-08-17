@@ -1114,6 +1114,7 @@ function ProductionPanel({
   const [form, setForm] = useState<ProductionFormState>(initialProductionForm)
   const [error, setError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<ApiProductionEntry | null>(null)
+  const [fabricConsumptionNote, setFabricConsumptionNote] = useState<string | null>(null)
 
   const productionQuery = useQuery({
     queryKey: applicationQueryKeys.orderRecord.production(orderId),
@@ -1164,14 +1165,20 @@ function ProductionPanel({
       return
     }
 
+    setFabricConsumptionNote(null)
     try {
-      await addMutation.mutateAsync({
+      const result = await addMutation.mutateAsync({
         stage: form.stage,
         quantity,
         date: form.date || undefined,
         lineNo: form.lineNo.trim() || undefined,
         notes: form.notes.trim() || undefined,
       })
+      if (result.fabricConsumption?.success) {
+        setFabricConsumptionNote(
+          `✓ ${result.fabricConsumption.consumedQty.toLocaleString('tr-TR')} metre kumaş ${result.fabricConsumption.warehouseName}'ndan otomatik düşüldü`,
+        )
+      }
       setForm(initialProductionForm())
       setShowForm(false)
     } catch (err) {
@@ -1230,6 +1237,12 @@ function ProductionPanel({
       {error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
+        </div>
+      ) : null}
+
+      {fabricConsumptionNote ? (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+          {fabricConsumptionNote}
         </div>
       ) : null}
 

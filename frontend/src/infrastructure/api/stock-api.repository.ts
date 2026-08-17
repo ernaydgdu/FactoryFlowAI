@@ -12,6 +12,8 @@ export type ApiStockLot = {
   currency: string
   receivedDate: string
   orderId: number | null
+  warehouseId: number | null
+  warehouseName: string | null
   createdAt: string
   updatedAt: string
 }
@@ -26,12 +28,33 @@ export type CreateStockLotInput = {
   currency?: string
   receivedDate?: string
   orderId?: number
+  warehouseId?: number
 }
 
-export async function fetchStockLots(materialType?: string): Promise<ApiStockLot[]> {
+export async function fetchStockLots(
+  materialType?: string,
+  warehouseId?: number,
+): Promise<ApiStockLot[]> {
   const { data } = await api.get<ApiStockLot[]>('/stock/lots', {
-    params: materialType ? { materialType } : undefined,
+    params: {
+      ...(materialType ? { materialType } : {}),
+      ...(warehouseId ? { warehouseId } : {}),
+    },
   })
+  return data
+}
+
+export type ApiWarehouse = {
+  id: number
+  name: string
+  type: string
+  lineId: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export async function fetchWarehouses(): Promise<ApiWarehouse[]> {
+  const { data } = await api.get<ApiWarehouse[]>('/stock/warehouses')
   return data
 }
 

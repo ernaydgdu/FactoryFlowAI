@@ -45,6 +45,10 @@ export class CreateStockLotDto {
   @IsOptional()
   @IsInt()
   orderId?: number;
+
+  @IsOptional()
+  @IsInt()
+  warehouseId?: number;
 }
 
 export class ConsumeStockLotDto {

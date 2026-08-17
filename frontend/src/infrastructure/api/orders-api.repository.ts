@@ -329,6 +329,16 @@ export type CreateProductionEntryInput = {
   notes?: string
 }
 
+export type FabricConsumptionResult = {
+  consumedQty: number
+  warehouseName: string
+  success: boolean
+}
+
+export type CreateProductionEntryResult = ApiProductionEntry & {
+  fabricConsumption: FabricConsumptionResult | null
+}
+
 export async function fetchProductionEntries(orderId: string): Promise<ApiProductionEntry[]> {
   const { data } = await api.get<ApiProductionEntry[]>(`/orders/${orderId}/production`)
   return data
@@ -337,8 +347,11 @@ export async function fetchProductionEntries(orderId: string): Promise<ApiProduc
 export async function createProductionEntry(
   orderId: string,
   input: CreateProductionEntryInput,
-): Promise<ApiProductionEntry> {
-  const { data } = await api.post<ApiProductionEntry>(`/orders/${orderId}/production`, input)
+): Promise<CreateProductionEntryResult> {
+  const { data } = await api.post<CreateProductionEntryResult>(
+    `/orders/${orderId}/production`,
+    input,
+  )
   return data
 }
 

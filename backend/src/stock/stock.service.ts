@@ -28,19 +28,32 @@ export type FifoSuggestion = {
 export class StockService {
   constructor(private prisma: PrismaService) {}
 
-  async getLots(materialType?: string) {
+  async getLots(materialType?: string, warehouseId?: number) {
     const lots = await this.prisma.stockLot.findMany({
-      where: materialType ? { materialType } : undefined,
+      where: {
+        ...(materialType ? { materialType } : {}),
+        ...(warehouseId ? { warehouseId } : {}),
+      },
+      include: { warehouse: true },
       orderBy: { receivedDate: 'asc' },
     });
 
     // remainingQty > 0 olan lotlar önce gösterilir; Array.sort stabil olduğu
     // için her grup içindeki receivedDate sırası korunur.
-    return [...lots].sort((a, b) => {
-      const aHasStock = a.remainingQty > 0 ? 0 : 1;
-      const bHasStock = b.remainingQty > 0 ? 0 : 1;
-      return aHasStock - bHasStock;
-    });
+    return [...lots]
+      .sort((a, b) => {
+        const aHasStock = a.remainingQty > 0 ? 0 : 1;
+        const bHasStock = b.remainingQty > 0 ? 0 : 1;
+        return aHasStock - bHasStock;
+      })
+      .map(({ warehouse, ...lot }) => ({
+        ...lot,
+        warehouseName: warehouse?.name ?? null,
+      }));
+  }
+
+  async getWarehouses() {
+    return this.prisma.warehouse.findMany({ orderBy: { name: 'asc' } });
   }
 
   async createLot(data: CreateStockLotDto) {
@@ -63,6 +76,7 @@ export class StockService {
             ? new Date(data.receivedDate)
             : undefined,
           orderId: data.orderId,
+          warehouseId: data.warehouseId,
         },
       });
 
