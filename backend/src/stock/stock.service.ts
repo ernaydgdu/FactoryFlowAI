@@ -24,6 +24,32 @@ export type FifoSuggestion = {
   suggestions: FifoSuggestionLine[];
 };
 
+export type FinishedGoodsStatus =
+  | 'SEVKIYAT_BEKLIYOR'
+  | 'KISMI_SEVK_EDILDI'
+  | 'TAMAMEN_SEVK_EDILDI';
+
+export type FinishedGoodsLine = {
+  lotId: number;
+  orderId: number | null;
+  orderNo: string | null;
+  buyerName: string | null;
+  productName: string | null;
+  totalQuantity: number | null;
+  shipmentDate: Date | null;
+  packagedQty: number;
+  remainingQty: number;
+  shippedQty: number;
+  status: FinishedGoodsStatus;
+};
+
+export type FinishedGoodsSummary = {
+  totalPackaged: number;
+  totalShipped: number;
+  totalPending: number;
+  lines: FinishedGoodsLine[];
+};
+
 @Injectable()
 export class StockService {
   constructor(private prisma: PrismaService) {}
@@ -50,6 +76,44 @@ export class StockService {
         ...lot,
         warehouseName: warehouse?.name ?? null,
       }));
+  }
+
+  async getFinishedGoods(): Promise<FinishedGoodsSummary> {
+    const lots = await this.prisma.stockLot.findMany({
+      where: { warehouse: { type: 'URUN' } },
+      include: { order: true },
+      orderBy: { receivedDate: 'desc' },
+    });
+
+    const lines = lots.map((lot) => {
+      const shippedQty = lot.receivedQty - lot.remainingQty;
+      const status: FinishedGoodsStatus =
+        lot.remainingQty === 0
+          ? 'TAMAMEN_SEVK_EDILDI'
+          : lot.remainingQty === lot.receivedQty
+            ? 'SEVKIYAT_BEKLIYOR'
+            : 'KISMI_SEVK_EDILDI';
+
+      return {
+        lotId: lot.id,
+        orderId: lot.orderId,
+        orderNo: lot.order?.orderNo ?? null,
+        buyerName: lot.order?.buyerName ?? null,
+        productName: lot.order?.productName ?? null,
+        totalQuantity: lot.order?.totalQuantity ?? null,
+        shipmentDate: lot.order?.shipmentDate ?? null,
+        packagedQty: lot.receivedQty,
+        remainingQty: lot.remainingQty,
+        shippedQty,
+        status,
+      };
+    });
+
+    const totalPackaged = lines.reduce((sum, l) => sum + l.packagedQty, 0);
+    const totalShipped = lines.reduce((sum, l) => sum + l.shippedQty, 0);
+    const totalPending = lines.reduce((sum, l) => sum + l.remainingQty, 0);
+
+    return { totalPackaged, totalShipped, totalPending, lines };
   }
 
   async getWarehouses() {

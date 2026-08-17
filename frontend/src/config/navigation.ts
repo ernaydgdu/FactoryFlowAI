@@ -35,6 +35,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { title: 'Stok Yönetimi', href: '/stock' },
       { title: 'Depolar', href: '/warehouses' },
+      { title: 'Mamul Envanteri', href: '/finished-goods' },
     ],
   },
   {
@@ -63,6 +64,7 @@ export const routeTitles: Record<string, string> = {
   '/orders/new': 'Yeni Sipariş',
   '/stock': 'Stok Yönetimi',
   '/warehouses': 'Depolar',
+  '/finished-goods': 'Mamul Envanteri',
   '/suppliers': 'Tedarikçi Performansı',
   '/line-status': 'Hat Durumu',
 }

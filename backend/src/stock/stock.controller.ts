@@ -36,6 +36,11 @@ export class StockController {
     return this.stockService.getWarehouses();
   }
 
+  @Get('finished-goods')
+  async getFinishedGoods() {
+    return this.stockService.getFinishedGoods();
+  }
+
   @Get('lots/export')
   async exportLots(
     @Query('warehouseId') warehouseIdRaw: string | undefined,

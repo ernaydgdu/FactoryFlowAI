@@ -16,6 +16,10 @@ const WarehousesPage = lazyPage(
   () => import('@/pages/warehouses/WarehousesPage'),
   'WarehousesPage',
 )
+const FinishedGoodsPage = lazyPage(
+  () => import('@/pages/finished-goods/FinishedGoodsPage'),
+  'FinishedGoodsPage',
+)
 const SupplierPerformancePage = lazyPage(
   () => import('@/pages/suppliers/SupplierPerformancePage'),
   'SupplierPerformancePage',
@@ -48,6 +52,7 @@ export function AppRouter() {
 
         <Route path="/stock" element={<L><StockPage /></L>} />
         <Route path="/warehouses" element={<L><WarehousesPage /></L>} />
+        <Route path="/finished-goods" element={<L><FinishedGoodsPage /></L>} />
         <Route path="/suppliers" element={<L><SupplierPerformancePage /></L>} />
         <Route path="/line-status" element={<L><LineStatusPage /></L>} />
       </Route>

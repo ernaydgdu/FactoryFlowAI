@@ -71,6 +71,37 @@ export async function exportStockLotsCsv(warehouseId?: number): Promise<Blob> {
   return data
 }
 
+export type FinishedGoodsStatus =
+  | 'SEVKIYAT_BEKLIYOR'
+  | 'KISMI_SEVK_EDILDI'
+  | 'TAMAMEN_SEVK_EDILDI'
+
+export type ApiFinishedGoodsLine = {
+  lotId: number
+  orderId: number | null
+  orderNo: string | null
+  buyerName: string | null
+  productName: string | null
+  totalQuantity: number | null
+  shipmentDate: string | null
+  packagedQty: number
+  remainingQty: number
+  shippedQty: number
+  status: FinishedGoodsStatus
+}
+
+export type ApiFinishedGoodsSummary = {
+  totalPackaged: number
+  totalShipped: number
+  totalPending: number
+  lines: ApiFinishedGoodsLine[]
+}
+
+export async function fetchFinishedGoods(): Promise<ApiFinishedGoodsSummary> {
+  const { data } = await api.get<ApiFinishedGoodsSummary>('/stock/finished-goods')
+  return data
+}
+
 export async function createStockLot(input: CreateStockLotInput): Promise<ApiStockLot> {
   try {
     const { data } = await api.post<ApiStockLot>('/stock/lots', input)

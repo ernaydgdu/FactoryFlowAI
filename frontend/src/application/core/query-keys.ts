@@ -64,6 +64,8 @@ export const applicationQueryKeys = {
         warehouseId ?? 'all',
       ] as const,
     warehouses: () => [...applicationQueryKeys.stockRecord.all, 'warehouses'] as const,
+    finishedGoods: () =>
+      [...applicationQueryKeys.stockRecord.all, 'finished-goods'] as const,
     movements: (lotId: number) =>
       [...applicationQueryKeys.stockRecord.all, 'movements', lotId] as const,
     fifoSuggestion: (materialName: string, neededQty: number) =>
