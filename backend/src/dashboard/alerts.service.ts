@@ -111,35 +111,64 @@ export class AlertsService {
       where: tenantId
         ? { OR: [{ orderId: null }, { order: { tenantId } }] }
         : undefined,
+      include: { warehouse: { include: { line: true } } },
     });
-    const stockByMaterial = new Map<
-      string,
-      { totalReceived: number; totalRemaining: number }
-    >();
+
+    type StockGroup = {
+      materialName: string;
+      warehouseType: string | null;
+      warehouseName: string | null;
+      lineName: string | null;
+      totalReceived: number;
+      totalRemaining: number;
+    };
+
+    // Depo başına ayrı değerlendirme: aynı malzeme farklı depolarda farklı
+    // kritiklik durumunda olabilir (örn. genel kumaş deposu dolu ama bir
+    // hattın hammadde deposu boş) — bu yüzden warehouseId + materialName
+    // birlikte gruplanır. Ürün Deposu (mamul) bu kuralın kapsamı dışında.
+    const stockByWarehouseMaterial = new Map<string, StockGroup>();
     for (const lot of stockLots) {
-      const entry = stockByMaterial.get(lot.materialName) ?? {
+      if (lot.warehouse?.type === 'URUN') continue;
+
+      const key = `${lot.warehouseId ?? 'none'}::${lot.materialName}`;
+      const entry = stockByWarehouseMaterial.get(key) ?? {
+        materialName: lot.materialName,
+        warehouseType: lot.warehouse?.type ?? null,
+        warehouseName: lot.warehouse?.name ?? null,
+        lineName: lot.warehouse?.line?.name ?? null,
         totalReceived: 0,
         totalRemaining: 0,
       };
       entry.totalReceived += lot.receivedQty;
       entry.totalRemaining += lot.remainingQty;
-      stockByMaterial.set(lot.materialName, entry);
+      stockByWarehouseMaterial.set(key, entry);
     }
 
     const STOCK_CRITICAL_RATIO = 0.15;
-    for (const [
-      materialName,
-      { totalReceived, totalRemaining },
-    ] of stockByMaterial) {
+    for (const [key, group] of stockByWarehouseMaterial) {
       if (
-        totalReceived > 0 &&
-        totalRemaining < totalReceived * STOCK_CRITICAL_RATIO
+        group.totalReceived <= 0 ||
+        group.totalRemaining >= group.totalReceived * STOCK_CRITICAL_RATIO
       ) {
+        continue;
+      }
+
+      if (group.warehouseType === 'ATOLYE_HAMMADDE') {
+        const lineLabel = group.lineName ?? group.warehouseName ?? 'Bilinmeyen hat';
         alerts.push({
-          id: `stock-critical-${materialName}`,
+          id: `stock-critical-${key}`,
           type: 'STOCK_CRITICAL',
           severity: 'HIGH',
-          message: `🚨 ${materialName} stoku kritik seviyede - sadece ${totalRemaining.toFixed(1)} birim kaldı (başlangıç: ${totalReceived.toFixed(1)})`,
+          message: `🚨 ${lineLabel} hattındaki ${group.materialName} kritik seviyede - sadece ${group.totalRemaining.toFixed(1)} birim kaldı, üretim durabilir!`,
+        });
+      } else {
+        const warehouseLabel = group.warehouseName ?? 'Depo atanmamış';
+        alerts.push({
+          id: `stock-critical-${key}`,
+          type: 'STOCK_CRITICAL',
+          severity: 'MEDIUM',
+          message: `⚠️ ${warehouseLabel} - ${group.materialName} stoku kritik seviyede - sadece ${group.totalRemaining.toFixed(1)} birim kaldı (başlangıç: ${group.totalReceived.toFixed(1)})`,
         });
       }
     }

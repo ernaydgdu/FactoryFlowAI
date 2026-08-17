@@ -160,6 +160,106 @@ describe('AlertsService.getAlerts', () => {
     expect(alerts).toEqual([]);
   });
 
+  it('ATOLYE_HAMMADDE deposunda kritik stok varsa HIGH ve hat adını içeren mesaj üretir', async () => {
+    prisma.order.findMany.mockResolvedValue([]);
+    prisma.productionEntry.count.mockResolvedValue(1);
+    prisma.stockLot.findMany.mockResolvedValue([
+      {
+        materialName: 'Pamuklu Kumaş',
+        receivedQty: 500,
+        remainingQty: 50, // %10, kritik eşik (%15) altında
+        warehouseId: 4,
+        warehouse: {
+          id: 4,
+          type: 'ATOLYE_HAMMADDE',
+          name: 'LINE-1 Hammadde Deposu',
+          line: { id: 1, name: 'LINE-1' },
+        },
+      },
+    ]);
+
+    const alerts = await service.getAlerts();
+
+    const criticalAlert = alerts.find((a) => a.type === 'STOCK_CRITICAL');
+    expect(criticalAlert).toBeDefined();
+    expect(criticalAlert?.severity).toBe('HIGH');
+    expect(criticalAlert?.message).toContain('LINE-1 hattındaki');
+    expect(criticalAlert?.message).toContain('üretim durabilir');
+  });
+
+  it('genel depoda (Kumaş Deposu) kritik stok varsa MEDIUM ve depo adını içeren mesaj üretir', async () => {
+    prisma.order.findMany.mockResolvedValue([]);
+    prisma.productionEntry.count.mockResolvedValue(1);
+    prisma.stockLot.findMany.mockResolvedValue([
+      {
+        materialName: 'Pamuklu Kumaş',
+        receivedQty: 500,
+        remainingQty: 50,
+        warehouseId: 1,
+        warehouse: { id: 1, type: 'KUMAS', name: 'Kumaş Deposu', line: null },
+      },
+    ]);
+
+    const alerts = await service.getAlerts();
+
+    const criticalAlert = alerts.find((a) => a.type === 'STOCK_CRITICAL');
+    expect(criticalAlert).toBeDefined();
+    expect(criticalAlert?.severity).toBe('MEDIUM');
+    expect(criticalAlert?.message).toContain('Kumaş Deposu');
+    expect(criticalAlert?.message).not.toContain('üretim durabilir');
+  });
+
+  it('Ürün Deposu (URUN) kritik stok kuralına dahil edilmez', async () => {
+    prisma.order.findMany.mockResolvedValue([]);
+    prisma.productionEntry.count.mockResolvedValue(1);
+    prisma.stockLot.findMany.mockResolvedValue([
+      {
+        materialName: '1040 - T-Shirt',
+        receivedQty: 100,
+        remainingQty: 0,
+        warehouseId: 3,
+        warehouse: { id: 3, type: 'URUN', name: 'Ürün Deposu', line: null },
+      },
+    ]);
+
+    const alerts = await service.getAlerts();
+
+    expect(alerts.find((a) => a.type === 'STOCK_CRITICAL')).toBeUndefined();
+  });
+
+  it('aynı malzeme farklı depolarda ayrı ayrı değerlendirilir', async () => {
+    prisma.order.findMany.mockResolvedValue([]);
+    prisma.productionEntry.count.mockResolvedValue(1);
+    prisma.stockLot.findMany.mockResolvedValue([
+      {
+        materialName: 'Pamuklu Kumaş',
+        receivedQty: 500,
+        remainingQty: 400, // %80, kritik değil
+        warehouseId: 1,
+        warehouse: { id: 1, type: 'KUMAS', name: 'Kumaş Deposu', line: null },
+      },
+      {
+        materialName: 'Pamuklu Kumaş',
+        receivedQty: 500,
+        remainingQty: 20, // %4, kritik
+        warehouseId: 4,
+        warehouse: {
+          id: 4,
+          type: 'ATOLYE_HAMMADDE',
+          name: 'LINE-1 Hammadde Deposu',
+          line: { id: 1, name: 'LINE-1' },
+        },
+      },
+    ]);
+
+    const alerts = await service.getAlerts();
+
+    const criticalAlerts = alerts.filter((a) => a.type === 'STOCK_CRITICAL');
+    expect(criticalAlerts).toHaveLength(1);
+    expect(criticalAlerts[0].severity).toBe('HIGH');
+    expect(criticalAlerts[0].message).toContain('LINE-1');
+  });
+
   it('severity sıralaması her zaman HIGH → MEDIUM → LOW olmalı', async () => {
     prisma.order.findMany.mockResolvedValue([
       {
