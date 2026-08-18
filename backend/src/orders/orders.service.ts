@@ -27,6 +27,53 @@ import type {
   UpdateOrderDto,
 } from './dto/order.dto';
 
+export type CartonBreakdown = {
+  color: string;
+  size: string;
+  totalQty: number;
+  unitsPerCarton: number | null;
+  fullCartons: number | null;
+  lottedQty: number | null;
+  looseQty: number;
+  totalCartons: number | null;
+};
+
+function computeCartonBreakdown(cs: {
+  color: string;
+  size: string;
+  quantity: number;
+  unitsPerCarton: number | null;
+}): CartonBreakdown {
+  if (!cs.unitsPerCarton || cs.unitsPerCarton <= 0) {
+    return {
+      color: cs.color,
+      size: cs.size,
+      totalQty: cs.quantity,
+      unitsPerCarton: null,
+      fullCartons: null,
+      lottedQty: null,
+      looseQty: cs.quantity,
+      totalCartons: null,
+    };
+  }
+
+  const fullCartons = Math.floor(cs.quantity / cs.unitsPerCarton);
+  const lottedQty = fullCartons * cs.unitsPerCarton;
+  const looseQty = cs.quantity - lottedQty;
+  const totalCartons = fullCartons + (looseQty > 0 ? 1 : 0);
+
+  return {
+    color: cs.color,
+    size: cs.size,
+    totalQty: cs.quantity,
+    unitsPerCarton: cs.unitsPerCarton,
+    fullCartons,
+    lottedQty,
+    looseQty,
+    totalCartons,
+  };
+}
+
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PLANNING: 'Beklemede',
   IN_PRODUCTION: 'Üretimde',
@@ -942,8 +989,17 @@ export class OrdersService {
 
     return this.prisma.orderColorSize.upsert({
       where: { orderId_color_size: { orderId, color, size } },
-      create: { orderId, color, size, quantity: data.quantity },
-      update: { quantity: data.quantity },
+      create: {
+        orderId,
+        color,
+        size,
+        quantity: data.quantity,
+        unitsPerCarton: data.unitsPerCarton,
+      },
+      update: {
+        quantity: data.quantity,
+        unitsPerCarton: data.unitsPerCarton,
+      },
     });
   }
 
@@ -1292,6 +1348,19 @@ export class OrdersService {
         })
       : null;
 
+    const colorSizes = order.colorSizes.map((cs) => computeCartonBreakdown(cs));
+
+    const grandTotal = colorSizes.reduce(
+      (acc, cs) => ({
+        totalQty: acc.totalQty + cs.totalQty,
+        fullCartons: acc.fullCartons + (cs.fullCartons ?? 0),
+        lottedQty: acc.lottedQty + (cs.lottedQty ?? 0),
+        looseQty: acc.looseQty + cs.looseQty,
+        totalCartons: acc.totalCartons + (cs.totalCartons ?? 0),
+      }),
+      { totalQty: 0, fullCartons: 0, lottedQty: 0, looseQty: 0, totalCartons: 0 },
+    );
+
     return {
       order: {
         orderNo: order.orderNo,
@@ -1300,11 +1369,8 @@ export class OrdersService {
         totalQuantity: order.totalQuantity,
         shipmentDate: order.shipmentDate,
       },
-      colorSizes: order.colorSizes.map((cs) => ({
-        color: cs.color,
-        size: cs.size,
-        quantity: cs.quantity,
-      })),
+      colorSizes,
+      grandTotal,
       packingSummary: {
         packaged: lot?.receivedQty ?? 0,
         shipped: lot ? lot.receivedQty - lot.remainingQty : 0,
@@ -1341,11 +1407,46 @@ export class OrdersService {
       ]),
     );
     lines.push('');
-    lines.push(row(['Renk', 'Beden', 'Miktar']));
+    lines.push(
+      row([
+        'Renk',
+        'Beden',
+        'Toplam Adet',
+        'Koli Başına Adet',
+        'Tam Koli',
+        'Lotlu Adet',
+        'Açık Adet',
+        'Toplam Koli',
+      ]),
+    );
+    const fmt = (value: number | null) => (value == null ? '—' : String(value));
     if (data.colorSizes.length > 0) {
       for (const cs of data.colorSizes) {
-        lines.push(row([cs.color, cs.size, String(cs.quantity)]));
+        lines.push(
+          row([
+            cs.color,
+            cs.size,
+            String(cs.totalQty),
+            fmt(cs.unitsPerCarton),
+            fmt(cs.fullCartons),
+            fmt(cs.lottedQty),
+            String(cs.looseQty),
+            fmt(cs.totalCartons),
+          ]),
+        );
       }
+      lines.push(
+        row([
+          'GENEL TOPLAM',
+          '',
+          String(data.grandTotal.totalQty),
+          '',
+          String(data.grandTotal.fullCartons),
+          String(data.grandTotal.lottedQty),
+          String(data.grandTotal.looseQty),
+          String(data.grandTotal.totalCartons),
+        ]),
+      );
     }
     lines.push('');
     lines.push(row(['Paketlenen', 'Sevk Edilen', 'Kalan']));

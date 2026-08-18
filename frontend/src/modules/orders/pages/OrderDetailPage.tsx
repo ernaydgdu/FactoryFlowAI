@@ -1823,12 +1823,14 @@ type ColorSizeFormState = {
   color: string
   size: string
   quantity: string
+  unitsPerCarton: string
 }
 
 const INITIAL_COLOR_SIZE_FORM: ColorSizeFormState = {
   color: '',
   size: '',
   quantity: '',
+  unitsPerCarton: '',
 }
 
 const LETTER_SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL']
@@ -1876,14 +1878,22 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
   }
 
   const upsertMutation = useMutation({
-    mutationFn: (input: { color: string; size: string; quantity: number }) =>
-      upsertColorSize(orderId, input),
+    mutationFn: (input: {
+      color: string
+      size: string
+      quantity: number
+      unitsPerCarton?: number | null
+    }) => upsertColorSize(orderId, input),
     onSuccess: invalidate,
   })
 
   const editMutation = useMutation({
-    mutationFn: (input: { color: string; size: string; quantity: number }) =>
-      upsertColorSize(orderId, input),
+    mutationFn: (input: {
+      color: string
+      size: string
+      quantity: number
+      unitsPerCarton?: number | null
+    }) => upsertColorSize(orderId, input),
     onSuccess: invalidate,
   })
 
@@ -1909,14 +1919,20 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
       setError('Miktar geçerli bir sayı olmalıdır.')
       return
     }
+    const unitsPerCarton = form.unitsPerCarton.trim() ? Number(form.unitsPerCarton) : null
+    if (unitsPerCarton != null && (Number.isNaN(unitsPerCarton) || unitsPerCarton <= 0)) {
+      setError('Koli başına adet geçerli bir sayı olmalıdır.')
+      return
+    }
 
     try {
       await upsertMutation.mutateAsync({
         color: form.color.trim(),
         size: form.size.trim(),
         quantity,
+        unitsPerCarton,
       })
-      setForm((prev) => ({ ...prev, size: '', quantity: '' }))
+      setForm((prev) => ({ ...prev, size: '', quantity: '', unitsPerCarton: '' }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Renk/beden eklenemedi.')
     }
@@ -2005,7 +2021,7 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
 
       <form
         onSubmit={handleAdd}
-        className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-3"
+        className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-4"
       >
         <div className="grid gap-1.5">
           <Label htmlFor="csColor">Renk</Label>
@@ -2036,7 +2052,18 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
             placeholder="100"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:col-span-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="csUnitsPerCarton">Koli Başına Adet (Opsiyonel)</Label>
+          <Input
+            id="csUnitsPerCarton"
+            type="number"
+            min="1"
+            value={form.unitsPerCarton}
+            onChange={(e) => updateField('unitsPerCarton', e.target.value)}
+            placeholder="12"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:col-span-4">
           <Button type="submit" size="sm" disabled={upsertMutation.isPending}>
             <Plus className="size-4" /> Ekle
           </Button>
@@ -2068,13 +2095,14 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
               <th className="px-3 py-2">Renk</th>
               <th className="px-3 py-2">Beden</th>
               <th className="px-3 py-2">Miktar</th>
+              <th className="px-3 py-2">Koli Başına Adet</th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {colorSizesQuery.isLoading ? (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
                   Yükleniyor...
                 </td>
               </tr>
@@ -2084,8 +2112,13 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
                   key={row.id}
                   row={row}
                   canManage={canManage}
-                  onSaveEdit={(quantity) =>
-                    editMutation.mutateAsync({ color: row.color, size: row.size, quantity })
+                  onSaveEdit={(quantity, unitsPerCarton) =>
+                    editMutation.mutateAsync({
+                      color: row.color,
+                      size: row.size,
+                      quantity,
+                      unitsPerCarton,
+                    })
                   }
                   isSaving={
                     editMutation.isPending &&
@@ -2098,7 +2131,7 @@ function ColorSizePanel({ orderId, totalQuantity }: { orderId: string; totalQuan
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
                   Henüz renk/beden girilmedi.
                 </td>
               </tr>
@@ -2316,17 +2349,21 @@ function ColorSizeRow({
 }: {
   row: ApiOrderColorSize
   canManage: boolean
-  onSaveEdit: (quantity: number) => Promise<unknown>
+  onSaveEdit: (quantity: number, unitsPerCarton: number | null) => Promise<unknown>
   isSaving: boolean
   onDelete: () => void
   isDeleting: boolean
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [quantityInput, setQuantityInput] = useState(String(row.quantity))
+  const [unitsPerCartonInput, setUnitsPerCartonInput] = useState(
+    row.unitsPerCarton != null ? String(row.unitsPerCarton) : '',
+  )
   const [editError, setEditError] = useState<string | null>(null)
 
   function startEdit() {
     setQuantityInput(String(row.quantity))
+    setUnitsPerCartonInput(row.unitsPerCarton != null ? String(row.unitsPerCarton) : '')
     setEditError(null)
     setIsEditing(true)
   }
@@ -2338,9 +2375,14 @@ function ColorSizeRow({
       setEditError('Geçerli bir miktar girin.')
       return
     }
+    const unitsPerCarton = unitsPerCartonInput.trim() ? Number(unitsPerCartonInput) : null
+    if (unitsPerCarton != null && (Number.isNaN(unitsPerCarton) || unitsPerCarton <= 0)) {
+      setEditError('Geçerli bir koli başına adet girin.')
+      return
+    }
 
     try {
-      await onSaveEdit(quantity)
+      await onSaveEdit(quantity, unitsPerCarton)
       setIsEditing(false)
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Güncellenemedi.')
@@ -2353,18 +2395,32 @@ function ColorSizeRow({
       <td className="px-3 py-2">{row.size}</td>
       <td className="px-3 py-2 tabular-nums">
         {isEditing ? (
+          <Input
+            type="number"
+            min="0"
+            value={quantityInput}
+            onChange={(e) => setQuantityInput(e.target.value)}
+            className="h-8 w-24"
+          />
+        ) : (
+          row.quantity.toLocaleString('tr-TR')
+        )}
+      </td>
+      <td className="px-3 py-2 tabular-nums">
+        {isEditing ? (
           <div>
             <Input
               type="number"
-              min="0"
-              value={quantityInput}
-              onChange={(e) => setQuantityInput(e.target.value)}
+              min="1"
+              value={unitsPerCartonInput}
+              onChange={(e) => setUnitsPerCartonInput(e.target.value)}
+              placeholder="Opsiyonel"
               className="h-8 w-24"
             />
             {editError ? <p className="mt-1 text-xs text-destructive">{editError}</p> : null}
           </div>
         ) : (
-          row.quantity.toLocaleString('tr-TR')
+          (row.unitsPerCarton?.toLocaleString('tr-TR') ?? '—')
         )}
       </td>
       <td className="px-3 py-2 text-right">
@@ -2826,27 +2882,72 @@ function PackingListPanel({ orderId }: { orderId: string }) {
         <Field label="EXF Tarihi" value={formatDate(data.order.shipmentDate)} />
       </dl>
 
-      <div className="rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
               <th className="px-3 py-2">Renk</th>
               <th className="px-3 py-2">Beden</th>
-              <th className="px-3 py-2">Miktar</th>
+              <th className="px-3 py-2 text-right">Toplam Adet</th>
+              <th className="px-3 py-2 text-right">Koli Başına Adet</th>
+              <th className="px-3 py-2 text-right">Tam Koli</th>
+              <th className="px-3 py-2 text-right">Lotlu Adet</th>
+              <th className="px-3 py-2 text-right">Açık Adet</th>
+              <th className="px-3 py-2 text-right">Toplam Koli</th>
             </tr>
           </thead>
           <tbody>
             {data.colorSizes.length > 0 ? (
-              data.colorSizes.map((cs, i) => (
-                <tr key={`${cs.color}-${cs.size}-${i}`} className="border-b border-border/60 last:border-b-0">
-                  <td className="px-3 py-2">{cs.color}</td>
-                  <td className="px-3 py-2">{cs.size}</td>
-                  <td className="px-3 py-2 tabular-nums">{cs.quantity.toLocaleString('tr-TR')}</td>
+              <>
+                {data.colorSizes.map((cs, i) => (
+                  <tr key={`${cs.color}-${cs.size}-${i}`} className="border-b border-border/60">
+                    <td className="px-3 py-2">{cs.color}</td>
+                    <td className="px-3 py-2">{cs.size}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {cs.totalQty.toLocaleString('tr-TR')}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {cs.unitsPerCarton?.toLocaleString('tr-TR') ?? '—'}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {cs.fullCartons?.toLocaleString('tr-TR') ?? '—'}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {cs.lottedQty?.toLocaleString('tr-TR') ?? '—'}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {cs.looseQty.toLocaleString('tr-TR')}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {cs.totalCartons?.toLocaleString('tr-TR') ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                  <td className="px-3 py-2" colSpan={2}>
+                    GENEL TOPLAM
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {data.grandTotal.totalQty.toLocaleString('tr-TR')}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">—</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {data.grandTotal.fullCartons.toLocaleString('tr-TR')}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {data.grandTotal.lottedQty.toLocaleString('tr-TR')}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {data.grandTotal.looseQty.toLocaleString('tr-TR')}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {data.grandTotal.totalCartons.toLocaleString('tr-TR')}
+                  </td>
                 </tr>
-              ))
+              </>
             ) : (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
                   Renk/beden girişi yapılmadı.
                 </td>
               </tr>

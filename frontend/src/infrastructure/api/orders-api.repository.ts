@@ -436,6 +436,7 @@ export type ApiOrderColorSize = {
   color: string
   size: string
   quantity: number
+  unitsPerCarton: number | null
   createdAt: string
   updatedAt: string
 }
@@ -444,6 +445,7 @@ export type UpsertColorSizeInput = {
   color: string
   size: string
   quantity: number
+  unitsPerCarton?: number | null
 }
 
 export async function fetchColorSizes(orderId: string): Promise<ApiOrderColorSize[]> {
@@ -594,7 +596,20 @@ export async function reopenOrder(orderId: string): Promise<ApiOrderDetail> {
 export type PackingListColorSize = {
   color: string
   size: string
-  quantity: number
+  totalQty: number
+  unitsPerCarton: number | null
+  fullCartons: number | null
+  lottedQty: number | null
+  looseQty: number
+  totalCartons: number | null
+}
+
+export type PackingListGrandTotal = {
+  totalQty: number
+  fullCartons: number
+  lottedQty: number
+  looseQty: number
+  totalCartons: number
 }
 
 export type PackingList = {
@@ -606,6 +621,7 @@ export type PackingList = {
     shipmentDate: string
   }
   colorSizes: PackingListColorSize[]
+  grandTotal: PackingListGrandTotal
   packingSummary: { packaged: number; shipped: number; remaining: number }
   reportDate: string
 }

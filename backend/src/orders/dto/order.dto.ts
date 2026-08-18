@@ -2,6 +2,7 @@ import {
   IsBoolean,
   IsDateString,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -240,6 +241,11 @@ export class CreateOrderColorSizeDto {
   @IsNumber()
   @Min(0)
   quantity!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  unitsPerCarton?: number | null;
 }
 
 export class CloseOrderDto {
