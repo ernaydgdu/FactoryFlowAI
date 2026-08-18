@@ -10,7 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { createOrder, upsertColorSize } from '@/infrastructure/api/orders-api.repository'
+import {
+  createBOMItem,
+  createOrder,
+  upsertColorSize,
+  type BOMMaterialType,
+  type BOMUnit,
+} from '@/infrastructure/api/orders-api.repository'
 
 type FormState = {
   orderNo: string
@@ -42,11 +48,47 @@ function createColorSizeRow(): ColorSizeRow {
   return { key: `csr-${colorSizeRowCounter}`, color: '', size: '', quantity: '' }
 }
 
+type BOMRow = {
+  key: string
+  materialName: string
+  materialType: BOMMaterialType
+  unitConsumption: string
+  unit: BOMUnit
+  wastagePercent: string
+}
+
+let bomRowCounter = 0
+
+function createBOMRow(): BOMRow {
+  bomRowCounter += 1
+  return {
+    key: `bom-${bomRowCounter}`,
+    materialName: '',
+    materialType: 'KUMAS',
+    unitConsumption: '',
+    unit: 'METRE',
+    wastagePercent: '3',
+  }
+}
+
+const BOM_MATERIAL_TYPE_LABEL: Record<BOMMaterialType, string> = {
+  KUMAS: 'Kumaş',
+  AKSESUAR: 'Aksesuar',
+}
+
+const BOM_UNIT_LABEL: Record<BOMUnit, string> = {
+  METRE: 'Metre',
+  ADET: 'Adet',
+  GRAM: 'Gram',
+  KG: 'Kg',
+}
+
 export function OrderCreatePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [colorSizeRows, setColorSizeRows] = useState<ColorSizeRow[]>([])
+  const [bomRows, setBomRows] = useState<BOMRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -77,11 +119,29 @@ export function OrderCreatePage() {
     setColorSizeRows((prev) => prev.filter((row) => row.key !== key))
   }
 
+  function addBOMRow() {
+    setBomRows((prev) => [...prev, createBOMRow()])
+  }
+
+  function updateBOMRow(key: string, field: keyof Omit<BOMRow, 'key'>, value: string) {
+    setBomRows((prev) => prev.map((row) => (row.key === key ? { ...row, [field]: value } : row)))
+  }
+
+  function removeBOMRow(key: string) {
+    setBomRows((prev) => prev.filter((row) => row.key !== key))
+  }
+
   const colorSizeEnteredTotal = colorSizeRows.reduce(
     (sum, row) => sum + (Number(row.quantity) || 0),
     0,
   )
   const totalQuantityNumber = Number(form.totalQuantity) || 0
+
+  function estimatedBOMNeed(row: BOMRow): number {
+    const unitConsumption = Number(row.unitConsumption) || 0
+    const wastagePercent = Number(row.wastagePercent) || 0
+    return totalQuantityNumber * unitConsumption * (1 + wastagePercent / 100)
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -113,6 +173,20 @@ export function OrderCreatePage() {
       }
     }
 
+    const validBOMRows = bomRows.filter((row) => row.materialName.trim())
+    for (const row of validBOMRows) {
+      const unitConsumption = Number(row.unitConsumption)
+      if (!row.unitConsumption || Number.isNaN(unitConsumption) || unitConsumption <= 0) {
+        setError(`"${row.materialName}" bileşeni için geçerli bir birim tüketim girin.`)
+        return
+      }
+      const wastagePercent = Number(row.wastagePercent)
+      if (row.wastagePercent !== '' && (Number.isNaN(wastagePercent) || wastagePercent < 0)) {
+        setError(`"${row.materialName}" bileşeni için geçerli bir fire payı girin.`)
+        return
+      }
+    }
+
     setIsSubmitting(true)
     try {
       const order = await createMutation.mutateAsync({
@@ -128,6 +202,16 @@ export function OrderCreatePage() {
           color: row.color.trim(),
           size: row.size.trim(),
           quantity: Number(row.quantity),
+        })
+      }
+
+      for (const row of validBOMRows) {
+        await createBOMItem(order.id, {
+          materialName: row.materialName.trim(),
+          materialType: row.materialType,
+          unitConsumption: Number(row.unitConsumption),
+          unit: row.unit,
+          wastagePercent: row.wastagePercent ? Number(row.wastagePercent) : undefined,
         })
       }
 
@@ -309,6 +393,121 @@ export function OrderCreatePage() {
               {colorSizeEnteredTotal === totalQuantityNumber ? ' ✓' : ''}
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-base">BOM - Ürün Ağacı (Opsiyonel)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {bomRows.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+                    <th className="px-3 py-2">Malzeme Adı</th>
+                    <th className="px-3 py-2">Tip</th>
+                    <th className="px-3 py-2">Birim Tüketim</th>
+                    <th className="px-3 py-2">Birim</th>
+                    <th className="px-3 py-2">Fire Payı (%)</th>
+                    <th className="px-3 py-2">Tahmini Toplam İhtiyaç</th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {bomRows.map((row) => (
+                    <tr key={row.key} className="border-b border-border/60">
+                      <td className="px-3 py-2">
+                        <Input
+                          value={row.materialName}
+                          onChange={(e) => updateBOMRow(row.key, 'materialName', e.target.value)}
+                          placeholder="Ana Kumaş"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          value={row.materialType}
+                          onChange={(e) =>
+                            updateBOMRow(row.key, 'materialType', e.target.value)
+                          }
+                          className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                        >
+                          {(Object.keys(BOM_MATERIAL_TYPE_LABEL) as BOMMaterialType[]).map((t) => (
+                            <option key={t} value={t}>
+                              {BOM_MATERIAL_TYPE_LABEL[t]}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={row.unitConsumption}
+                          onChange={(e) =>
+                            updateBOMRow(row.key, 'unitConsumption', e.target.value)
+                          }
+                          placeholder="1.4"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          value={row.unit}
+                          onChange={(e) => updateBOMRow(row.key, 'unit', e.target.value)}
+                          className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                        >
+                          {(Object.keys(BOM_UNIT_LABEL) as BOMUnit[]).map((u) => (
+                            <option key={u} value={u}>
+                              {BOM_UNIT_LABEL[u]}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={row.wastagePercent}
+                          onChange={(e) =>
+                            updateBOMRow(row.key, 'wastagePercent', e.target.value)
+                          }
+                          placeholder="3"
+                        />
+                      </td>
+                      <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                        {estimatedBOMNeed(row).toLocaleString('tr-TR', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        })}{' '}
+                        {BOM_UNIT_LABEL[row.unit]}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeBOMRow(row.key)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Henüz ürün ağacı bileşeni eklenmedi. Bu bölüm opsiyoneldir, boş bırakabilirsiniz.
+            </p>
+          )}
+
+          <Button type="button" variant="outline" size="sm" onClick={addBOMRow}>
+            <Plus className="size-4" /> Bileşen Ekle
+          </Button>
         </CardContent>
       </Card>
 
