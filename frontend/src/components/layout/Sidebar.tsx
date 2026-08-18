@@ -26,7 +26,7 @@ export function Sidebar() {
   const visibleFooter = footerNavItems.filter((item) => filterNavHref(role, item.href))
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground print:hidden">
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
         <div className="flex size-9 items-center justify-center">
           <img src="/kepler-mountain-logo.svg" alt="Kepler ERP" className="size-9" />

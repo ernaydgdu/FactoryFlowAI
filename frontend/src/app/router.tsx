@@ -45,6 +45,10 @@ const ShipmentDetailPage = lazyPage(
   () => import('@/pages/shipments/ShipmentDetailPage'),
   'ShipmentDetailPage',
 )
+const WorkOrderDetailPage = lazyPage(
+  () => import('@/pages/work-orders/WorkOrderDetailPage'),
+  'WorkOrderDetailPage',
+)
 
 function L({ children }: { children: ReactNode }) {
   return <LazyRoute>{children}</LazyRoute>
@@ -66,6 +70,7 @@ export function AppRouter() {
         <Route path="/orders/new" element={<L><OrderCreatePage /></L>} />
         <Route path="/orders/:id" element={<L><OrderDetailPage /></L>} />
         <Route path="/orders/:id/edit" element={<L><OrderEditPage /></L>} />
+        <Route path="/work-orders/:id" element={<L><WorkOrderDetailPage /></L>} />
 
         <Route path="/shipments" element={<L><ShipmentsPage /></L>} />
         <Route path="/shipments/new" element={<L><ShipmentCreatePage /></L>} />

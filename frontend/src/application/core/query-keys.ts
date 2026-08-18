@@ -42,6 +42,12 @@ export const applicationQueryKeys = {
       [...applicationQueryKeys.orderRecord.all, 'fason-shipments', id] as const,
     bomItems: (id: string) =>
       [...applicationQueryKeys.orderRecord.all, 'bom-items', id] as const,
+    workOrders: (id: string) =>
+      [...applicationQueryKeys.orderRecord.all, 'work-orders', id] as const,
+  },
+  workOrderRecord: {
+    all: ['work-order-record'] as const,
+    detail: (id: string) => [...applicationQueryKeys.workOrderRecord.all, 'detail', id] as const,
   },
   // Real backend GET /api/dashboard summary
   dashboardSummary: {

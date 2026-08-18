@@ -252,6 +252,9 @@ export class OrdersService {
       this.prisma.qualityEntry.deleteMany({ where: { orderId } }),
       this.prisma.orderColorSize.deleteMany({ where: { orderId } }),
       this.prisma.approvalStage.deleteMany({ where: { orderId } }),
+      this.prisma.fasonShipment.deleteMany({ where: { orderId } }),
+      this.prisma.orderBOMItem.deleteMany({ where: { orderId } }),
+      this.prisma.workOrder.deleteMany({ where: { orderId } }),
       this.prisma.stockLot.updateMany({
         where: { orderId },
         data: { orderId: null },
@@ -667,6 +670,7 @@ export class OrdersService {
         unitCost: data.unitCost,
         currency: data.currency ?? 'TRY',
         notes: data.notes,
+        workOrderId: data.workOrderId,
         tenantId: order.tenantId,
       },
     });
@@ -1034,6 +1038,7 @@ export class OrdersService {
           date: data.date ? new Date(data.date) : undefined,
           lineNo: data.lineNo,
           notes,
+          workOrderId: data.workOrderId,
         },
       });
 

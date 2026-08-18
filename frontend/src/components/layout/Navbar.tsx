@@ -57,7 +57,7 @@ export function Navbar() {
     : 'KU'
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6 print:hidden">
       <div>
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {appConfig.product}

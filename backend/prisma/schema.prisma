@@ -30,111 +30,115 @@ model User {
 }
 
 model Order {
-  id            Int      @id @default(autoincrement())
-  orderNo       String   @unique
-  buyerName     String
-  productName   String
-  totalQuantity Int
-  shipmentDate  DateTime
-  status        String   @default("PLANNING")
-  tenantId      String   @default("kepler-default")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  materials     Material[]
+  id                Int               @id @default(autoincrement())
+  orderNo           String            @unique
+  buyerName         String
+  productName       String
+  totalQuantity     Int
+  shipmentDate      DateTime
+  status            String            @default("PLANNING")
+  tenantId          String            @default("kepler-default")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  materials         Material[]
   productionEntries ProductionEntry[]
-  qualityEntries QualityEntry[]
-  stockLots     StockLot[]
-  colorSizes    OrderColorSize[]
-  approvalStages ApprovalStage[]
-  shipmentLines ShipmentLine[]
-  fasonShipments FasonShipment[]
-  bomItems      OrderBOMItem[]
-  closedAt      DateTime?
-  closedBy      String?
+  qualityEntries    QualityEntry[]
+  stockLots         StockLot[]
+  colorSizes        OrderColorSize[]
+  approvalStages    ApprovalStage[]
+  shipmentLines     ShipmentLine[]
+  fasonShipments    FasonShipment[]
+  bomItems          OrderBOMItem[]
+  workOrders        WorkOrder[]
+  closedAt          DateTime?
+  closedBy          String?
 
   @@index([tenantId])
 }
 
 model ApprovalStage {
-  id          Int      @id @default(autoincrement())
-  orderId     Int
-  order       Order    @relation(fields: [orderId], references: [id])
-  stageType   String   // PP_NUMUNE, PASTAL_ONAY, SARFIYAT_ONAY, KESIM_ONAY
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  approvedBy  String?
-  approvedAt  DateTime?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         Int       @id @default(autoincrement())
+  orderId    Int
+  order      Order     @relation(fields: [orderId], references: [id])
+  stageType  String // PP_NUMUNE, PASTAL_ONAY, SARFIYAT_ONAY, KESIM_ONAY
+  status     String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedBy String?
+  approvedAt DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@unique([orderId, stageType])
   @@index([orderId])
 }
 
 model OrderColorSize {
-  id              Int      @id @default(autoincrement())
-  orderId         Int
-  order           Order    @relation(fields: [orderId], references: [id])
-  color           String
-  size            String
-  quantity        Int
-  unitsPerCarton  Int?     // koli başına adet, opsiyonel
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  orderId        Int
+  order          Order    @relation(fields: [orderId], references: [id])
+  color          String
+  size           String
+  quantity       Int
+  unitsPerCarton Int? // koli başına adet, opsiyonel
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([orderId, color, size])
   @@index([orderId])
 }
 
 model Material {
-  id               Int      @id @default(autoincrement())
-  orderId          Int
-  order            Order    @relation(fields: [orderId], references: [id])
-  materialName     String
-  materialType     String
-  supplierName     String
-  orderedQuantity  Float
-  orderedDate      DateTime?
-  expectedArrival  DateTime?
-  arrivedQuantity  Float     @default(0)
-  status           String    @default("PENDING")
-  fabricWidth      Float?
-  fabricWeight     Float?
-  unitPrice        Float?
-  currency         String?   @default("USD")
-  notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              Int       @id @default(autoincrement())
+  orderId         Int
+  order           Order     @relation(fields: [orderId], references: [id])
+  materialName    String
+  materialType    String
+  supplierName    String
+  orderedQuantity Float
+  orderedDate     DateTime?
+  expectedArrival DateTime?
+  arrivedQuantity Float     @default(0)
+  status          String    @default("PENDING")
+  fabricWidth     Float?
+  fabricWeight    Float?
+  unitPrice       Float?
+  currency        String?   @default("USD")
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  stockLot         StockLot?
+  stockLot StockLot?
 
   @@index([orderId])
 }
 
 model ProductionEntry {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   orderId     Int
-  order       Order    @relation(fields: [orderId], references: [id])
-  stage       String   // CUTTING, SEWING, IRONING, PACKING, SHIPPING
+  order       Order      @relation(fields: [orderId], references: [id])
+  stage       String // CUTTING, SEWING, IRONING, PACKING, SHIPPING
   quantity    Int
-  date        DateTime @default(now())
-  lineNo      String?  // hat numarası
+  date        DateTime   @default(now())
+  lineNo      String? // hat numarası
   notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  workOrderId Int?
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@index([orderId])
+  @@index([workOrderId])
 }
 
 model QualityEntry {
   id            Int      @id @default(autoincrement())
   orderId       Int
   order         Order    @relation(fields: [orderId], references: [id])
-  checkedQty    Int      // kontrol edilen adet
-  firstQuality  Int      // 1. kalite adet
-  secondQuality Int      // 2. kalite adet
-  rejected      Int      // ret/fire adet
-  defectType    String?  // hata türü (opsiyonel: dikiş hatası, leke, ölçü sapması vb.)
+  checkedQty    Int // kontrol edilen adet
+  firstQuality  Int // 1. kalite adet
+  secondQuality Int // 2. kalite adet
+  rejected      Int // ret/fire adet
+  defectType    String? // hata türü (opsiyonel: dikiş hatası, leke, ölçü sapması vb.)
   date          DateTime @default(now())
   notes         String?
   createdAt     DateTime @default(now())
@@ -144,26 +148,26 @@ model QualityEntry {
 }
 
 model StockLot {
-  id              Int      @id @default(autoincrement())
-  code            String?  // kullanıcının kendi girdiği malzeme kodu (opsiyonel)
-  materialName    String
-  materialType    String   // KUMAŞ, AKSESUAR
-  supplierName    String
-  lotNo           String?
-  receivedQty     Float
-  remainingQty    Float
-  unitPrice       Float?
-  currency        String   @default("USD")
-  receivedDate    DateTime @default(now())
-  orderId         Int?     // hangi siparişin malzemesi olarak geldi (opsiyonel)
-  order           Order?   @relation(fields: [orderId], references: [id])
-  materialId      Int?     @unique
-  material        Material? @relation(fields: [materialId], references: [id])
-  warehouseId     Int?
-  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
-  movements       StockMovement[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id           Int             @id @default(autoincrement())
+  code         String? // kullanıcının kendi girdiği malzeme kodu (opsiyonel)
+  materialName String
+  materialType String // KUMAŞ, AKSESUAR
+  supplierName String
+  lotNo        String?
+  receivedQty  Float
+  remainingQty Float
+  unitPrice    Float?
+  currency     String          @default("USD")
+  receivedDate DateTime        @default(now())
+  orderId      Int? // hangi siparişin malzemesi olarak geldi (opsiyonel)
+  order        Order?          @relation(fields: [orderId], references: [id])
+  materialId   Int?            @unique
+  material     Material?       @relation(fields: [materialId], references: [id])
+  warehouseId  Int?
+  warehouse    Warehouse?      @relation(fields: [warehouseId], references: [id])
+  movements    StockMovement[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([orderId])
   @@index([warehouseId])
@@ -175,6 +179,7 @@ model ProductionLine {
   capacity   Int         @default(0) // günlük hedef üretim kapasitesi (adet)
   tenantId   String      @default("kepler-default")
   warehouses Warehouse[]
+  workOrders WorkOrder[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -185,8 +190,8 @@ model Warehouse {
   id        Int             @id @default(autoincrement())
   code      String          @unique // "KMS-01", "AKS-01", "URN-01", "LN1-HM" vb.
   name      String          @unique // "Kumaş Deposu", "Aksesuar Deposu", "Ürün Deposu", "LINE-1 Hammadde Deposu" vb.
-  type      String          // KUMAS, AKSESUAR, URUN, ATOLYE_HAMMADDE
-  lineId    Int?            // ATOLYE_HAMMADDE tipindeyse hangi ProductionLine'a ait
+  type      String // KUMAS, AKSESUAR, URUN, ATOLYE_HAMMADDE
+  lineId    Int? // ATOLYE_HAMMADDE tipindeyse hangi ProductionLine'a ait
   line      ProductionLine? @relation(fields: [lineId], references: [id])
   stockLots StockLot[]
   tenantId  String          @default("kepler-default")
@@ -201,11 +206,11 @@ model StockMovement {
   id          Int      @id @default(autoincrement())
   stockLotId  Int
   stockLot    StockLot @relation(fields: [stockLotId], references: [id])
-  type        String   // GIRIS, CIKIS
+  type        String // GIRIS, CIKIS
   quantity    Float
-  reason      String?  // örn: "1040 nolu sipariş kesim için tüketim"
-  orderId     Int?     // tüketim hangi sipariş için yapıldı
-  performedBy String?  // işlemi yapan kullanıcının e-postası
+  reason      String? // örn: "1040 nolu sipariş kesim için tüketim"
+  orderId     Int? // tüketim hangi sipariş için yapıldı
+  performedBy String? // işlemi yapan kullanıcının e-postası
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
 
@@ -244,26 +249,29 @@ model ShipmentLine {
 }
 
 model FasonShipment {
-  id                 Int       @id @default(autoincrement())
+  id                 Int        @id @default(autoincrement())
   orderId            Int
-  order              Order     @relation(fields: [orderId], references: [id])
+  order              Order      @relation(fields: [orderId], references: [id])
   subcontractorName  String
   operationType      String // DIKIM, YIKAMA, NAKIS, BASKI, DIGER
-  sentDate           DateTime  @default(now())
+  sentDate           DateTime   @default(now())
   sentQuantity       Int
   expectedReturnDate DateTime?
   receivedDate       DateTime?
   receivedQuantity   Int?
-  status             String    @default("GONDERILDI") // GONDERILDI, KISMEN_DONDU, TAMAMLANDI
+  status             String     @default("GONDERILDI") // GONDERILDI, KISMEN_DONDU, TAMAMLANDI
   unitCost           Float?
-  currency           String    @default("TRY")
+  currency           String     @default("TRY")
   notes              String?
-  tenantId           String    @default("kepler-default")
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  workOrderId        Int?
+  workOrder          WorkOrder? @relation(fields: [workOrderId], references: [id])
+  tenantId           String     @default("kepler-default")
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   @@index([orderId])
   @@index([tenantId])
+  @@index([workOrderId])
 }
 
 model OrderBOMItem {
@@ -281,5 +289,33 @@ model OrderBOMItem {
   updatedAt       DateTime @updatedAt
 
   @@index([orderId])
+  @@index([tenantId])
+}
+
+model WorkOrder {
+  id                Int               @id @default(autoincrement())
+  orderId           Int
+  order             Order             @relation(fields: [orderId], references: [id])
+  workOrderNo       String            @unique
+  producerType      String // INTERNAL, FASON
+  productionLineId  Int?
+  productionLine    ProductionLine?   @relation(fields: [productionLineId], references: [id])
+  subcontractorName String?
+  plannedQuantity   Int
+  startDate         DateTime?
+  targetDate        DateTime?
+  status            String            @default("TASLAK") // TASLAK, GONDERILDI, DEVAM_EDIYOR, TAMAMLANDI
+  laborRatePerDay   Float?
+  estimatedDays     Float?
+  notes             String?
+  createdBy         String?
+  tenantId          String            @default("kepler-default")
+  productionEntries ProductionEntry[]
+  fasonShipments    FasonShipment[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([orderId])
+  @@index([productionLineId])
   @@index([tenantId])
 }

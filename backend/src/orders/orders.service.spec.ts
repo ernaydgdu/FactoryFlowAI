@@ -24,6 +24,9 @@ type PrismaMock = {
     deleteMany: MockFn;
     createMany: MockFn;
   };
+  fasonShipment: { deleteMany: MockFn };
+  orderBOMItem: { deleteMany: MockFn };
+  workOrder: { deleteMany: MockFn };
   stockLot: { updateMany: MockFn };
   $transaction: MockFn;
 };
@@ -48,6 +51,9 @@ function createPrismaMock(): PrismaMock {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
     },
+    fasonShipment: { deleteMany: jest.fn() },
+    orderBOMItem: { deleteMany: jest.fn() },
+    workOrder: { deleteMany: jest.fn() },
     stockLot: { updateMany: jest.fn() },
     $transaction: jest.fn(),
   };
@@ -170,6 +176,9 @@ describe('OrdersService', () => {
       prisma.qualityEntry.deleteMany.mockResolvedValue({ count: 0 });
       prisma.orderColorSize.deleteMany.mockResolvedValue({ count: 0 });
       prisma.approvalStage.deleteMany.mockResolvedValue({ count: 0 });
+      prisma.fasonShipment.deleteMany.mockResolvedValue({ count: 0 });
+      prisma.orderBOMItem.deleteMany.mockResolvedValue({ count: 0 });
+      prisma.workOrder.deleteMany.mockResolvedValue({ count: 0 });
       prisma.stockLot.updateMany.mockResolvedValue({ count: 0 });
       prisma.order.delete.mockResolvedValue({ id: 7 });
       prisma.$transaction.mockImplementation((ops: Promise<unknown>[]) =>
@@ -193,6 +202,15 @@ describe('OrdersService', () => {
         callOrder(prisma.approvalStage.deleteMany),
       );
       expect(callOrder(prisma.approvalStage.deleteMany)).toBeLessThan(
+        callOrder(prisma.fasonShipment.deleteMany),
+      );
+      expect(callOrder(prisma.fasonShipment.deleteMany)).toBeLessThan(
+        callOrder(prisma.orderBOMItem.deleteMany),
+      );
+      expect(callOrder(prisma.orderBOMItem.deleteMany)).toBeLessThan(
+        callOrder(prisma.workOrder.deleteMany),
+      );
+      expect(callOrder(prisma.workOrder.deleteMany)).toBeLessThan(
         callOrder(prisma.stockLot.updateMany),
       );
       expect(callOrder(prisma.stockLot.updateMany)).toBeLessThan(

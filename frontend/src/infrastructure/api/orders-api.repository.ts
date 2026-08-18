@@ -307,6 +307,7 @@ export type CreateFasonShipmentInput = {
   unitCost?: number
   currency?: string
   notes?: string
+  workOrderId?: number
 }
 
 export type UpdateFasonShipmentInput = {
@@ -499,6 +500,7 @@ export type CreateProductionEntryInput = {
   date?: string
   lineNo?: string
   notes?: string
+  workOrderId?: number
 }
 
 export type FabricConsumptionResult = {
@@ -795,6 +797,133 @@ export async function fetchPackingList(orderId: string): Promise<PackingList> {
 
 export async function exportPackingListCsv(orderId: string): Promise<Blob> {
   const { data } = await api.get<Blob>(`/orders/${orderId}/packing-list/export`, {
+    responseType: 'blob',
+  })
+  return data
+}
+
+export type WorkOrderProducerType = 'INTERNAL' | 'FASON'
+export type WorkOrderStatus = 'TASLAK' | 'GONDERILDI' | 'DEVAM_EDIYOR' | 'TAMAMLANDI'
+
+export type ApiWorkOrder = {
+  id: number
+  orderId: number
+  workOrderNo: string
+  producerType: WorkOrderProducerType
+  productionLineId: number | null
+  subcontractorName: string | null
+  producerName: string
+  plannedQuantity: number
+  startDate: string | null
+  targetDate: string | null
+  status: WorkOrderStatus
+  laborRatePerDay: number | null
+  estimatedDays: number | null
+  notes: string | null
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type CreateWorkOrderInput = {
+  producerType: WorkOrderProducerType
+  productionLineId?: number
+  subcontractorName?: string
+  plannedQuantity: number
+  startDate?: string
+  targetDate?: string
+  laborRatePerDay?: number
+  estimatedDays?: number
+  notes?: string
+}
+
+export type UpdateWorkOrderInput = Partial<CreateWorkOrderInput> & {
+  status?: WorkOrderStatus
+}
+
+export type WorkOrderCostBreakdown = {
+  planned: number | null
+  actual: number | null
+  variance: number | null
+  variancePercent: number | null
+}
+
+export type WorkOrderBOMLine = {
+  id: number
+  materialName: string
+  materialType: BOMMaterialType
+  unit: BOMUnit
+  unitConsumption: number
+  wastagePercent: number
+  plannedNeed: number
+  unitPrice: number | null
+  lineCost: number | null
+}
+
+export type WorkOrderDetail = ApiWorkOrder & {
+  order: {
+    id: number
+    orderNo: string
+    buyerName: string
+    productName: string
+    shipmentDate: string
+  }
+  bomItems: WorkOrderBOMLine[]
+  colorSizes: ApiOrderColorSize[]
+  costs: {
+    fabric: WorkOrderCostBreakdown
+    material: WorkOrderCostBreakdown
+    labor: WorkOrderCostBreakdown
+  }
+  materialCostNote: string
+}
+
+export async function fetchWorkOrders(orderId: string): Promise<ApiWorkOrder[]> {
+  const { data } = await api.get<ApiWorkOrder[]>(`/orders/${orderId}/work-orders`)
+  return data
+}
+
+export async function createWorkOrder(
+  orderId: string,
+  input: CreateWorkOrderInput,
+): Promise<ApiWorkOrder> {
+  try {
+    const { data } = await api.post<ApiWorkOrder>(`/orders/${orderId}/work-orders`, input)
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function fetchWorkOrderDetail(workOrderId: string): Promise<WorkOrderDetail> {
+  const { data } = await api.get<WorkOrderDetail>(`/work-orders/${workOrderId}`)
+  return data
+}
+
+export async function updateWorkOrder(
+  workOrderId: string,
+  input: UpdateWorkOrderInput,
+): Promise<ApiWorkOrder> {
+  try {
+    const { data } = await api.patch<ApiWorkOrder>(`/work-orders/${workOrderId}`, input)
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function deleteWorkOrder(workOrderId: string): Promise<void> {
+  await api.delete(`/work-orders/${workOrderId}`)
+}
+
+export async function exportWorkOrderCsv(workOrderId: string): Promise<Blob> {
+  const { data } = await api.get<Blob>(`/work-orders/${workOrderId}/export`, {
     responseType: 'blob',
   })
   return data

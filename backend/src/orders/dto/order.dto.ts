@@ -197,6 +197,11 @@ export class CreateProductionEntryDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  workOrderId?: number;
 }
 
 export class CreateQualityEntryDto {
@@ -304,6 +309,11 @@ export class CreateFasonShipmentDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  workOrderId?: number;
 }
 
 export class UpdateFasonShipmentDto {

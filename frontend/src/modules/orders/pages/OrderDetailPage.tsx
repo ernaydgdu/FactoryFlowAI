@@ -33,12 +33,14 @@ import {
   createMaterial,
   createProductionEntry,
   createQualityEntry,
+  createWorkOrder,
   deleteBOMItem,
   deleteColorSize,
   deleteFasonShipment,
   deleteMaterial,
   deleteProductionEntry,
   deleteQualityEntry,
+  deleteWorkOrder,
   exportPackingListCsv,
   fetchAiSuggestion,
   fetchApprovalStages,
@@ -53,6 +55,7 @@ import {
   fetchPackingList,
   fetchProductionEntries,
   fetchQualityEntries,
+  fetchWorkOrders,
   fulfillMaterialFromStock,
   reopenOrder,
   updateApprovalStage,
@@ -68,6 +71,7 @@ import {
   type ApiOrderColorSize,
   type ApiProductionEntry,
   type ApiQualityEntry,
+  type ApiWorkOrder,
   type ApprovalStageType,
   type BOMMaterialType,
   type BOMUnit,
@@ -75,6 +79,7 @@ import {
   type CreateOrderBOMItemInput,
   type CreateProductionEntryInput,
   type CreateQualityEntryInput,
+  type CreateWorkOrderInput,
   type FasonOperationType,
   type MaterialStatusValue,
   type ProductionStage,
@@ -82,7 +87,9 @@ import {
   type UpdateFasonShipmentInput,
   type UpdateMaterialInput,
   type UpdateOrderBOMItemInput,
+  type WorkOrderProducerType,
 } from '@/infrastructure/api/orders-api.repository'
+import { fetchProductionLines } from '@/infrastructure/api/production-lines-api.repository'
 
 import { OrderProgressBar } from '../components/OrderProgressBar'
 
@@ -199,6 +206,7 @@ export function OrderDetailPage() {
               <TabsTrigger value="purchase">Satın Alma</TabsTrigger>
               <TabsTrigger value="bom">BOM (Ürün Ağacı)</TabsTrigger>
               <TabsTrigger value="production">Üretim</TabsTrigger>
+              <TabsTrigger value="work-orders">İş Emirleri</TabsTrigger>
               <TabsTrigger value="fason">Fason</TabsTrigger>
               <TabsTrigger value="quality">Kalite</TabsTrigger>
               <TabsTrigger value="color-sizes">Renk/Beden</TabsTrigger>
@@ -247,6 +255,10 @@ export function OrderDetailPage() {
                 <CuttingApprovalWarningBanner orderId={id} />
                 <ProductionPanel orderId={id} totalQuantity={order.totalQuantity} />
               </div>
+            </TabsContent>
+
+            <TabsContent value="work-orders">
+              <WorkOrdersPanel orderId={id} />
             </TabsContent>
 
             <TabsContent value="fason">
@@ -1083,6 +1095,7 @@ type ProductionFormState = {
   lineNo: string
   date: string
   notes: string
+  workOrderId: string
 }
 
 function CompletionForecastCard({ orderId }: { orderId: string }) {
@@ -1162,6 +1175,7 @@ function initialProductionForm(): ProductionFormState {
     lineNo: '',
     date: todayIso(),
     notes: '',
+    workOrderId: '',
   }
 }
 
@@ -1187,6 +1201,12 @@ function ProductionPanel({
   const productionQuery = useQuery({
     queryKey: applicationQueryKeys.orderRecord.production(orderId),
     queryFn: () => fetchProductionEntries(orderId),
+    enabled: !!orderId,
+  })
+
+  const workOrdersQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.workOrders(orderId),
+    queryFn: () => fetchWorkOrders(orderId),
     enabled: !!orderId,
   })
 
@@ -1243,6 +1263,7 @@ function ProductionPanel({
         date: form.date || undefined,
         lineNo: form.lineNo.trim() || undefined,
         notes: form.notes.trim() || undefined,
+        workOrderId: form.workOrderId ? Number(form.workOrderId) : undefined,
       })
       if (result.fabricConsumption?.success) {
         setFabricConsumptionNote(
@@ -1404,6 +1425,22 @@ function ProductionPanel({
               value={form.date}
               onChange={(e) => updateField('date', e.target.value)}
             />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="productionWorkOrder">İş Emri (Opsiyonel)</Label>
+            <select
+              id="productionWorkOrder"
+              value={form.workOrderId}
+              onChange={(e) => updateField('workOrderId', e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              <option value="">İş Emri Yok</option>
+              {(workOrdersQuery.data ?? []).map((wo) => (
+                <option key={wo.id} value={wo.id}>
+                  {wo.workOrderNo} — {wo.producerName}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="notes">Notlar</Label>
@@ -3027,6 +3064,7 @@ type FasonFormState = {
   unitCost: string
   currency: string
   notes: string
+  workOrderId: string
 }
 
 const INITIAL_FASON_FORM: FasonFormState = {
@@ -3037,6 +3075,374 @@ const INITIAL_FASON_FORM: FasonFormState = {
   unitCost: '',
   currency: 'TRY',
   notes: '',
+  workOrderId: '',
+}
+
+const WORK_ORDER_STATUS_LABEL: Record<ApiWorkOrder['status'], string> = {
+  TASLAK: 'Taslak',
+  GONDERILDI: 'Gönderildi',
+  DEVAM_EDIYOR: 'Devam Ediyor',
+  TAMAMLANDI: 'Tamamlandı',
+}
+
+const WORK_ORDER_STATUS_TONE: Record<
+  ApiWorkOrder['status'],
+  'muted' | 'warning' | 'success'
+> = {
+  TASLAK: 'muted',
+  GONDERILDI: 'warning',
+  DEVAM_EDIYOR: 'warning',
+  TAMAMLANDI: 'success',
+}
+
+type WorkOrderFormState = {
+  producerType: WorkOrderProducerType
+  productionLineId: string
+  subcontractorName: string
+  plannedQuantity: string
+  startDate: string
+  targetDate: string
+  laborRatePerDay: string
+  estimatedDays: string
+  notes: string
+}
+
+const INITIAL_WORK_ORDER_FORM: WorkOrderFormState = {
+  producerType: 'INTERNAL',
+  productionLineId: '',
+  subcontractorName: '',
+  plannedQuantity: '',
+  startDate: '',
+  targetDate: '',
+  laborRatePerDay: '',
+  estimatedDays: '',
+  notes: '',
+}
+
+function WorkOrdersPanel({ orderId }: { orderId: string }) {
+  const queryClient = useQueryClient()
+  const canManage = useCanManageOrderRecords()
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<WorkOrderFormState>(INITIAL_WORK_ORDER_FORM)
+  const [error, setError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ApiWorkOrder | null>(null)
+
+  const workOrdersQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.workOrders(orderId),
+    queryFn: () => fetchWorkOrders(orderId),
+    enabled: !!orderId,
+  })
+
+  const productionLinesQuery = useQuery({
+    queryKey: applicationQueryKeys.productionLine.list(),
+    queryFn: fetchProductionLines,
+  })
+
+  function invalidate() {
+    return queryClient.invalidateQueries({
+      queryKey: applicationQueryKeys.orderRecord.workOrders(orderId),
+      refetchType: 'all',
+    })
+  }
+
+  const addMutation = useMutation({
+    mutationFn: (input: CreateWorkOrderInput) => createWorkOrder(orderId, input),
+    onSuccess: invalidate,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (workOrderId: number) => deleteWorkOrder(String(workOrderId)),
+    onSuccess: invalidate,
+  })
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return
+    await deleteMutation.mutateAsync(pendingDelete.id)
+    setPendingDelete(null)
+  }
+
+  function updateField(field: keyof WorkOrderFormState, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const plannedQuantity = Number(form.plannedQuantity)
+    if (!form.plannedQuantity || Number.isNaN(plannedQuantity) || plannedQuantity <= 0) {
+      setError('Planlanan adet geçerli bir sayı olmalıdır.')
+      return
+    }
+    if (form.producerType === 'INTERNAL' && !form.productionLineId) {
+      setError('Kendi hat seçildiğinde üretim hattı seçilmelidir.')
+      return
+    }
+    if (form.producerType === 'FASON' && !form.subcontractorName.trim()) {
+      setError('Fason atölye seçildiğinde atölye adı girilmelidir.')
+      return
+    }
+
+    try {
+      await addMutation.mutateAsync({
+        producerType: form.producerType,
+        productionLineId:
+          form.producerType === 'INTERNAL' ? Number(form.productionLineId) : undefined,
+        subcontractorName:
+          form.producerType === 'FASON' ? form.subcontractorName.trim() : undefined,
+        plannedQuantity,
+        startDate: form.startDate || undefined,
+        targetDate: form.targetDate || undefined,
+        laborRatePerDay: form.laborRatePerDay ? Number(form.laborRatePerDay) : undefined,
+        estimatedDays: form.estimatedDays ? Number(form.estimatedDays) : undefined,
+        notes: form.notes.trim() || undefined,
+      })
+      setForm(INITIAL_WORK_ORDER_FORM)
+      setShowForm(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'İş emri eklenemedi.')
+    }
+  }
+
+  const workOrders = workOrdersQuery.data ?? []
+  const productionLines = productionLinesQuery.data ?? []
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Siparişe ait iş emirleri</p>
+        {canManage ? (
+          <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
+            <Plus className="size-4" /> Yeni İş Emri
+          </Button>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      {showForm ? (
+        <form
+          onSubmit={handleAdd}
+          className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <div className="grid gap-1.5">
+            <Label htmlFor="woProducerType">Üretici Tipi</Label>
+            <select
+              id="woProducerType"
+              value={form.producerType}
+              onChange={(e) => updateField('producerType', e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              <option value="INTERNAL">Kendi Hat</option>
+              <option value="FASON">Fason Atölye</option>
+            </select>
+          </div>
+          {form.producerType === 'INTERNAL' ? (
+            <div className="grid gap-1.5">
+              <Label htmlFor="woProductionLine">Üretim Hattı</Label>
+              <select
+                id="woProductionLine"
+                value={form.productionLineId}
+                onChange={(e) => updateField('productionLineId', e.target.value)}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+              >
+                <option value="">Seçiniz</option>
+                {productionLines.map((line) => (
+                  <option key={line.id} value={line.id}>
+                    {line.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="grid gap-1.5">
+              <Label htmlFor="woSubcontractor">Atölye Adı</Label>
+              <Input
+                id="woSubcontractor"
+                value={form.subcontractorName}
+                onChange={(e) => updateField('subcontractorName', e.target.value)}
+                placeholder="Örn. Yıldız Konfeksiyon"
+              />
+            </div>
+          )}
+          <div className="grid gap-1.5">
+            <Label htmlFor="woPlannedQuantity">Planlanan Adet</Label>
+            <Input
+              id="woPlannedQuantity"
+              type="number"
+              min="1"
+              value={form.plannedQuantity}
+              onChange={(e) => updateField('plannedQuantity', e.target.value)}
+              placeholder="500"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="woStartDate">Başlangıç Tarihi</Label>
+            <Input
+              id="woStartDate"
+              type="date"
+              value={form.startDate}
+              onChange={(e) => updateField('startDate', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="woTargetDate">Hedef Tarih</Label>
+            <Input
+              id="woTargetDate"
+              type="date"
+              value={form.targetDate}
+              onChange={(e) => updateField('targetDate', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="woLaborRate">Günlük İşçilik Ücreti (Opsiyonel)</Label>
+            <Input
+              id="woLaborRate"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.laborRatePerDay}
+              onChange={(e) => updateField('laborRatePerDay', e.target.value)}
+              placeholder="1500"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="woEstimatedDays">Tahmini Gün Sayısı (Opsiyonel)</Label>
+            <Input
+              id="woEstimatedDays"
+              type="number"
+              min="0"
+              step="0.5"
+              value={form.estimatedDays}
+              onChange={(e) => updateField('estimatedDays', e.target.value)}
+              placeholder="10"
+            />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2 lg:col-span-2">
+            <Label htmlFor="woNotes">Notlar</Label>
+            <Input
+              id="woNotes"
+              value={form.notes}
+              onChange={(e) => updateField('notes', e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-4">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
+              İptal
+            </Button>
+            <Button type="submit" size="sm" disabled={addMutation.isPending}>
+              {addMutation.isPending ? 'Ekleniyor...' : 'Ekle'}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2">İş Emri No</th>
+              <th className="px-3 py-2">Üretici</th>
+              <th className="px-3 py-2">Planlanan Adet</th>
+              <th className="px-3 py-2">Durum</th>
+              <th className="px-3 py-2">Başlangıç</th>
+              <th className="px-3 py-2">Hedef</th>
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {workOrdersQuery.isLoading ? (
+              <tr>
+                <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                  Yükleniyor...
+                </td>
+              </tr>
+            ) : workOrders.length > 0 ? (
+              workOrders.map((wo) => (
+                <WorkOrderRow
+                  key={wo.id}
+                  workOrder={wo}
+                  canManage={canManage}
+                  onRequestDelete={() => setPendingDelete(wo)}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                  Henüz iş emri eklenmedi.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="İş Emrini Sil"
+        description={
+          pendingDelete
+            ? `"${pendingDelete.workOrderNo}" iş emrini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+            : ''
+        }
+        confirmLabel="Sil"
+        destructive
+        isConfirming={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </div>
+  )
+}
+
+function WorkOrderRow({
+  workOrder,
+  canManage,
+  onRequestDelete,
+}: {
+  workOrder: ApiWorkOrder
+  canManage: boolean
+  onRequestDelete: () => void
+}) {
+  return (
+    <tr className="border-b border-border/60">
+      <td className="px-3 py-2 font-medium">
+        <Link to={`/work-orders/${workOrder.id}`} className="text-primary hover:underline">
+          {workOrder.workOrderNo}
+        </Link>
+      </td>
+      <td className="px-3 py-2">{workOrder.producerName}</td>
+      <td className="px-3 py-2 tabular-nums">
+        {workOrder.plannedQuantity.toLocaleString('tr-TR')}
+      </td>
+      <td className="px-3 py-2">
+        <StatusBadge
+          label={WORK_ORDER_STATUS_LABEL[workOrder.status]}
+          tone={WORK_ORDER_STATUS_TONE[workOrder.status]}
+        />
+      </td>
+      <td className="px-3 py-2">{workOrder.startDate ? formatDate(workOrder.startDate) : '—'}</td>
+      <td className="px-3 py-2">
+        {workOrder.targetDate ? formatDate(workOrder.targetDate) : '—'}
+      </td>
+      <td className="px-3 py-2 text-right">
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to={`/work-orders/${workOrder.id}`}>Detay</Link>
+          </Button>
+          {canManage ? (
+            <Button variant="ghost" size="sm" onClick={onRequestDelete}>
+              <Trash2 className="size-4" />
+            </Button>
+          ) : null}
+        </div>
+      </td>
+    </tr>
+  )
 }
 
 function FasonPanel({ orderId }: { orderId: string }) {
@@ -3050,6 +3456,12 @@ function FasonPanel({ orderId }: { orderId: string }) {
   const fasonQuery = useQuery({
     queryKey: applicationQueryKeys.orderRecord.fasonShipments(orderId),
     queryFn: () => fetchFasonShipments(orderId),
+    enabled: !!orderId,
+  })
+
+  const workOrdersQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.workOrders(orderId),
+    queryFn: () => fetchWorkOrders(orderId),
     enabled: !!orderId,
   })
 
@@ -3110,6 +3522,7 @@ function FasonPanel({ orderId }: { orderId: string }) {
         unitCost: form.unitCost ? Number(form.unitCost) : undefined,
         currency: form.currency.trim() || undefined,
         notes: form.notes.trim() || undefined,
+        workOrderId: form.workOrderId ? Number(form.workOrderId) : undefined,
       })
       setForm(INITIAL_FASON_FORM)
       setShowForm(false)
@@ -3221,6 +3634,22 @@ function FasonPanel({ orderId }: { orderId: string }) {
               onChange={(e) => updateField('currency', e.target.value)}
               placeholder="TRY"
             />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="fasonWorkOrder">İş Emri (Opsiyonel)</Label>
+            <select
+              id="fasonWorkOrder"
+              value={form.workOrderId}
+              onChange={(e) => updateField('workOrderId', e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              <option value="">İş Emri Yok</option>
+              {(workOrdersQuery.data ?? []).map((wo) => (
+                <option key={wo.id} value={wo.id}>
+                  {wo.workOrderNo} — {wo.producerName}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="grid gap-1.5 sm:col-span-2 lg:col-span-2">
             <Label htmlFor="fasonNotes">Notlar</Label>

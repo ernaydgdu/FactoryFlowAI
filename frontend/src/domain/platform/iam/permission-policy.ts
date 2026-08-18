@@ -139,6 +139,7 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: '/settings', permission: 'platform.settings' },
   { prefix: '/orders', permission: 'orders.read' },
   { prefix: '/shipments', permission: 'orders.read' },
+  { prefix: '/work-orders', permission: 'orders.read' },
   { prefix: '/merchandising', permission: 'merchandising.read' },
   { prefix: '/purchasing', permission: 'orders.read' },
   { prefix: '/products', permission: 'products.read' },
