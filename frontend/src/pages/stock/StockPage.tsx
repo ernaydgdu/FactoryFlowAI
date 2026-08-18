@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Plus, Search } from 'lucide-react'
+import { Download, History, Plus, Search } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
@@ -21,8 +21,10 @@ import {
   exportStockLotsCsv,
   fetchFifoSuggestion,
   fetchStockLots,
+  fetchStockMovements,
   fetchWarehouses,
   type ApiStockLot,
+  type ApiStockMovement,
   type ApiWarehouse,
   type ConsumeStockLotInput,
   type CreateStockLotInput,
@@ -44,6 +46,16 @@ function formatDate(value: string): string {
   })
 }
 
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString('tr-TR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function formatValue(value: number): string {
   return value.toLocaleString('tr-TR', {
     minimumFractionDigits: 2,
@@ -57,6 +69,9 @@ export function StockPage() {
   const [warehouseFilter, setWarehouseFilter] = useState<string>(
     () => searchParams.get('warehouseId') ?? 'all',
   )
+  const highlightLotId = searchParams.get('lotId')
+    ? Number(searchParams.get('lotId'))
+    : undefined
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
 
@@ -193,6 +208,7 @@ export function StockPage() {
             warehouses={warehouses}
             isLoading={lotsQuery.isLoading}
             onChanged={invalidateLots}
+            highlightLotId={highlightLotId}
           />
         </CardContent>
       </Card>
@@ -233,11 +249,13 @@ function StockLotsPanel({
   warehouses,
   isLoading,
   onChanged,
+  highlightLotId,
 }: {
   lots: ApiStockLot[]
   warehouses: ApiWarehouse[]
   isLoading: boolean
   onChanged: () => void
+  highlightLotId?: number
 }) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<StockFormState>(initialStockForm)
@@ -464,6 +482,7 @@ function StockLotsPanel({
                     setConsumingLotId(null)
                     onChanged()
                   }}
+                  autoOpenMovements={highlightLotId === lot.id}
                 />
               ))
             ) : (
@@ -485,15 +504,18 @@ function StockLotRow({
   isConsuming,
   onToggleConsume,
   onConsumed,
+  autoOpenMovements,
 }: {
   lot: ApiStockLot
   isConsuming: boolean
   onToggleConsume: () => void
   onConsumed: () => void
+  autoOpenMovements?: boolean
 }) {
   const [quantity, setQuantity] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [showMovements, setShowMovements] = useState(autoOpenMovements ?? false)
 
   const consumeMutation = useMutation({
     mutationFn: (input: ConsumeStockLotInput) => consumeStockLot(lot.id, input),
@@ -555,11 +577,28 @@ function StockLotRow({
         </td>
         <td className="px-3 py-2">{formatDate(lot.receivedDate)}</td>
         <td className="px-3 py-2">
-          <Button size="sm" variant="outline" disabled={isOut} onClick={onToggleConsume}>
-            Tüket
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button size="sm" variant="outline" disabled={isOut} onClick={onToggleConsume}>
+              Tüket
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="px-2"
+              onClick={() => setShowMovements(true)}
+              title="Hareketler"
+            >
+              <History className="size-4" />
+            </Button>
+          </div>
         </td>
       </tr>
+      {showMovements ? (
+        <StockMovementsModal
+          lot={lot}
+          onClose={() => setShowMovements(false)}
+        />
+      ) : null}
       {isConsuming ? (
         <tr className="border-b border-border/60 bg-muted/20">
           <td colSpan={11} className="px-3 py-3">
@@ -600,6 +639,130 @@ function StockLotRow({
         </tr>
       ) : null}
     </>
+  )
+}
+
+function StockMovementsModal({
+  lot,
+  onClose,
+}: {
+  lot: ApiStockLot
+  onClose: () => void
+}) {
+  const movementsQuery = useQuery({
+    queryKey: applicationQueryKeys.stockRecord.movements(lot.id),
+    queryFn: () => fetchStockMovements(lot.id),
+  })
+
+  const movements = movementsQuery.data ?? []
+  const sorted = [...movements].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  )
+  const totalIn = movements
+    .filter((m) => m.type === 'GIRIS')
+    .reduce((sum, m) => sum + m.quantity, 0)
+  const totalOut = movements
+    .filter((m) => m.type === 'CIKIS')
+    .reduce((sum, m) => sum + m.quantity, 0)
+
+  return (
+    <tr>
+      <td colSpan={11} className="p-0">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={onClose}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-base font-semibold">Hareketler — {lot.materialName}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {lot.code ?? lot.lotNo ?? `Lot #${lot.id}`}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={onClose}>
+                Kapat
+              </Button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="rounded-md border border-border p-3">
+                <p className="text-xs text-muted-foreground">Toplam Giriş</p>
+                <p className="text-lg font-semibold tabular-nums text-emerald-600">
+                  {totalIn.toLocaleString('tr-TR')}
+                </p>
+              </div>
+              <div className="rounded-md border border-border p-3">
+                <p className="text-xs text-muted-foreground">Toplam Çıkış</p>
+                <p className="text-lg font-semibold tabular-nums text-destructive">
+                  {totalOut.toLocaleString('tr-TR')}
+                </p>
+              </div>
+              <div className="rounded-md border border-border p-3">
+                <p className="text-xs text-muted-foreground">Mevcut Kalan</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {lot.remainingQty.toLocaleString('tr-TR')}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              {movementsQuery.isLoading ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">Yükleniyor...</p>
+              ) : sorted.length > 0 ? (
+                <div className="space-y-2">
+                  {sorted.map((movement) => (
+                    <MovementRow key={movement.id} movement={movement} />
+                  ))}
+                </div>
+              ) : (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  Bu lot için hareket kaydı bulunmuyor.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+function MovementRow({ movement }: { movement: ApiStockMovement }) {
+  const isIn = movement.type === 'GIRIS'
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'rounded-full px-2 py-0.5 text-xs font-medium',
+              isIn
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
+                : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
+            )}
+          >
+            {isIn ? 'GİRİŞ' : 'ÇIKIŞ'}
+          </span>
+          <span className="text-sm font-medium tabular-nums">
+            {isIn ? '+' : '-'}
+            {movement.quantity.toLocaleString('tr-TR')}
+          </span>
+          <span className="text-xs text-muted-foreground">{formatDateTime(movement.date)}</span>
+        </div>
+        {movement.reason ? (
+          <p className="mt-1 text-sm text-muted-foreground">{movement.reason}</p>
+        ) : null}
+        {movement.performedBy ? (
+          <p className="mt-0.5 text-xs text-muted-foreground">İşlemi yapan: {movement.performedBy}</p>
+        ) : null}
+      </div>
+    </div>
   )
 }
 

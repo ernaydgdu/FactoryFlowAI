@@ -142,6 +142,7 @@ export type ApiStockMovement = {
   quantity: number
   reason: string | null
   orderId: number | null
+  performedBy: string | null
   date: string
   createdAt: string
 }

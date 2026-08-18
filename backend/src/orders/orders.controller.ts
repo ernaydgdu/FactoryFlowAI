@@ -183,6 +183,7 @@ export class OrdersController {
       materialId,
       body.quantity,
       this.scopeFor(user),
+      user.email,
     );
   }
 
@@ -215,7 +216,12 @@ export class OrdersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateProductionEntryDto,
   ) {
-    return this.ordersService.addProductionEntry(id, body, this.scopeFor(user));
+    return this.ordersService.addProductionEntry(
+      id,
+      body,
+      this.scopeFor(user),
+      user.email,
+    );
   }
 
   @Delete(':id/production/:entryId')

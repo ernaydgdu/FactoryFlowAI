@@ -201,6 +201,7 @@ model StockMovement {
   quantity    Float
   reason      String?  // örn: "1040 nolu sipariş kesim için tüketim"
   orderId     Int?     // tüketim hangi sipariş için yapıldı
+  performedBy String?  // işlemi yapan kullanıcının e-postası
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
 

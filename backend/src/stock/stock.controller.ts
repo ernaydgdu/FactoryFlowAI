@@ -16,6 +16,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ConsumeStockLotDto, CreateStockLotDto } from './dto/stock.dto';
+import {
+  CurrentUser,
+  type JwtPayloadUser,
+} from '../auth/decorators/current-user.decorator';
 
 @Controller('stock')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -59,17 +63,21 @@ export class StockController {
 
   @Post('lots')
   @Roles('ADMIN', 'MANAGER', 'PLANNER')
-  async createLot(@Body() body: CreateStockLotDto) {
-    return this.stockService.createLot(body);
+  async createLot(
+    @CurrentUser() user: JwtPayloadUser,
+    @Body() body: CreateStockLotDto,
+  ) {
+    return this.stockService.createLot(body, user.email);
   }
 
   @Post('lots/:id/consume')
   @Roles('ADMIN', 'MANAGER', 'PLANNER', 'SHOP_FLOOR_OPERATOR')
   async consumeLot(
+    @CurrentUser() user: JwtPayloadUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: ConsumeStockLotDto,
   ) {
-    return this.stockService.consumeLot(id, body);
+    return this.stockService.consumeLot(id, body, user.email);
   }
 
   @Get('lots/:id/movements')

@@ -860,7 +860,17 @@ function MaterialRow({
       <td className="px-3 py-2 font-medium">
         {material.materialName}
         {material.hasStockLot ? (
-          <span className="ml-1.5 text-xs font-normal text-muted-foreground">📦 Stoğa işlendi</span>
+          material.stockLotId ? (
+            <Link
+              to={`/stock?lotId=${material.stockLotId}`}
+              className="ml-1.5 text-xs font-normal text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              title="Hareket geçmişini görüntüle"
+            >
+              📦 Stoğa işlendi
+            </Link>
+          ) : (
+            <span className="ml-1.5 text-xs font-normal text-muted-foreground">📦 Stoğa işlendi</span>
+          )
         ) : null}
       </td>
       <td className="px-3 py-2">{material.materialType}</td>

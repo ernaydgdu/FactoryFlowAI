@@ -141,7 +141,7 @@ export class StockService {
     });
   }
 
-  async createLot(data: CreateStockLotDto) {
+  async createLot(data: CreateStockLotDto, performedBy?: string) {
     if (data.receivedQty <= 0) {
       throw new BadRequestException('Gelen miktar sıfırdan büyük olmalı.');
     }
@@ -173,6 +173,7 @@ export class StockService {
           quantity: data.receivedQty,
           reason: 'Stok girişi',
           orderId: data.orderId,
+          performedBy,
         },
       });
 
@@ -180,7 +181,7 @@ export class StockService {
     });
   }
 
-  async consumeLot(lotId: number, data: ConsumeStockLotDto) {
+  async consumeLot(lotId: number, data: ConsumeStockLotDto, performedBy?: string) {
     if (data.quantity <= 0) {
       throw new BadRequestException('Tüketim miktarı sıfırdan büyük olmalı.');
     }
@@ -209,6 +210,7 @@ export class StockService {
           quantity: data.quantity,
           reason: data.reason,
           orderId: data.orderId,
+          performedBy,
         },
       });
 

@@ -499,6 +499,7 @@ export class OrdersService {
     materialId: number,
     quantity: number,
     tenantId?: string,
+    performedBy?: string,
   ) {
     if (quantity <= 0) {
       throw new BadRequestException('Miktar sıfırdan büyük olmalı.');
@@ -554,6 +555,7 @@ export class OrdersService {
             quantity: useQty,
             reason: `Sipariş #${orderId} malzeme ihtiyacı için stoktan karşılandı`,
             orderId,
+            performedBy,
           },
         });
         remaining -= useQty;
@@ -601,6 +603,7 @@ export class OrdersService {
     orderId: number,
     data: CreateProductionEntryDto,
     tenantId?: string,
+    performedBy?: string,
   ) {
     const order = await this.findOrThrow(
       () =>
@@ -645,6 +648,7 @@ export class OrdersService {
               warehouse.id,
               warehouse.name,
               consumedQty,
+              performedBy,
             );
             if (!fabricConsumption.success) {
               const warning =
@@ -703,6 +707,7 @@ export class OrdersService {
               quantity: data.quantity,
               reason: `Paketleme - Sipariş #${orderId}'ten mamul girişi`,
               orderId,
+              performedBy,
             },
           });
 
@@ -747,6 +752,7 @@ export class OrdersService {
               quantity: deductedQty,
               reason: `Sevkiyat - Sipariş #${orderId} müşteriye gönderildi`,
               orderId,
+              performedBy,
             },
           });
 
@@ -785,6 +791,7 @@ export class OrdersService {
     warehouseId: number,
     warehouseName: string,
     neededQty: number,
+    performedBy?: string,
   ): Promise<{ consumedQty: number; warehouseName: string; success: boolean }> {
     const lots = await tx.stockLot.findMany({
       where: { warehouseId, remainingQty: { gt: 0 } },
@@ -812,6 +819,7 @@ export class OrdersService {
           quantity: useQty,
           reason: `Otomatik kumaş tüketimi - Kesim - Sipariş #${orderId} - Hat: ${lineNo}`,
           orderId,
+          performedBy,
         },
       });
       remaining -= useQty;
