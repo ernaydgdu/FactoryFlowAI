@@ -73,6 +73,24 @@ export async function fetchSupplierPerformance(): Promise<SupplierPerformance[]>
   return data
 }
 
+export type SubcontractorPerformance = {
+  subcontractorName: string
+  totalShipments: number
+  onTimeCount: number
+  lateCount: number
+  pendingCount: number
+  avgDelayDays: number
+  avgFireRate: number
+  reliabilityScore: number
+}
+
+export async function fetchSubcontractorPerformance(): Promise<SubcontractorPerformance[]> {
+  const { data } = await api.get<SubcontractorPerformance[]>(
+    '/dashboard/subcontractor-performance',
+  )
+  return data
+}
+
 export async function fetchAiAdvice(): Promise<{ advice: string }> {
   try {
     const { data } = await api.post<{ advice: string }>('/dashboard/ai-advice')

@@ -267,3 +267,129 @@ export class UpdateApprovalStageDto {
   @IsString()
   notes?: string;
 }
+
+const FASON_OPERATION_TYPES = ['DIKIM', 'YIKAMA', 'NAKIS', 'BASKI', 'DIGER'] as const;
+
+export class CreateFasonShipmentDto {
+  @IsString()
+  @IsNotEmpty()
+  subcontractorName!: string;
+
+  @IsIn(FASON_OPERATION_TYPES)
+  operationType!: string;
+
+  @IsInt()
+  @Min(1)
+  sentQuantity!: number;
+
+  @IsOptional()
+  @IsDateString()
+  expectedReturnDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCost?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateFasonShipmentDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  subcontractorName?: string;
+
+  @IsOptional()
+  @IsIn(FASON_OPERATION_TYPES)
+  operationType?: string;
+
+  @IsOptional()
+  @IsDateString()
+  expectedReturnDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  receivedDate?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  receivedQuantity?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCost?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+const BOM_MATERIAL_TYPES = ['KUMAS', 'AKSESUAR'] as const;
+const BOM_UNITS = ['METRE', 'ADET', 'GRAM', 'KG'] as const;
+
+export class CreateOrderBOMItemDto {
+  @IsString()
+  @IsNotEmpty()
+  materialName!: string;
+
+  @IsIn(BOM_MATERIAL_TYPES)
+  materialType!: string;
+
+  @IsNumber()
+  @Min(0)
+  unitConsumption!: number;
+
+  @IsIn(BOM_UNITS)
+  unit!: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  wastagePercent?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateOrderBOMItemDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  materialName?: string;
+
+  @IsOptional()
+  @IsIn(BOM_MATERIAL_TYPES)
+  materialType?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitConsumption?: number;
+
+  @IsOptional()
+  @IsIn(BOM_UNITS)
+  unit?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  wastagePercent?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}

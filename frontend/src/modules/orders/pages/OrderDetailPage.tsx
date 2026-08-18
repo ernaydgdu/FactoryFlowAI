@@ -28,18 +28,24 @@ import { cn } from '@/lib/utils'
 import { SIZE_PRESETS } from '@/modules/core/data/master-data'
 import {
   closeOrder,
+  createBOMItem,
+  createFasonShipment,
   createMaterial,
   createProductionEntry,
   createQualityEntry,
+  deleteBOMItem,
   deleteColorSize,
+  deleteFasonShipment,
   deleteMaterial,
   deleteProductionEntry,
   deleteQualityEntry,
   exportPackingListCsv,
   fetchAiSuggestion,
   fetchApprovalStages,
+  fetchBOMItems,
   fetchClosingSummary,
   fetchColorSizes,
+  fetchFasonShipments,
   fetchMaterials,
   fetchMaterialStockAvailability,
   fetchOrderById,
@@ -50,22 +56,32 @@ import {
   fulfillMaterialFromStock,
   reopenOrder,
   updateApprovalStage,
+  updateBOMItem,
+  updateFasonShipment,
   updateMaterial,
   updateMaterialStatus,
   upsertColorSize,
   type ApiApprovalStage,
+  type ApiFasonShipment,
   type ApiMaterial,
+  type ApiOrderBOMItem,
   type ApiOrderColorSize,
   type ApiProductionEntry,
   type ApiQualityEntry,
   type ApprovalStageType,
+  type BOMMaterialType,
+  type BOMUnit,
   type CreateMaterialInput,
+  type CreateOrderBOMItemInput,
   type CreateProductionEntryInput,
   type CreateQualityEntryInput,
+  type FasonOperationType,
   type MaterialStatusValue,
   type ProductionStage,
   type ProductionStageKey,
+  type UpdateFasonShipmentInput,
   type UpdateMaterialInput,
+  type UpdateOrderBOMItemInput,
 } from '@/infrastructure/api/orders-api.repository'
 
 import { OrderProgressBar } from '../components/OrderProgressBar'
@@ -181,7 +197,9 @@ export function OrderDetailPage() {
             <TabsList className="mb-4">
               <TabsTrigger value="general">Genel</TabsTrigger>
               <TabsTrigger value="purchase">Satın Alma</TabsTrigger>
+              <TabsTrigger value="bom">BOM (Ürün Ağacı)</TabsTrigger>
               <TabsTrigger value="production">Üretim</TabsTrigger>
+              <TabsTrigger value="fason">Fason</TabsTrigger>
               <TabsTrigger value="quality">Kalite</TabsTrigger>
               <TabsTrigger value="color-sizes">Renk/Beden</TabsTrigger>
               <TabsTrigger value="approval">Onay Süreci</TabsTrigger>
@@ -220,11 +238,19 @@ export function OrderDetailPage() {
               </div>
             </TabsContent>
 
+            <TabsContent value="bom">
+              <BOMPanel orderId={id} totalQuantity={order.totalQuantity} />
+            </TabsContent>
+
             <TabsContent value="production">
               <div className="space-y-4">
                 <CuttingApprovalWarningBanner orderId={id} />
                 <ProductionPanel orderId={id} totalQuantity={order.totalQuantity} />
               </div>
+            </TabsContent>
+
+            <TabsContent value="fason">
+              <FasonPanel orderId={id} />
             </TabsContent>
 
             <TabsContent value="quality">
@@ -2962,5 +2988,907 @@ function PackingListPanel({ orderId }: { orderId: string }) {
         <StatBox label="Kalan" value={data.packingSummary.remaining} />
       </div>
     </div>
+  )
+}
+
+const FASON_OPERATION_OPTIONS: FasonOperationType[] = ['DIKIM', 'YIKAMA', 'NAKIS', 'BASKI', 'DIGER']
+
+const FASON_OPERATION_LABEL: Record<FasonOperationType, string> = {
+  DIKIM: 'Dikim',
+  YIKAMA: 'Yıkama',
+  NAKIS: 'Nakış',
+  BASKI: 'Baskı',
+  DIGER: 'Diğer',
+}
+
+const FASON_STATUS_LABEL: Record<ApiFasonShipment['status'], string> = {
+  GONDERILDI: 'Gönderildi',
+  KISMEN_DONDU: 'Kısmen Döndü',
+  TAMAMLANDI: 'Tamamlandı',
+}
+
+const FASON_STATUS_TONE: Record<ApiFasonShipment['status'], 'muted' | 'warning' | 'success'> = {
+  GONDERILDI: 'muted',
+  KISMEN_DONDU: 'warning',
+  TAMAMLANDI: 'success',
+}
+
+function fireRateTone(rate: number): 'success' | 'warning' | 'danger' {
+  if (rate < 5) return 'success'
+  if (rate <= 10) return 'warning'
+  return 'danger'
+}
+
+type FasonFormState = {
+  subcontractorName: string
+  operationType: FasonOperationType
+  sentQuantity: string
+  expectedReturnDate: string
+  unitCost: string
+  currency: string
+  notes: string
+}
+
+const INITIAL_FASON_FORM: FasonFormState = {
+  subcontractorName: '',
+  operationType: 'DIKIM',
+  sentQuantity: '',
+  expectedReturnDate: '',
+  unitCost: '',
+  currency: 'TRY',
+  notes: '',
+}
+
+function FasonPanel({ orderId }: { orderId: string }) {
+  const queryClient = useQueryClient()
+  const canManage = useCanManageOrderRecords()
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<FasonFormState>(INITIAL_FASON_FORM)
+  const [error, setError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ApiFasonShipment | null>(null)
+
+  const fasonQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.fasonShipments(orderId),
+    queryFn: () => fetchFasonShipments(orderId),
+    enabled: !!orderId,
+  })
+
+  function invalidate() {
+    return queryClient.invalidateQueries({
+      queryKey: applicationQueryKeys.orderRecord.fasonShipments(orderId),
+      refetchType: 'all',
+    })
+  }
+
+  const addMutation = useMutation({
+    mutationFn: (input: Parameters<typeof createFasonShipment>[1]) =>
+      createFasonShipment(orderId, input),
+    onSuccess: invalidate,
+  })
+
+  const receiveMutation = useMutation({
+    mutationFn: ({ fasonId, input }: { fasonId: number; input: UpdateFasonShipmentInput }) =>
+      updateFasonShipment(orderId, fasonId, input),
+    onSuccess: invalidate,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (fasonId: number) => deleteFasonShipment(orderId, fasonId),
+    onSuccess: invalidate,
+  })
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return
+    await deleteMutation.mutateAsync(pendingDelete.id)
+    setPendingDelete(null)
+  }
+
+  function updateField(field: keyof FasonFormState, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const sentQuantity = Number(form.sentQuantity)
+    if (!form.subcontractorName.trim()) {
+      setError('Atölye adı zorunludur.')
+      return
+    }
+    if (!form.sentQuantity || Number.isNaN(sentQuantity) || sentQuantity <= 0) {
+      setError('Gönderilen miktar geçerli bir sayı olmalıdır.')
+      return
+    }
+
+    try {
+      await addMutation.mutateAsync({
+        subcontractorName: form.subcontractorName.trim(),
+        operationType: form.operationType,
+        sentQuantity,
+        expectedReturnDate: form.expectedReturnDate || undefined,
+        unitCost: form.unitCost ? Number(form.unitCost) : undefined,
+        currency: form.currency.trim() || undefined,
+        notes: form.notes.trim() || undefined,
+      })
+      setForm(INITIAL_FASON_FORM)
+      setShowForm(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fason gönderimi eklenemedi.')
+    }
+  }
+
+  const shipments = fasonQuery.data ?? []
+  const totalSent = shipments.reduce((sum, s) => sum + s.sentQuantity, 0)
+  const totalReceived = shipments.reduce((sum, s) => sum + (s.receivedQuantity ?? 0), 0)
+  const fireRates = shipments.map((s) => s.fireRate).filter((r): r is number => r != null)
+  const avgFireRate = fireRates.length > 0 ? fireRates.reduce((a, b) => a + b, 0) / fireRates.length : 0
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <StatBox label="Toplam Gönderilen" value={totalSent} />
+        <StatBox label="Toplam Alınan" value={totalReceived} />
+        <StatBox
+          label="Ortalama Fire Oranı"
+          value={Math.round(avgFireRate * 10) / 10}
+          sub="%"
+          tone={fireRateTone(avgFireRate)}
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Siparişe ait fason gönderimleri</p>
+        {canManage ? (
+          <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
+            <Plus className="size-4" /> Yeni Fason Gönderimi
+          </Button>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      {showForm ? (
+        <form
+          onSubmit={handleAdd}
+          className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <div className="grid gap-1.5">
+            <Label htmlFor="fasonSubcontractor">Atölye Adı</Label>
+            <Input
+              id="fasonSubcontractor"
+              value={form.subcontractorName}
+              onChange={(e) => updateField('subcontractorName', e.target.value)}
+              placeholder="Örn. Yıldız Konfeksiyon"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="fasonOperationType">İşlem Tipi</Label>
+            <select
+              id="fasonOperationType"
+              value={form.operationType}
+              onChange={(e) => updateField('operationType', e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              {FASON_OPERATION_OPTIONS.map((op) => (
+                <option key={op} value={op}>
+                  {FASON_OPERATION_LABEL[op]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="fasonSentQuantity">Gönderilen Miktar</Label>
+            <Input
+              id="fasonSentQuantity"
+              type="number"
+              min="0"
+              value={form.sentQuantity}
+              onChange={(e) => updateField('sentQuantity', e.target.value)}
+              placeholder="500"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="fasonExpectedReturn">Beklenen Dönüş Tarihi</Label>
+            <Input
+              id="fasonExpectedReturn"
+              type="date"
+              value={form.expectedReturnDate}
+              onChange={(e) => updateField('expectedReturnDate', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="fasonUnitCost">Birim Ücret (Opsiyonel)</Label>
+            <Input
+              id="fasonUnitCost"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.unitCost}
+              onChange={(e) => updateField('unitCost', e.target.value)}
+              placeholder="15.00"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="fasonCurrency">Para Birimi</Label>
+            <Input
+              id="fasonCurrency"
+              value={form.currency}
+              onChange={(e) => updateField('currency', e.target.value)}
+              placeholder="TRY"
+            />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2 lg:col-span-2">
+            <Label htmlFor="fasonNotes">Notlar</Label>
+            <Input
+              id="fasonNotes"
+              value={form.notes}
+              onChange={(e) => updateField('notes', e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-4">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
+              İptal
+            </Button>
+            <Button type="submit" size="sm" disabled={addMutation.isPending}>
+              {addMutation.isPending ? 'Ekleniyor...' : 'Ekle'}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2">Atölye</th>
+              <th className="px-3 py-2">İşlem Tipi</th>
+              <th className="px-3 py-2">Gönderilen</th>
+              <th className="px-3 py-2">Gönderim Tarihi</th>
+              <th className="px-3 py-2">Beklenen Dönüş</th>
+              <th className="px-3 py-2">Alınan</th>
+              <th className="px-3 py-2">Durum</th>
+              <th className="px-3 py-2">Fire</th>
+              {canManage ? <th className="px-3 py-2" /> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {fasonQuery.isLoading ? (
+              <tr>
+                <td colSpan={canManage ? 9 : 8} className="px-3 py-6 text-center text-muted-foreground">
+                  Yükleniyor...
+                </td>
+              </tr>
+            ) : shipments.length > 0 ? (
+              shipments.map((shipment) => (
+                <FasonRow
+                  key={shipment.id}
+                  shipment={shipment}
+                  canManage={canManage}
+                  onReceive={(input) =>
+                    receiveMutation.mutateAsync({ fasonId: shipment.id, input })
+                  }
+                  isSaving={receiveMutation.isPending && receiveMutation.variables?.fasonId === shipment.id}
+                  onRequestDelete={() => setPendingDelete(shipment)}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan={canManage ? 9 : 8} className="px-3 py-6 text-center text-muted-foreground">
+                  Henüz fason gönderimi eklenmedi.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Fason Gönderimini Sil"
+        description={
+          pendingDelete
+            ? `"${pendingDelete.subcontractorName}" atölyesine gönderilen fasonu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+            : ''
+        }
+        confirmLabel="Sil"
+        destructive
+        isConfirming={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </div>
+  )
+}
+
+function FasonRow({
+  shipment,
+  canManage,
+  onReceive,
+  isSaving,
+  onRequestDelete,
+}: {
+  shipment: ApiFasonShipment
+  canManage: boolean
+  onReceive: (input: UpdateFasonShipmentInput) => Promise<unknown>
+  isSaving: boolean
+  onRequestDelete: () => void
+}) {
+  const [isReceiving, setIsReceiving] = useState(false)
+  const [receivedQuantity, setReceivedQuantity] = useState(String(shipment.sentQuantity))
+  const [receivedDate, setReceivedDate] = useState(todayIso())
+  const [receiveError, setReceiveError] = useState<string | null>(null)
+
+  function startReceive() {
+    setReceivedQuantity(String(shipment.sentQuantity))
+    setReceivedDate(todayIso())
+    setReceiveError(null)
+    setIsReceiving(true)
+  }
+
+  async function handleSaveReceive() {
+    setReceiveError(null)
+    const quantity = Number(receivedQuantity)
+    if (receivedQuantity === '' || Number.isNaN(quantity) || quantity < 0) {
+      setReceiveError('Geçerli bir miktar girin.')
+      return
+    }
+    try {
+      await onReceive({ receivedQuantity: quantity, receivedDate })
+      setIsReceiving(false)
+    } catch (err) {
+      setReceiveError(err instanceof Error ? err.message : 'Güncellenemedi.')
+    }
+  }
+
+  if (isReceiving) {
+    return (
+      <tr className="border-b border-border/60 bg-muted/20">
+        <td className="px-3 py-2 font-medium" colSpan={5}>
+          {shipment.subcontractorName} — {FASON_OPERATION_LABEL[shipment.operationType]} teslim alınıyor
+        </td>
+        <td className="px-3 py-2" colSpan={canManage ? 4 : 3}>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="grid gap-1">
+              <Label htmlFor={`receiveQty-${shipment.id}`} className="text-xs">
+                Alınan Miktar
+              </Label>
+              <Input
+                id={`receiveQty-${shipment.id}`}
+                type="number"
+                min="0"
+                value={receivedQuantity}
+                onChange={(e) => setReceivedQuantity(e.target.value)}
+                className="h-8 w-28"
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label htmlFor={`receiveDate-${shipment.id}`} className="text-xs">
+                Tarih
+              </Label>
+              <Input
+                id={`receiveDate-${shipment.id}`}
+                type="date"
+                value={receivedDate}
+                onChange={(e) => setReceivedDate(e.target.value)}
+                className="h-8"
+              />
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setIsReceiving(false)} disabled={isSaving}>
+              İptal
+            </Button>
+            <Button size="sm" onClick={handleSaveReceive} disabled={isSaving}>
+              {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
+            </Button>
+            {receiveError ? <p className="w-full text-xs text-destructive">{receiveError}</p> : null}
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
+  return (
+    <tr className="border-b border-border/60">
+      <td className="px-3 py-2 font-medium">{shipment.subcontractorName}</td>
+      <td className="px-3 py-2">{FASON_OPERATION_LABEL[shipment.operationType]}</td>
+      <td className="px-3 py-2 tabular-nums">{shipment.sentQuantity.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2">{formatDate(shipment.sentDate)}</td>
+      <td className="px-3 py-2">{formatDate(shipment.expectedReturnDate)}</td>
+      <td className="px-3 py-2 tabular-nums">
+        {shipment.receivedQuantity != null ? shipment.receivedQuantity.toLocaleString('tr-TR') : '—'}
+      </td>
+      <td className="px-3 py-2">
+        <StatusBadge label={FASON_STATUS_LABEL[shipment.status]} tone={FASON_STATUS_TONE[shipment.status]} />
+      </td>
+      <td className="px-3 py-2">
+        {shipment.fireQuantity != null && shipment.fireRate != null ? (
+          <span className={cn(shipment.fireRate > 10 && 'font-medium text-destructive')}>
+            {shipment.fireQuantity.toLocaleString('tr-TR')} adet (%{shipment.fireRate.toFixed(1)})
+          </span>
+        ) : (
+          '—'
+        )}
+      </td>
+      {canManage ? (
+        <td className="px-3 py-2">
+          <div className="flex items-center justify-end gap-1">
+            {shipment.status !== 'TAMAMLANDI' ? (
+              <Button size="sm" variant="outline" onClick={startReceive}>
+                Teslim Alındı
+              </Button>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={onRequestDelete}
+              title="Sil"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </td>
+      ) : null}
+    </tr>
+  )
+}
+
+const BOM_MATERIAL_TYPE_OPTIONS: BOMMaterialType[] = ['KUMAS', 'AKSESUAR']
+const BOM_UNIT_OPTIONS: BOMUnit[] = ['METRE', 'ADET', 'GRAM', 'KG']
+
+const BOM_MATERIAL_TYPE_LABEL: Record<BOMMaterialType, string> = {
+  KUMAS: 'Kumaş',
+  AKSESUAR: 'Aksesuar',
+}
+
+const BOM_UNIT_LABEL: Record<BOMUnit, string> = {
+  METRE: 'Metre',
+  ADET: 'Adet',
+  GRAM: 'Gram',
+  KG: 'Kg',
+}
+
+type BOMFormState = {
+  materialName: string
+  materialType: BOMMaterialType
+  unitConsumption: string
+  unit: BOMUnit
+  wastagePercent: string
+  notes: string
+}
+
+const INITIAL_BOM_FORM: BOMFormState = {
+  materialName: '',
+  materialType: 'KUMAS',
+  unitConsumption: '',
+  unit: 'METRE',
+  wastagePercent: '3',
+  notes: '',
+}
+
+function BOMPanel({ orderId, totalQuantity }: { orderId: string; totalQuantity: number }) {
+  const queryClient = useQueryClient()
+  const canManage = useCanManageOrderRecords()
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<BOMFormState>(INITIAL_BOM_FORM)
+  const [error, setError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ApiOrderBOMItem | null>(null)
+
+  const bomQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.bomItems(orderId),
+    queryFn: () => fetchBOMItems(orderId),
+    enabled: !!orderId,
+  })
+
+  const materialsQuery = useQuery({
+    queryKey: applicationQueryKeys.orderRecord.materials(orderId),
+    queryFn: () => fetchMaterials(orderId),
+    enabled: !!orderId,
+  })
+
+  function invalidate() {
+    return Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.bomItems(orderId),
+        refetchType: 'all',
+      }),
+      // BOM değişince AI Önerisi'nin (Genel sekmesi) kumaş ihtiyacı hesabı da değişebilir.
+      queryClient.invalidateQueries({
+        queryKey: applicationQueryKeys.orderRecord.aiSuggestion(orderId),
+        refetchType: 'all',
+      }),
+    ])
+  }
+
+  const addMutation = useMutation({
+    mutationFn: (input: CreateOrderBOMItemInput) => createBOMItem(orderId, input),
+    onSuccess: invalidate,
+  })
+
+  const editMutation = useMutation({
+    mutationFn: ({ itemId, input }: { itemId: number; input: UpdateOrderBOMItemInput }) =>
+      updateBOMItem(orderId, itemId, input),
+    onSuccess: invalidate,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (itemId: number) => deleteBOMItem(orderId, itemId),
+    onSuccess: invalidate,
+  })
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return
+    await deleteMutation.mutateAsync(pendingDelete.id)
+    setPendingDelete(null)
+  }
+
+  function updateField(field: keyof BOMFormState, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const unitConsumption = Number(form.unitConsumption)
+    if (!form.materialName.trim()) {
+      setError('Malzeme adı zorunludur.')
+      return
+    }
+    if (!form.unitConsumption || Number.isNaN(unitConsumption) || unitConsumption <= 0) {
+      setError('Birim tüketim geçerli bir sayı olmalıdır.')
+      return
+    }
+
+    try {
+      await addMutation.mutateAsync({
+        materialName: form.materialName.trim(),
+        materialType: form.materialType,
+        unitConsumption,
+        unit: form.unit,
+        wastagePercent: form.wastagePercent ? Number(form.wastagePercent) : undefined,
+        notes: form.notes.trim() || undefined,
+      })
+      setForm(INITIAL_BOM_FORM)
+      setShowForm(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bileşen eklenemedi.')
+    }
+  }
+
+  const materialsByName = new Map<string, number>()
+  for (const material of materialsQuery.data ?? []) {
+    const key = material.materialName.trim().toLocaleLowerCase('tr-TR')
+    materialsByName.set(key, (materialsByName.get(key) ?? 0) + material.orderedQuantity)
+  }
+
+  const items = bomQuery.data ?? []
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Ürün başına malzeme tüketimi — sipariş miktarına göre toplam ihtiyaç otomatik hesaplanır.
+        </p>
+        {canManage ? (
+          <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
+            <Plus className="size-4" /> Yeni Bileşen Ekle
+          </Button>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      {showForm ? (
+        <form
+          onSubmit={handleAdd}
+          className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2 lg:grid-cols-5"
+        >
+          <div className="grid gap-1.5">
+            <Label htmlFor="bomMaterialName">Malzeme Adı</Label>
+            <Input
+              id="bomMaterialName"
+              value={form.materialName}
+              onChange={(e) => updateField('materialName', e.target.value)}
+              placeholder="Ana Kumaş"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="bomMaterialType">Tip</Label>
+            <select
+              id="bomMaterialType"
+              value={form.materialType}
+              onChange={(e) => updateField('materialType', e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              {BOM_MATERIAL_TYPE_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {BOM_MATERIAL_TYPE_LABEL[t]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="bomUnitConsumption">Birim Tüketim</Label>
+            <Input
+              id="bomUnitConsumption"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.unitConsumption}
+              onChange={(e) => updateField('unitConsumption', e.target.value)}
+              placeholder="1.4"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="bomUnit">Birim</Label>
+            <select
+              id="bomUnit"
+              value={form.unit}
+              onChange={(e) => updateField('unit', e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              {BOM_UNIT_OPTIONS.map((u) => (
+                <option key={u} value={u}>
+                  {BOM_UNIT_LABEL[u]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="bomWastagePercent">Fire Payı (%)</Label>
+            <Input
+              id="bomWastagePercent"
+              type="number"
+              min="0"
+              step="0.1"
+              value={form.wastagePercent}
+              onChange={(e) => updateField('wastagePercent', e.target.value)}
+              placeholder="3"
+            />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2 lg:col-span-5">
+            <Label htmlFor="bomNotes">Notlar</Label>
+            <Input id="bomNotes" value={form.notes} onChange={(e) => updateField('notes', e.target.value)} />
+          </div>
+          <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-5">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
+              İptal
+            </Button>
+            <Button type="submit" size="sm" disabled={addMutation.isPending}>
+              {addMutation.isPending ? 'Ekleniyor...' : 'Ekle'}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2">Malzeme Adı</th>
+              <th className="px-3 py-2">Tip</th>
+              <th className="px-3 py-2">Birim Tüketim</th>
+              <th className="px-3 py-2">Birim</th>
+              <th className="px-3 py-2">Fire Payı (%)</th>
+              <th className="px-3 py-2">Toplam İhtiyaç</th>
+              {canManage ? <th className="px-3 py-2" /> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {bomQuery.isLoading ? (
+              <tr>
+                <td colSpan={canManage ? 7 : 6} className="px-3 py-6 text-center text-muted-foreground">
+                  Yükleniyor...
+                </td>
+              </tr>
+            ) : items.length > 0 ? (
+              items.map((item) => (
+                <BOMRow
+                  key={item.id}
+                  item={item}
+                  canManage={canManage}
+                  orderedQuantity={materialsByName.get(item.materialName.trim().toLocaleLowerCase('tr-TR'))}
+                  onSaveEdit={(input) => editMutation.mutateAsync({ itemId: item.id, input })}
+                  isSaving={editMutation.isPending && editMutation.variables?.itemId === item.id}
+                  onRequestDelete={() => setPendingDelete(item)}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan={canManage ? 7 : 6} className="px-3 py-6 text-center text-muted-foreground">
+                  Henüz ürün ağacı bileşeni eklenmedi.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Bileşeni Sil"
+        description={
+          pendingDelete
+            ? `"${pendingDelete.materialName}" bileşenini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+            : ''
+        }
+        confirmLabel="Sil"
+        destructive
+        isConfirming={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </div>
+  )
+}
+
+type BOMEditFormState = {
+  materialName: string
+  unitConsumption: string
+  wastagePercent: string
+}
+
+function BOMRow({
+  item,
+  canManage,
+  orderedQuantity,
+  onSaveEdit,
+  isSaving,
+  onRequestDelete,
+}: {
+  item: ApiOrderBOMItem
+  canManage: boolean
+  orderedQuantity: number | undefined
+  onSaveEdit: (input: UpdateOrderBOMItemInput) => Promise<unknown>
+  isSaving: boolean
+  onRequestDelete: () => void
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState<BOMEditFormState>({
+    materialName: item.materialName,
+    unitConsumption: String(item.unitConsumption),
+    wastagePercent: String(item.wastagePercent),
+  })
+  const [editError, setEditError] = useState<string | null>(null)
+
+  function startEdit() {
+    setEditForm({
+      materialName: item.materialName,
+      unitConsumption: String(item.unitConsumption),
+      wastagePercent: String(item.wastagePercent),
+    })
+    setEditError(null)
+    setIsEditing(true)
+  }
+
+  async function handleSave() {
+    setEditError(null)
+    const unitConsumption = Number(editForm.unitConsumption)
+    const wastagePercent = Number(editForm.wastagePercent)
+    if (!editForm.materialName.trim()) {
+      setEditError('Malzeme adı zorunludur.')
+      return
+    }
+    if (!editForm.unitConsumption || Number.isNaN(unitConsumption) || unitConsumption <= 0) {
+      setEditError('Geçerli bir birim tüketim girin.')
+      return
+    }
+    try {
+      await onSaveEdit({
+        materialName: editForm.materialName.trim(),
+        unitConsumption,
+        wastagePercent: Number.isNaN(wastagePercent) ? undefined : wastagePercent,
+      })
+      setIsEditing(false)
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Güncellenemedi.')
+    }
+  }
+
+  const comparisonLabel =
+    orderedQuantity != null
+      ? `${item.totalNeed.toFixed(1)}${BOM_UNIT_LABEL[item.unit] === 'Metre' ? 'm' : ''} gerekli / ${orderedQuantity.toLocaleString('tr-TR')}${BOM_UNIT_LABEL[item.unit] === 'Metre' ? 'm' : ''} sipariş edildi${orderedQuantity < item.totalNeed ? ' ⚠️' : ''}`
+      : `${item.totalNeed.toFixed(1)} ${BOM_UNIT_LABEL[item.unit]}`
+
+  if (isEditing) {
+    return (
+      <tr className="border-b border-border/60 bg-muted/20">
+        <td className="px-3 py-2">
+          <Input
+            value={editForm.materialName}
+            onChange={(e) => setEditForm((p) => ({ ...p, materialName: e.target.value }))}
+            className="h-8"
+          />
+        </td>
+        <td className="px-3 py-2">{BOM_MATERIAL_TYPE_LABEL[item.materialType]}</td>
+        <td className="px-3 py-2">
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={editForm.unitConsumption}
+            onChange={(e) => setEditForm((p) => ({ ...p, unitConsumption: e.target.value }))}
+            className="h-8 w-24"
+          />
+        </td>
+        <td className="px-3 py-2">{BOM_UNIT_LABEL[item.unit]}</td>
+        <td className="px-3 py-2">
+          <Input
+            type="number"
+            min="0"
+            step="0.1"
+            value={editForm.wastagePercent}
+            onChange={(e) => setEditForm((p) => ({ ...p, wastagePercent: e.target.value }))}
+            className="h-8 w-20"
+          />
+        </td>
+        <td className="px-3 py-2 text-xs text-muted-foreground">{comparisonLabel}</td>
+        <td className="px-3 py-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-emerald-600 hover:text-emerald-600"
+              disabled={isSaving}
+              onClick={handleSave}
+              title="Kaydet"
+            >
+              <Check className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={isSaving}
+              onClick={() => setIsEditing(false)}
+              title="İptal"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+          {editError ? <p className="mt-1 max-w-[200px] text-xs text-destructive">{editError}</p> : null}
+        </td>
+      </tr>
+    )
+  }
+
+  return (
+    <tr className="border-b border-border/60">
+      <td className="px-3 py-2 font-medium">{item.materialName}</td>
+      <td className="px-3 py-2">{BOM_MATERIAL_TYPE_LABEL[item.materialType]}</td>
+      <td className="px-3 py-2 tabular-nums">{item.unitConsumption.toLocaleString('tr-TR')}</td>
+      <td className="px-3 py-2">{BOM_UNIT_LABEL[item.unit]}</td>
+      <td className="px-3 py-2 tabular-nums">{item.wastagePercent.toLocaleString('tr-TR')}</td>
+      <td className={cn('px-3 py-2', orderedQuantity != null && orderedQuantity < item.totalNeed && 'text-destructive')}>
+        {comparisonLabel}
+      </td>
+      {canManage ? (
+        <td className="px-3 py-2">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEdit} title="Düzenle">
+              <Pencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={onRequestDelete}
+              title="Sil"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </td>
+      ) : null}
+    </tr>
   )
 }

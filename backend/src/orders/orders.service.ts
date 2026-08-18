@@ -18,13 +18,17 @@ import {
 } from './forecast.util';
 import type {
   CloseOrderDto,
+  CreateFasonShipmentDto,
   CreateMaterialDto,
+  CreateOrderBOMItemDto,
   CreateOrderColorSizeDto,
   CreateOrderDto,
   CreateProductionEntryDto,
   CreateQualityEntryDto,
   UpdateApprovalStageDto,
+  UpdateFasonShipmentDto,
   UpdateMaterialDto,
+  UpdateOrderBOMItemDto,
   UpdateOrderDto,
 } from './dto/order.dto';
 
@@ -95,7 +99,12 @@ export class OrdersService {
   async getOrders(tenantId?: string) {
     const orders = await this.prisma.order.findMany({
       where: tenantId ? { tenantId } : undefined,
-      include: { materials: true, colorSizes: true, approvalStages: true },
+      include: {
+        materials: true,
+        colorSizes: true,
+        approvalStages: true,
+        bomItems: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -261,7 +270,7 @@ export class OrdersService {
       () =>
         this.prisma.order.findFirst({
           where: { id: orderId, ...(tenantId ? { tenantId } : {}) },
-          include: { materials: true },
+          include: { materials: true, bomItems: true },
         }),
       'Sipariş bulunamadı',
     );
@@ -273,9 +282,20 @@ export class OrdersService {
     productName: string;
     totalQuantity: number;
     materials: { materialType: string; orderedQuantity: number }[];
+    bomItems?: {
+      materialType: string;
+      unitConsumption: number;
+      wastagePercent: number;
+    }[];
   }): OrderAiSuggestion {
+    const fabricBomItems = (order.bomItems ?? []).filter(
+      (item) => item.materialType.toLocaleLowerCase('tr-TR') === 'kumas',
+    );
+
     const match = findProductType(order.productName);
-    if (!match) {
+    const usingBom = fabricBomItems.length > 0;
+
+    if (!usingBom && !match) {
       return {
         productType: null,
         estimatedNeed: null,
@@ -284,10 +304,20 @@ export class OrdersService {
       };
     }
 
-    const estimatedNeed = calculateFabricNeed(
-      order.totalQuantity,
-      match.rate.avg,
-    );
+    const productType = match?.label ?? null;
+
+    const estimatedNeed = usingBom
+      ? fabricBomItems.reduce(
+          (sum, item) =>
+            sum +
+            order.totalQuantity *
+              item.unitConsumption *
+              (1 + item.wastagePercent / 100),
+          0,
+        )
+      : calculateFabricNeed(order.totalQuantity, match!.rate.avg);
+
+    const bomSuffix = usingBom ? ' (BOM verisine göre)' : '';
 
     const fabricMaterials = order.materials.filter(
       (material) =>
@@ -296,9 +326,9 @@ export class OrdersService {
 
     if (fabricMaterials.length === 0) {
       return {
-        productType: match.label,
+        productType,
         estimatedNeed,
-        warning: `Bu sipariş için henüz kumaş girilmemiş, tahmini ihtiyaç: ${estimatedNeed.toFixed(1)} metre`,
+        warning: `Bu sipariş için henüz kumaş girilmemiş, tahmini ihtiyaç: ${estimatedNeed.toFixed(1)} metre${bomSuffix}`,
         ok: false,
       };
     }
@@ -310,14 +340,14 @@ export class OrdersService {
 
     if (totalOrderedFabric < estimatedNeed) {
       return {
-        productType: match.label,
+        productType,
         estimatedNeed,
-        warning: `Girilen kumaş miktarı (${totalOrderedFabric.toFixed(1)} m) tahmini ihtiyacın (${estimatedNeed.toFixed(1)} m) altında, eksik olabilir`,
+        warning: `Girilen kumaş miktarı (${totalOrderedFabric.toFixed(1)} m) tahmini ihtiyacın (${estimatedNeed.toFixed(1)} m) altında, eksik olabilir${bomSuffix}`,
         ok: false,
       };
     }
 
-    return { productType: match.label, estimatedNeed, warning: null, ok: true };
+    return { productType, estimatedNeed, warning: null, ok: true };
   }
 
   async getMaterials(orderId: number, tenantId?: string) {
@@ -589,6 +619,230 @@ export class OrdersService {
       'Malzeme bulunamadı',
     );
     await this.prisma.material.delete({ where: { id: materialId } });
+    return { success: true };
+  }
+
+  async getFasonShipments(orderId: number, tenantId?: string) {
+    await this.findOrderOrThrow(orderId, tenantId);
+    const shipments = await this.prisma.fasonShipment.findMany({
+      where: { orderId },
+      orderBy: { sentDate: 'desc' },
+    });
+
+    return shipments.map((shipment) => this.withFasonFireStats(shipment));
+  }
+
+  private withFasonFireStats(shipment: {
+    sentQuantity: number;
+    receivedQuantity: number | null;
+  }) {
+    const fireQuantity =
+      shipment.receivedQuantity != null
+        ? Math.max(0, shipment.sentQuantity - shipment.receivedQuantity)
+        : null;
+    const fireRate =
+      fireQuantity != null && shipment.sentQuantity > 0
+        ? (fireQuantity / shipment.sentQuantity) * 100
+        : null;
+
+    return { ...shipment, fireQuantity, fireRate };
+  }
+
+  async addFasonShipment(
+    orderId: number,
+    data: CreateFasonShipmentDto,
+    tenantId?: string,
+  ) {
+    const order = await this.findOrderOrThrow(orderId, tenantId);
+
+    const shipment = await this.prisma.fasonShipment.create({
+      data: {
+        orderId,
+        subcontractorName: data.subcontractorName.trim(),
+        operationType: data.operationType,
+        sentQuantity: data.sentQuantity,
+        expectedReturnDate: data.expectedReturnDate
+          ? new Date(data.expectedReturnDate)
+          : undefined,
+        unitCost: data.unitCost,
+        currency: data.currency ?? 'TRY',
+        notes: data.notes,
+        tenantId: order.tenantId,
+      },
+    });
+
+    return this.withFasonFireStats(shipment);
+  }
+
+  async updateFasonShipment(
+    orderId: number,
+    fasonId: number,
+    data: UpdateFasonShipmentDto,
+    tenantId?: string,
+  ) {
+    const existing = await this.findOrThrow(
+      () =>
+        this.prisma.fasonShipment.findFirst({
+          where: {
+            id: fasonId,
+            orderId,
+            ...(tenantId ? { tenantId } : {}),
+          },
+        }),
+      'Fason gönderimi bulunamadı',
+    );
+
+    const updateData: Record<string, unknown> = {};
+    if (data.subcontractorName !== undefined)
+      updateData.subcontractorName = data.subcontractorName.trim();
+    if (data.operationType !== undefined)
+      updateData.operationType = data.operationType;
+    if (data.expectedReturnDate !== undefined)
+      updateData.expectedReturnDate = new Date(data.expectedReturnDate);
+    if (data.unitCost !== undefined) updateData.unitCost = data.unitCost;
+    if (data.currency !== undefined) updateData.currency = data.currency;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+
+    if (data.receivedDate !== undefined)
+      updateData.receivedDate = new Date(data.receivedDate);
+    if (data.receivedQuantity !== undefined)
+      updateData.receivedQuantity = data.receivedQuantity;
+
+    const newReceivedQuantity =
+      data.receivedQuantity !== undefined
+        ? data.receivedQuantity
+        : existing.receivedQuantity;
+
+    if (newReceivedQuantity == null) {
+      updateData.status = 'GONDERILDI';
+    } else if (newReceivedQuantity < existing.sentQuantity) {
+      updateData.status = 'KISMEN_DONDU';
+    } else {
+      updateData.status = 'TAMAMLANDI';
+    }
+
+    const shipment = await this.prisma.fasonShipment.update({
+      where: { id: fasonId },
+      data: updateData,
+    });
+
+    return this.withFasonFireStats(shipment);
+  }
+
+  async deleteFasonShipment(
+    orderId: number,
+    fasonId: number,
+    tenantId?: string,
+  ) {
+    await this.findOrThrow(
+      () =>
+        this.prisma.fasonShipment.findFirst({
+          where: {
+            id: fasonId,
+            orderId,
+            ...(tenantId ? { tenantId } : {}),
+          },
+        }),
+      'Fason gönderimi bulunamadı',
+    );
+    await this.prisma.fasonShipment.delete({ where: { id: fasonId } });
+    return { success: true };
+  }
+
+  async getBOMItems(orderId: number, tenantId?: string) {
+    const order = await this.findOrderOrThrow(orderId, tenantId);
+    const items = await this.prisma.orderBOMItem.findMany({
+      where: { orderId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return items.map((item) => this.withBOMTotalNeed(item, order.totalQuantity));
+  }
+
+  private withBOMTotalNeed(
+    item: { unitConsumption: number; wastagePercent: number },
+    orderQuantity: number,
+  ) {
+    const totalNeed =
+      orderQuantity * item.unitConsumption * (1 + item.wastagePercent / 100);
+    return { ...item, totalNeed };
+  }
+
+  async addBOMItem(
+    orderId: number,
+    data: CreateOrderBOMItemDto,
+    tenantId?: string,
+  ) {
+    const order = await this.findOrderOrThrow(orderId, tenantId);
+
+    const item = await this.prisma.orderBOMItem.create({
+      data: {
+        orderId,
+        materialName: data.materialName.trim(),
+        materialType: data.materialType,
+        unitConsumption: data.unitConsumption,
+        unit: data.unit,
+        wastagePercent: data.wastagePercent ?? 3,
+        notes: data.notes,
+        tenantId: order.tenantId,
+      },
+    });
+
+    return this.withBOMTotalNeed(item, order.totalQuantity);
+  }
+
+  async updateBOMItem(
+    orderId: number,
+    itemId: number,
+    data: UpdateOrderBOMItemDto,
+    tenantId?: string,
+  ) {
+    const order = await this.findOrderOrThrow(orderId, tenantId);
+    await this.findOrThrow(
+      () =>
+        this.prisma.orderBOMItem.findFirst({
+          where: {
+            id: itemId,
+            orderId,
+            ...(tenantId ? { tenantId } : {}),
+          },
+        }),
+      'Ürün ağacı bileşeni bulunamadı',
+    );
+
+    const updateData: Record<string, unknown> = {};
+    if (data.materialName !== undefined)
+      updateData.materialName = data.materialName.trim();
+    if (data.materialType !== undefined)
+      updateData.materialType = data.materialType;
+    if (data.unitConsumption !== undefined)
+      updateData.unitConsumption = data.unitConsumption;
+    if (data.unit !== undefined) updateData.unit = data.unit;
+    if (data.wastagePercent !== undefined)
+      updateData.wastagePercent = data.wastagePercent;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+
+    const item = await this.prisma.orderBOMItem.update({
+      where: { id: itemId },
+      data: updateData,
+    });
+
+    return this.withBOMTotalNeed(item, order.totalQuantity);
+  }
+
+  async deleteBOMItem(orderId: number, itemId: number, tenantId?: string) {
+    await this.findOrThrow(
+      () =>
+        this.prisma.orderBOMItem.findFirst({
+          where: {
+            id: itemId,
+            orderId,
+            ...(tenantId ? { tenantId } : {}),
+          },
+        }),
+      'Ürün ağacı bileşeni bulunamadı',
+    );
+    await this.prisma.orderBOMItem.delete({ where: { id: itemId } });
     return { success: true };
   }
 

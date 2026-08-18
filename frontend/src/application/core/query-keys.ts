@@ -38,6 +38,10 @@ export const applicationQueryKeys = {
         id,
         materialId,
       ] as const,
+    fasonShipments: (id: string) =>
+      [...applicationQueryKeys.orderRecord.all, 'fason-shipments', id] as const,
+    bomItems: (id: string) =>
+      [...applicationQueryKeys.orderRecord.all, 'bom-items', id] as const,
   },
   // Real backend GET /api/dashboard summary
   dashboardSummary: {
@@ -48,6 +52,8 @@ export const applicationQueryKeys = {
       [...applicationQueryKeys.dashboardSummary.all, 'quality-summary'] as const,
     supplierPerformance: () =>
       [...applicationQueryKeys.dashboardSummary.all, 'supplier-performance'] as const,
+    subcontractorPerformance: () =>
+      [...applicationQueryKeys.dashboardSummary.all, 'subcontractor-performance'] as const,
     riskyOrders: () =>
       [...applicationQueryKeys.dashboardSummary.all, 'risky-orders'] as const,
   },

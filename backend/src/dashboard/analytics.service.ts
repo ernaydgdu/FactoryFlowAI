@@ -4,6 +4,7 @@ import {
   dateOnlyUTC,
   daysBetweenUTC,
   type QualitySummary,
+  type SubcontractorPerformance,
   type SupplierPerformance,
 } from './dashboard-shared';
 
@@ -99,6 +100,84 @@ export class AnalyticsService {
         lateCount,
         pendingCount,
         avgDelayDays,
+        reliabilityScore,
+      });
+    }
+
+    return results.sort((a, b) => b.reliabilityScore - a.reliabilityScore);
+  }
+
+  async getSubcontractorPerformance(
+    tenantId?: string,
+  ): Promise<SubcontractorPerformance[]> {
+    const shipments = await this.prisma.fasonShipment.findMany({
+      where: tenantId ? { tenantId } : undefined,
+    });
+
+    const bySubcontractor = new Map<string, typeof shipments>();
+    for (const shipment of shipments) {
+      const list = bySubcontractor.get(shipment.subcontractorName) ?? [];
+      list.push(shipment);
+      bySubcontractor.set(shipment.subcontractorName, list);
+    }
+
+    const results: SubcontractorPerformance[] = [];
+
+    for (const [subcontractorName, subShipments] of bySubcontractor) {
+      const totalShipments = subShipments.length;
+      let onTimeCount = 0;
+      let lateCount = 0;
+      let pendingCount = 0;
+      let totalDelayDays = 0;
+      let totalFireRate = 0;
+      let fireRateSamples = 0;
+
+      for (const shipment of subShipments) {
+        if (shipment.receivedDate) {
+          if (shipment.expectedReturnDate) {
+            const expectedMs = dateOnlyUTC(shipment.expectedReturnDate);
+            const receivedMs = dateOnlyUTC(shipment.receivedDate);
+            if (receivedMs <= expectedMs) {
+              onTimeCount += 1;
+            } else {
+              lateCount += 1;
+              totalDelayDays += daysBetweenUTC(expectedMs, receivedMs);
+            }
+          } else {
+            onTimeCount += 1;
+          }
+
+          if (shipment.receivedQuantity != null && shipment.sentQuantity > 0) {
+            const fireQuantity = Math.max(
+              0,
+              shipment.sentQuantity - shipment.receivedQuantity,
+            );
+            totalFireRate += (fireQuantity / shipment.sentQuantity) * 100;
+            fireRateSamples += 1;
+          }
+        } else {
+          pendingCount += 1;
+        }
+      }
+
+      const avgDelayDays = lateCount > 0 ? totalDelayDays / lateCount : 0;
+      const avgFireRate =
+        fireRateSamples > 0 ? totalFireRate / fireRateSamples : 0;
+      const onTimeRate =
+        totalShipments > 0 ? (onTimeCount / totalShipments) * 100 : 0;
+      const reliabilityScore = Math.max(
+        0,
+        Math.min(100, onTimeRate * 0.6 + (100 - avgFireRate) * 0.4),
+      );
+
+      results.push({
+        subcontractorName,
+        totalShipments,
+        onTimeCount,
+        lateCount,
+        pendingCount,
+        avgDelayDays,
+        avgFireRate,
         reliabilityScore,
       });
     }

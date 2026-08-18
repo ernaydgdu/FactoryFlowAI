@@ -259,6 +259,32 @@ export class AlertsService {
       }
     }
 
+    const pendingFasonShipments = await this.prisma.fasonShipment.findMany({
+      where: {
+        status: 'GONDERILDI',
+        ...(tenantId ? { tenantId } : {}),
+      },
+      include: { order: true },
+    });
+
+    const FASON_STALLED_DAYS = 7;
+    for (const shipment of pendingFasonShipments) {
+      const daysPending = daysBetweenUTC(
+        dateOnlyUTC(shipment.sentDate),
+        todayStartMs,
+      );
+      if (daysPending >= FASON_STALLED_DAYS) {
+        alerts.push({
+          id: `fason-pending-${shipment.id}`,
+          type: 'FASON_PENDING',
+          severity: 'MEDIUM',
+          message: `⚠️ ${shipment.subcontractorName} atölyesine gönderilen ${shipment.order.orderNo} siparişi ${daysPending} gündür dönmedi`,
+          orderId: shipment.order.id,
+          orderNo: shipment.order.orderNo,
+        });
+      }
+    }
+
     return alerts.sort(
       (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity],
     );

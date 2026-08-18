@@ -67,6 +67,15 @@ export class DashboardController {
     return this.analyticsService.getSupplierPerformance(scope);
   }
 
+  @Get('subcontractor-performance')
+  async getSubcontractorPerformance(
+    @CurrentUser() user: JwtPayloadUser,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
+    return this.analyticsService.getSubcontractorPerformance(scope);
+  }
+
   @Post('ai-advice')
   async getAiAdvice(
     @CurrentUser() user: JwtPayloadUser,

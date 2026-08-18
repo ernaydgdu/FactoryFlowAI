@@ -47,6 +47,8 @@ model Order {
   colorSizes    OrderColorSize[]
   approvalStages ApprovalStage[]
   shipmentLines ShipmentLine[]
+  fasonShipments FasonShipment[]
+  bomItems      OrderBOMItem[]
   closedAt      DateTime?
   closedBy      String?
 
@@ -239,4 +241,45 @@ model ShipmentLine {
 
   @@index([shipmentId])
   @@index([orderId])
+}
+
+model FasonShipment {
+  id                 Int       @id @default(autoincrement())
+  orderId            Int
+  order              Order     @relation(fields: [orderId], references: [id])
+  subcontractorName  String
+  operationType      String // DIKIM, YIKAMA, NAKIS, BASKI, DIGER
+  sentDate           DateTime  @default(now())
+  sentQuantity       Int
+  expectedReturnDate DateTime?
+  receivedDate       DateTime?
+  receivedQuantity   Int?
+  status             String    @default("GONDERILDI") // GONDERILDI, KISMEN_DONDU, TAMAMLANDI
+  unitCost           Float?
+  currency           String    @default("TRY")
+  notes              String?
+  tenantId           String    @default("kepler-default")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([tenantId])
+}
+
+model OrderBOMItem {
+  id              Int      @id @default(autoincrement())
+  orderId         Int
+  order           Order    @relation(fields: [orderId], references: [id])
+  materialName    String
+  materialType    String // KUMAS, AKSESUAR
+  unitConsumption Float
+  unit            String // METRE, ADET, GRAM, KG
+  wastagePercent  Float    @default(3)
+  notes           String?
+  tenantId        String   @default("kepler-default")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([tenantId])
 }

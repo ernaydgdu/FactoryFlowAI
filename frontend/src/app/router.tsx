@@ -24,6 +24,10 @@ const SupplierPerformancePage = lazyPage(
   () => import('@/pages/suppliers/SupplierPerformancePage'),
   'SupplierPerformancePage',
 )
+const SubcontractorPerformancePage = lazyPage(
+  () => import('@/pages/subcontractors/SubcontractorPerformancePage'),
+  'SubcontractorPerformancePage',
+)
 const LineStatusPage = lazyPage(
   () => import('@/pages/line-status/LineStatusPage'),
   'LineStatusPage',
@@ -71,6 +75,7 @@ export function AppRouter() {
         <Route path="/warehouses" element={<L><WarehousesPage /></L>} />
         <Route path="/finished-goods" element={<L><FinishedGoodsPage /></L>} />
         <Route path="/suppliers" element={<L><SupplierPerformancePage /></L>} />
+        <Route path="/subcontractors" element={<L><SubcontractorPerformancePage /></L>} />
         <Route path="/line-status" element={<L><LineStatusPage /></L>} />
         <Route path="/users" element={<L><UsersPage /></L>} />
       </Route>

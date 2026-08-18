@@ -37,7 +37,8 @@ export type DashboardAlertType =
   | 'SECOND_QUALITY_HIGH'
   | 'STOCK_CRITICAL'
   | 'APPROVAL_STALLED'
-  | 'LINE_BEHIND_PACE';
+  | 'LINE_BEHIND_PACE'
+  | 'FASON_PENDING';
 
 export const APPROVAL_STAGE_LABEL: Record<string, string> = {
   PP_NUMUNE: 'PP Numune',
@@ -86,5 +87,16 @@ export type SupplierPerformance = {
   lateCount: number;
   pendingCount: number;
   avgDelayDays: number;
+  reliabilityScore: number;
+};
+
+export type SubcontractorPerformance = {
+  subcontractorName: string;
+  totalShipments: number;
+  onTimeCount: number;
+  lateCount: number;
+  pendingCount: number;
+  avgDelayDays: number;
+  avgFireRate: number;
   reliabilityScore: number;
 };

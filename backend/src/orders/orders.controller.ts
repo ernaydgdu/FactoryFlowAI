@@ -22,14 +22,18 @@ import {
 } from '../auth/decorators/current-user.decorator';
 import {
   CloseOrderDto,
+  CreateFasonShipmentDto,
   CreateMaterialDto,
+  CreateOrderBOMItemDto,
   CreateOrderColorSizeDto,
   CreateOrderDto,
   CreateProductionEntryDto,
   CreateQualityEntryDto,
   FulfillFromStockDto,
   UpdateApprovalStageDto,
+  UpdateFasonShipmentDto,
   UpdateMaterialDto,
+  UpdateOrderBOMItemDto,
   UpdateOrderDto,
 } from './dto/order.dto';
 
@@ -356,6 +360,98 @@ export class OrdersController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.ordersService.reopenOrder(id, this.scopeFor(user));
+  }
+
+  @Get(':id/fason')
+  async getFasonShipments(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getFasonShipments(id, this.scopeFor(user));
+  }
+
+  @Post(':id/fason')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async addFasonShipment(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateFasonShipmentDto,
+  ) {
+    return this.ordersService.addFasonShipment(id, body, this.scopeFor(user));
+  }
+
+  @Patch(':id/fason/:fasonId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async updateFasonShipment(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('fasonId', ParseIntPipe) fasonId: number,
+    @Body() body: UpdateFasonShipmentDto,
+  ) {
+    return this.ordersService.updateFasonShipment(
+      id,
+      fasonId,
+      body,
+      this.scopeFor(user),
+    );
+  }
+
+  @Delete(':id/fason/:fasonId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async deleteFasonShipment(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('fasonId', ParseIntPipe) fasonId: number,
+  ) {
+    return this.ordersService.deleteFasonShipment(
+      id,
+      fasonId,
+      this.scopeFor(user),
+    );
+  }
+
+  @Get(':id/bom')
+  async getBOMItems(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getBOMItems(id, this.scopeFor(user));
+  }
+
+  @Post(':id/bom')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async addBOMItem(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateOrderBOMItemDto,
+  ) {
+    return this.ordersService.addBOMItem(id, body, this.scopeFor(user));
+  }
+
+  @Patch(':id/bom/:itemId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async updateBOMItem(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() body: UpdateOrderBOMItemDto,
+  ) {
+    return this.ordersService.updateBOMItem(
+      id,
+      itemId,
+      body,
+      this.scopeFor(user),
+    );
+  }
+
+  @Delete(':id/bom/:itemId')
+  @Roles('ADMIN', 'MANAGER', 'PLANNER')
+  async deleteBOMItem(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+  ) {
+    return this.ordersService.deleteBOMItem(id, itemId, this.scopeFor(user));
   }
 
   @Get(':id/packing-list')

@@ -45,9 +45,12 @@ export const navGroups: NavGroup[] = [
     items: [{ title: 'Hat Durumu', href: '/line-status' }],
   },
   {
-    title: 'Tedarikçi Performansı',
+    title: 'Performans',
     icon: Star,
-    items: [{ title: 'Tedarikçi Performansı', href: '/suppliers' }],
+    items: [
+      { title: 'Tedarikçi Performansı', href: '/suppliers' },
+      { title: 'Fason Atölye Performansı', href: '/subcontractors' },
+    ],
   },
   {
     title: 'Yönetim',
@@ -74,6 +77,7 @@ export const routeTitles: Record<string, string> = {
   '/warehouses': 'Depolar',
   '/finished-goods': 'Mamul Envanteri',
   '/suppliers': 'Tedarikçi Performansı',
+  '/subcontractors': 'Fason Atölye Performansı',
   '/line-status': 'Hat Durumu',
   '/users': 'Kullanıcı Yönetimi',
 }

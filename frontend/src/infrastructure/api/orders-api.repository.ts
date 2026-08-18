@@ -276,6 +276,168 @@ export async function deleteMaterial(orderId: string, materialId: number): Promi
   await api.delete(`/orders/${orderId}/materials/${materialId}`)
 }
 
+export type FasonOperationType = 'DIKIM' | 'YIKAMA' | 'NAKIS' | 'BASKI' | 'DIGER'
+export type FasonStatus = 'GONDERILDI' | 'KISMEN_DONDU' | 'TAMAMLANDI'
+
+export type ApiFasonShipment = {
+  id: number
+  orderId: number
+  subcontractorName: string
+  operationType: FasonOperationType
+  sentDate: string
+  sentQuantity: number
+  expectedReturnDate: string | null
+  receivedDate: string | null
+  receivedQuantity: number | null
+  status: FasonStatus
+  unitCost: number | null
+  currency: string
+  notes: string | null
+  fireQuantity: number | null
+  fireRate: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type CreateFasonShipmentInput = {
+  subcontractorName: string
+  operationType: FasonOperationType
+  sentQuantity: number
+  expectedReturnDate?: string
+  unitCost?: number
+  currency?: string
+  notes?: string
+}
+
+export type UpdateFasonShipmentInput = {
+  subcontractorName?: string
+  operationType?: FasonOperationType
+  expectedReturnDate?: string
+  receivedDate?: string
+  receivedQuantity?: number
+  unitCost?: number
+  currency?: string
+  notes?: string
+}
+
+export async function fetchFasonShipments(orderId: string): Promise<ApiFasonShipment[]> {
+  const { data } = await api.get<ApiFasonShipment[]>(`/orders/${orderId}/fason`)
+  return data
+}
+
+export async function createFasonShipment(
+  orderId: string,
+  input: CreateFasonShipmentInput,
+): Promise<ApiFasonShipment> {
+  try {
+    const { data } = await api.post<ApiFasonShipment>(`/orders/${orderId}/fason`, input)
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function updateFasonShipment(
+  orderId: string,
+  fasonId: number,
+  input: UpdateFasonShipmentInput,
+): Promise<ApiFasonShipment> {
+  try {
+    const { data } = await api.patch<ApiFasonShipment>(
+      `/orders/${orderId}/fason/${fasonId}`,
+      input,
+    )
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function deleteFasonShipment(orderId: string, fasonId: number): Promise<void> {
+  await api.delete(`/orders/${orderId}/fason/${fasonId}`)
+}
+
+export type BOMMaterialType = 'KUMAS' | 'AKSESUAR'
+export type BOMUnit = 'METRE' | 'ADET' | 'GRAM' | 'KG'
+
+export type ApiOrderBOMItem = {
+  id: number
+  orderId: number
+  materialName: string
+  materialType: BOMMaterialType
+  unitConsumption: number
+  unit: BOMUnit
+  wastagePercent: number
+  notes: string | null
+  totalNeed: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type CreateOrderBOMItemInput = {
+  materialName: string
+  materialType: BOMMaterialType
+  unitConsumption: number
+  unit: BOMUnit
+  wastagePercent?: number
+  notes?: string
+}
+
+export type UpdateOrderBOMItemInput = {
+  materialName?: string
+  materialType?: BOMMaterialType
+  unitConsumption?: number
+  unit?: BOMUnit
+  wastagePercent?: number
+  notes?: string
+}
+
+export async function fetchBOMItems(orderId: string): Promise<ApiOrderBOMItem[]> {
+  const { data } = await api.get<ApiOrderBOMItem[]>(`/orders/${orderId}/bom`)
+  return data
+}
+
+export async function createBOMItem(
+  orderId: string,
+  input: CreateOrderBOMItemInput,
+): Promise<ApiOrderBOMItem> {
+  try {
+    const { data } = await api.post<ApiOrderBOMItem>(`/orders/${orderId}/bom`, input)
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function updateBOMItem(
+  orderId: string,
+  itemId: number,
+  input: UpdateOrderBOMItemInput,
+): Promise<ApiOrderBOMItem> {
+  try {
+    const { data } = await api.patch<ApiOrderBOMItem>(`/orders/${orderId}/bom/${itemId}`, input)
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function deleteBOMItem(orderId: string, itemId: number): Promise<void> {
+  await api.delete(`/orders/${orderId}/bom/${itemId}`)
+}
+
 export type MaterialStockAvailabilityLot = {
   lotId: number
   lotNo: string | null
