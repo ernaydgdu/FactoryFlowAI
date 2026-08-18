@@ -46,6 +46,7 @@ model Order {
   stockLots     StockLot[]
   colorSizes    OrderColorSize[]
   approvalStages ApprovalStage[]
+  shipmentLines ShipmentLine[]
   closedAt      DateTime?
   closedBy      String?
 
@@ -207,5 +208,35 @@ model StockMovement {
   createdAt   DateTime @default(now())
 
   @@index([stockLotId])
+  @@index([orderId])
+}
+
+model Shipment {
+  id           Int            @id @default(autoincrement())
+  shipmentNo   String         @unique
+  shipmentDate DateTime       @default(now())
+  notes        String?
+  createdBy    String?
+  tenantId     String         @default("kepler-default")
+  lines        ShipmentLine[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([tenantId])
+}
+
+model ShipmentLine {
+  id             Int      @id @default(autoincrement())
+  shipmentId     Int
+  shipment       Shipment @relation(fields: [shipmentId], references: [id])
+  orderId        Int
+  order          Order    @relation(fields: [orderId], references: [id])
+  color          String
+  size           String
+  quantity       Int
+  unitsPerCarton Int?
+  createdAt      DateTime @default(now())
+
+  @@index([shipmentId])
   @@index([orderId])
 }

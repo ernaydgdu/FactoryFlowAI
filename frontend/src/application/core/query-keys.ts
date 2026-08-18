@@ -57,6 +57,12 @@ export const applicationQueryKeys = {
     list: () => [...applicationQueryKeys.productionLine.all, 'list'] as const,
     status: () => [...applicationQueryKeys.productionLine.all, 'status'] as const,
   },
+  // Real backend Shipment/ShipmentLine REST resource — separate namespace from the legacy shipment below
+  shipmentRecord: {
+    all: ['shipment-record'] as const,
+    list: () => [...applicationQueryKeys.shipmentRecord.all, 'list'] as const,
+    detail: (id: string) => [...applicationQueryKeys.shipmentRecord.all, 'detail', id] as const,
+  },
   // Real backend StockLot/StockMovement REST resource
   stockRecord: {
     all: ['stock-record'] as const,

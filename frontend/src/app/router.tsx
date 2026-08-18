@@ -29,6 +29,18 @@ const LineStatusPage = lazyPage(
   'LineStatusPage',
 )
 const UsersPage = lazyPage(() => import('@/pages/users/UsersPage'), 'UsersPage')
+const ShipmentsPage = lazyPage(
+  () => import('@/pages/shipments/ShipmentsPage'),
+  'ShipmentsPage',
+)
+const ShipmentCreatePage = lazyPage(
+  () => import('@/pages/shipments/ShipmentCreatePage'),
+  'ShipmentCreatePage',
+)
+const ShipmentDetailPage = lazyPage(
+  () => import('@/pages/shipments/ShipmentDetailPage'),
+  'ShipmentDetailPage',
+)
 
 function L({ children }: { children: ReactNode }) {
   return <LazyRoute>{children}</LazyRoute>
@@ -50,6 +62,10 @@ export function AppRouter() {
         <Route path="/orders/new" element={<L><OrderCreatePage /></L>} />
         <Route path="/orders/:id" element={<L><OrderDetailPage /></L>} />
         <Route path="/orders/:id/edit" element={<L><OrderEditPage /></L>} />
+
+        <Route path="/shipments" element={<L><ShipmentsPage /></L>} />
+        <Route path="/shipments/new" element={<L><ShipmentCreatePage /></L>} />
+        <Route path="/shipments/:id" element={<L><ShipmentDetailPage /></L>} />
 
         <Route path="/stock" element={<L><StockPage /></L>} />
         <Route path="/warehouses" element={<L><WarehousesPage /></L>} />

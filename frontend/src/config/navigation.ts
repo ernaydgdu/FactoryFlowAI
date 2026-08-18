@@ -27,6 +27,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { title: 'Sipariş Listesi', href: '/orders' },
       { title: 'Yeni Sipariş', href: '/orders/new' },
+      { title: 'Sevkiyatlar', href: '/shipments' },
     ],
   },
   {
@@ -67,6 +68,8 @@ export const routeTitles: Record<string, string> = {
   '/dashboard': 'Kontrol Paneli',
   '/orders': 'Sipariş Listesi',
   '/orders/new': 'Yeni Sipariş',
+  '/shipments': 'Sevkiyatlar',
+  '/shipments/new': 'Yeni Sevkiyat',
   '/stock': 'Stok Yönetimi',
   '/warehouses': 'Depolar',
   '/finished-goods': 'Mamul Envanteri',
@@ -78,6 +81,9 @@ export const routeTitles: Record<string, string> = {
 export function getRouteTitle(pathname: string): string {
   if (pathname.startsWith('/orders/') && pathname !== '/orders/new') {
     return 'Sipariş Detay'
+  }
+  if (pathname.startsWith('/shipments/') && pathname !== '/shipments/new') {
+    return 'Sevkiyat Detay'
   }
   return routeTitles[pathname] ?? 'KEPLER ERP'
 }

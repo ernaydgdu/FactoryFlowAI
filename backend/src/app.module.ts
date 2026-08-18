@@ -12,6 +12,7 @@ import { OrdersModule } from './orders/orders.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { StockModule } from './stock/stock.module';
 import { ProductionLinesModule } from './production-lines/production-lines.module';
+import { ShipmentsModule } from './shipments/shipments.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ProductionLinesModule } from './production-lines/production-lines.modul
     DashboardModule,
     StockModule,
     ProductionLinesModule,
+    ShipmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
