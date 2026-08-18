@@ -1,4 +1,9 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { todayRangeUTC } from '../dashboard/dashboard-shared';
 import {
@@ -6,7 +11,10 @@ import {
   WORKDAY_START_HOUR,
   WORKDAY_END_HOUR,
 } from '../common/line-pace.util';
-import type { CreateProductionLineDto } from './dto/production-line.dto';
+import type {
+  CreateProductionLineDto,
+  UpdateProductionLineDto,
+} from './dto/production-line.dto';
 
 export type LineStatusOrder = {
   orderNo: string;
@@ -40,17 +48,100 @@ export class ProductionLinesService {
   }
 
   async createLine(data: CreateProductionLineDto, tenantId: string) {
+    const name = data.name.trim();
+    const lineNumber = name.replace(/\D/g, '') || name;
+    const warehouseName = `${name} Hammadde Deposu`;
+    const warehouseCode = `LN${lineNumber}-HM`;
+
     try {
-      return await this.prisma.productionLine.create({
-        data: {
-          name: data.name.trim(),
-          capacity: data.capacity ?? 0,
-          tenantId,
-        },
+      return await this.prisma.$transaction(async (tx) => {
+        const line = await tx.productionLine.create({
+          data: {
+            name,
+            capacity: data.capacity ?? 0,
+            tenantId,
+          },
+        });
+
+        await tx.warehouse.create({
+          data: {
+            name: warehouseName,
+            code: warehouseCode,
+            type: 'ATOLYE_HAMMADDE',
+            lineId: line.id,
+            tenantId,
+          },
+        });
+
+        return line;
       });
     } catch {
       throw new ConflictException('Bu hat adı zaten kayıtlı.');
     }
+  }
+
+  async updateLine(id: number, data: UpdateProductionLineDto) {
+    const existing = await this.prisma.productionLine.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('Hat bulunamadı');
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (data.name) updateData.name = data.name.trim();
+    if (data.capacity !== undefined) updateData.capacity = data.capacity;
+
+    try {
+      return await this.prisma.productionLine.update({
+        where: { id },
+        data: updateData,
+      });
+    } catch {
+      throw new ConflictException('Bu hat adı zaten kayıtlı.');
+    }
+  }
+
+  async deleteLine(id: number) {
+    const existing = await this.prisma.productionLine.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('Hat bulunamadı');
+    }
+
+    const entryCount = await this.prisma.productionEntry.count({
+      where: { lineNo: existing.name },
+    });
+    if (entryCount > 0) {
+      throw new BadRequestException(
+        'Bu hatta üretim geçmişi var, silinemez.',
+      );
+    }
+
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { lineId: id, type: 'ATOLYE_HAMMADDE' },
+    });
+
+    if (warehouse) {
+      const lotCount = await this.prisma.stockLot.count({
+        where: { warehouseId: warehouse.id },
+      });
+      if (lotCount > 0) {
+        throw new BadRequestException(
+          'Bu hatta stok kaydı var, önce boşaltılmalı.',
+        );
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (warehouse) {
+        await tx.warehouse.delete({ where: { id: warehouse.id } });
+      }
+      await tx.productionLine.delete({ where: { id } });
+    });
+
+    return { success: true };
   }
 
   async getLineStatus(tenantId?: string): Promise<LineStatus[]> {

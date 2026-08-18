@@ -57,3 +57,34 @@ export async function createProductionLine(
     throw err
   }
 }
+
+export type UpdateProductionLineInput = {
+  name?: string
+  capacity?: number
+}
+
+export async function updateProductionLine(
+  id: number,
+  input: UpdateProductionLineInput,
+): Promise<ApiProductionLine> {
+  try {
+    const { data } = await api.patch<ApiProductionLine>(`/production-lines/${id}`, input)
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
+export async function deleteProductionLine(id: number): Promise<void> {
+  try {
+    await api.delete(`/production-lines/${id}`)
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}

@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ProductionLinesService } from './production-lines.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -7,7 +18,10 @@ import {
   CurrentUser,
   type JwtPayloadUser,
 } from '../auth/decorators/current-user.decorator';
-import { CreateProductionLineDto } from './dto/production-line.dto';
+import {
+  CreateProductionLineDto,
+  UpdateProductionLineDto,
+} from './dto/production-line.dto';
 
 @Controller('production-lines')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -39,5 +53,20 @@ export class ProductionLinesController {
   ) {
     const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
     return this.productionLinesService.getLineStatus(scope);
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN', 'MANAGER')
+  async updateLine(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateProductionLineDto,
+  ) {
+    return this.productionLinesService.updateLine(id, body);
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN', 'MANAGER')
+  async deleteLine(@Param('id', ParseIntPipe) id: number) {
+    return this.productionLinesService.deleteLine(id);
   }
 }

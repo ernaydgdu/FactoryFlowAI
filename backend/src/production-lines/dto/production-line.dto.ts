@@ -10,3 +10,15 @@ export class CreateProductionLineDto {
   @Min(0)
   capacity?: number;
 }
+
+export class UpdateProductionLineDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  capacity?: number;
+}
