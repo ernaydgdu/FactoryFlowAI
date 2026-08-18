@@ -1,6 +1,13 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { computeCartonBreakdown, type CartonBreakdown } from '../common/carton.util';
+import {
+  computeCartonBreakdown,
+  type CartonBreakdown,
+} from '../common/carton.util';
 import type { CreateShipmentDto } from './dto/shipment.dto';
 
 export type ShipmentGrandTotal = {
@@ -28,7 +35,10 @@ function sumGrandTotal(breakdowns: CartonBreakdown[]): ShipmentGrandTotal {
 export class ShipmentsService {
   constructor(private prisma: PrismaService) {}
 
-  private async findOrThrow<T>(fn: () => Promise<T | null>, message: string): Promise<T> {
+  private async findOrThrow<T>(
+    fn: () => Promise<T | null>,
+    message: string,
+  ): Promise<T> {
     const result = await fn();
     if (!result) {
       throw new NotFoundException(message);
@@ -66,9 +76,12 @@ export class ShipmentsService {
     });
 
     return shipments.map((shipment) => {
-      const breakdowns = shipment.lines.map((line) => computeCartonBreakdown(line));
+      const breakdowns = shipment.lines.map((line) =>
+        computeCartonBreakdown(line),
+      );
       const grandTotal = sumGrandTotal(breakdowns);
-      const orderCount = new Set(shipment.lines.map((line) => line.orderId)).size;
+      const orderCount = new Set(shipment.lines.map((line) => line.orderId))
+        .size;
 
       return {
         id: shipment.id,
@@ -88,7 +101,9 @@ export class ShipmentsService {
       () =>
         this.prisma.shipment.findFirst({
           where: { id, ...(tenantId ? { tenantId } : {}) },
-          include: { lines: { include: { order: true }, orderBy: { id: 'asc' } } },
+          include: {
+            lines: { include: { order: true }, orderBy: { id: 'asc' } },
+          },
         }),
       'Sevkiyat bulunamadı',
     );
@@ -118,7 +133,11 @@ export class ShipmentsService {
     };
   }
 
-  async createShipment(data: CreateShipmentDto, tenantId: string, createdBy?: string) {
+  async createShipment(
+    data: CreateShipmentDto,
+    tenantId: string,
+    createdBy?: string,
+  ) {
     if (data.lines.length === 0) {
       throw new BadRequestException('En az bir satır eklemelisiniz.');
     }
@@ -136,7 +155,9 @@ export class ShipmentsService {
     return this.prisma.shipment.create({
       data: {
         shipmentNo,
-        shipmentDate: data.shipmentDate ? new Date(data.shipmentDate) : undefined,
+        shipmentDate: data.shipmentDate
+          ? new Date(data.shipmentDate)
+          : undefined,
         notes: data.notes,
         createdBy,
         tenantId,
@@ -171,7 +192,10 @@ export class ShipmentsService {
     return { success: true };
   }
 
-  async exportShipmentCsv(id: number, tenantId?: string): Promise<{ csv: string; shipmentNo: string }> {
+  async exportShipmentCsv(
+    id: number,
+    tenantId?: string,
+  ): Promise<{ csv: string; shipmentNo: string }> {
     const data = await this.getShipmentDetail(id, tenantId);
 
     const escapeCsvField = (field: string): string => {

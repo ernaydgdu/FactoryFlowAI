@@ -25,9 +25,7 @@ export type FifoSuggestion = {
 };
 
 export type FinishedGoodsStatus =
-  | 'SEVKIYAT_BEKLIYOR'
-  | 'KISMI_SEVK_EDILDI'
-  | 'TAMAMEN_SEVK_EDILDI';
+  'SEVKIYAT_BEKLIYOR' | 'KISMI_SEVK_EDILDI' | 'TAMAMEN_SEVK_EDILDI';
 
 export type FinishedGoodsLine = {
   lotId: number;
@@ -181,7 +179,11 @@ export class StockService {
     });
   }
 
-  async consumeLot(lotId: number, data: ConsumeStockLotDto, performedBy?: string) {
+  async consumeLot(
+    lotId: number,
+    data: ConsumeStockLotDto,
+    performedBy?: string,
+  ) {
     if (data.quantity <= 0) {
       throw new BadRequestException('Tüketim miktarı sıfırdan büyük olmalı.');
     }

@@ -1,4 +1,7 @@
-import type { RequestContext, PlatformCommandResultBody } from '../platform.types';
+import type {
+  RequestContext,
+  PlatformCommandResultBody,
+} from '../platform.types';
 
 export type CommandHandler = (
   ctx: RequestContext,
@@ -46,7 +49,8 @@ export class PlatformCommandRegistry {
     try {
       return await handler(ctx, payload);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Komut yürütme hatası';
+      const message =
+        err instanceof Error ? err.message : 'Komut yürütme hatası';
       return fail(commandKey, message);
     }
   }
@@ -55,7 +59,11 @@ export class PlatformCommandRegistry {
 export const platformCommandRegistry = new PlatformCommandRegistry();
 
 platformCommandRegistry.register('platform.ping', () =>
-  ok('platform.ping', { message: 'pong', runtime: 'remote', persistence: 'postgres' }),
+  ok('platform.ping', {
+    message: 'pong',
+    runtime: 'remote',
+    persistence: 'postgres',
+  }),
 );
 
 platformCommandRegistry.register('platform.getContext', (ctx) =>

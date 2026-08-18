@@ -756,7 +756,9 @@ export class OrdersService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return items.map((item) => this.withBOMTotalNeed(item, order.totalQuantity));
+    return items.map((item) =>
+      this.withBOMTotalNeed(item, order.totalQuantity),
+    );
   }
 
   private withBOMTotalNeed(
@@ -1464,9 +1466,7 @@ export class OrdersService {
     if (!shipmentComplete) missingItems.push('Sevkiyat tamamlanmadı');
     if (!qualityChecked) missingItems.push('Kalite kontrolü yapılmadı');
     if (!colorSizeMatches)
-      missingItems.push(
-        'Renk/beden dağılımı toplam miktarla eşleşmiyor',
-      );
+      missingItems.push('Renk/beden dağılımı toplam miktarla eşleşmiyor');
 
     const readyToClose = missingItems.length === 0;
 
@@ -1502,10 +1502,7 @@ export class OrdersService {
     userLabel: string,
     tenantId?: string,
   ) {
-    const { order, checklist } = await this.buildClosingData(
-      orderId,
-      tenantId,
-    );
+    const { order, checklist } = await this.buildClosingData(orderId, tenantId);
 
     if (order.closedAt != null) {
       throw new BadRequestException('Bu sipariş zaten kapalı.');
@@ -1566,7 +1563,13 @@ export class OrdersService {
         looseQty: acc.looseQty + cs.looseQty,
         totalCartons: acc.totalCartons + (cs.totalCartons ?? 0),
       }),
-      { totalQty: 0, fullCartons: 0, lottedQty: 0, looseQty: 0, totalCartons: 0 },
+      {
+        totalQty: 0,
+        fullCartons: 0,
+        lottedQty: 0,
+        looseQty: 0,
+        totalCartons: 0,
+      },
     );
 
     return {
@@ -1603,7 +1606,16 @@ export class OrdersService {
     const row = (fields: string[]) => fields.map(escapeCsvField).join(',');
 
     const lines: string[] = [];
-    lines.push(row(['Sipariş No', 'Müşteri', 'Ürün', 'Toplam Miktar', 'EXF Tarihi', 'Rapor Tarihi']));
+    lines.push(
+      row([
+        'Sipariş No',
+        'Müşteri',
+        'Ürün',
+        'Toplam Miktar',
+        'EXF Tarihi',
+        'Rapor Tarihi',
+      ]),
+    );
     lines.push(
       row([
         data.order.orderNo,

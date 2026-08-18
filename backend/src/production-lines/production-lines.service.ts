@@ -114,9 +114,7 @@ export class ProductionLinesService {
       where: { lineNo: existing.name },
     });
     if (entryCount > 0) {
-      throw new BadRequestException(
-        'Bu hatta üretim geçmişi var, silinemez.',
-      );
+      throw new BadRequestException('Bu hatta üretim geçmişi var, silinemez.');
     }
 
     const warehouse = await this.prisma.warehouse.findFirst({
@@ -165,8 +163,13 @@ export class ProductionLinesService {
     const currentHour = now.getHours();
 
     return lines.map((line) => {
-      const entries = todayEntries.filter((entry) => entry.lineNo === line.name);
-      const todayProduction = entries.reduce((sum, entry) => sum + entry.quantity, 0);
+      const entries = todayEntries.filter(
+        (entry) => entry.lineNo === line.name,
+      );
+      const todayProduction = entries.reduce(
+        (sum, entry) => sum + entry.quantity,
+        0,
+      );
       const fillRate =
         line.capacity > 0
           ? Math.round((todayProduction / line.capacity) * 1000) / 10

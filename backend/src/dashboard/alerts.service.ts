@@ -155,7 +155,8 @@ export class AlertsService {
       }
 
       if (group.warehouseType === 'ATOLYE_HAMMADDE') {
-        const lineLabel = group.lineName ?? group.warehouseName ?? 'Bilinmeyen hat';
+        const lineLabel =
+          group.lineName ?? group.warehouseName ?? 'Bilinmeyen hat';
         alerts.push({
           id: `stock-critical-${key}`,
           type: 'STOCK_CRITICAL',

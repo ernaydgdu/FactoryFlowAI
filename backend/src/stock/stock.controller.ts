@@ -31,7 +31,9 @@ export class StockController {
     @Query('materialType') materialType?: string,
     @Query('warehouseId') warehouseIdRaw?: string,
   ) {
-    const warehouseId = warehouseIdRaw ? parseInt(warehouseIdRaw, 10) : undefined;
+    const warehouseId = warehouseIdRaw
+      ? parseInt(warehouseIdRaw, 10)
+      : undefined;
     return this.stockService.getLots(materialType, warehouseId);
   }
 
@@ -50,7 +52,9 @@ export class StockController {
     @Query('warehouseId') warehouseIdRaw: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const warehouseId = warehouseIdRaw ? parseInt(warehouseIdRaw, 10) : undefined;
+    const warehouseId = warehouseIdRaw
+      ? parseInt(warehouseIdRaw, 10)
+      : undefined;
     const csv = await this.stockService.exportLotsCsv(warehouseId);
 
     const today = new Date().toISOString().slice(0, 10);

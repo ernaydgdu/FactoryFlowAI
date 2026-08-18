@@ -268,7 +268,13 @@ export class UpdateApprovalStageDto {
   notes?: string;
 }
 
-const FASON_OPERATION_TYPES = ['DIKIM', 'YIKAMA', 'NAKIS', 'BASKI', 'DIGER'] as const;
+const FASON_OPERATION_TYPES = [
+  'DIKIM',
+  'YIKAMA',
+  'NAKIS',
+  'BASKI',
+  'DIGER',
+] as const;
 
 export class CreateFasonShipmentDto {
   @IsString()

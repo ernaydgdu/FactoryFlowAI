@@ -1,8 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { UsersService } from '../../users/users.service';
-import {
-  platformCommandRegistry,
-} from './command.registry';
+import { platformCommandRegistry } from './command.registry';
 
 @Injectable()
 export class PlatformCommandBootstrap implements OnModuleInit {
@@ -11,7 +9,9 @@ export class PlatformCommandBootstrap implements OnModuleInit {
   onModuleInit(): void {
     platformCommandRegistry.register('iam.listUsers', async (ctx, payload) => {
       const factoryId =
-        typeof payload?.factoryId === 'string' ? payload.factoryId : ctx.factoryId;
+        typeof payload?.factoryId === 'string'
+          ? payload.factoryId
+          : ctx.factoryId;
       const users = await this.usersService.getUsers(
         ctx.role === 'ADMIN' ? factoryId : ctx.factoryId,
       );

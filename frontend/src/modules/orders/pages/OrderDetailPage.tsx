@@ -239,7 +239,7 @@ export function OrderDetailPage() {
             </TabsContent>
 
             <TabsContent value="bom">
-              <BOMPanel orderId={id} totalQuantity={order.totalQuantity} />
+              <BOMPanel orderId={id} />
             </TabsContent>
 
             <TabsContent value="production">
@@ -3470,7 +3470,7 @@ const INITIAL_BOM_FORM: BOMFormState = {
   notes: '',
 }
 
-function BOMPanel({ orderId, totalQuantity }: { orderId: string; totalQuantity: number }) {
+function BOMPanel({ orderId }: { orderId: string }) {
   const queryClient = useQueryClient()
   const canManage = useCanManageOrderRecords()
   const [showForm, setShowForm] = useState(false)
