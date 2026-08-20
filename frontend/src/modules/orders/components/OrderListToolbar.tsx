@@ -60,7 +60,7 @@ export function OrderListToolbar({
               Sil ({selectedCount})
             </Button>
           ) : null}
-          <Button size="sm" asChild>
+          <Button size="sm" className="bg-brand text-brand-foreground hover:bg-brand/90" asChild>
             <Link to="/orders/new">
               <Plus className="size-4" />
               Yeni Sipariş

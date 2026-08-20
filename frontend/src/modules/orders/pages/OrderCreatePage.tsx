@@ -233,7 +233,13 @@ export function OrderCreatePage() {
             <Button variant="outline" size="sm" onClick={() => navigate('/orders')}>
               İptal
             </Button>
-            <Button size="sm" type="submit" form="order-create-form" disabled={isSubmitting}>
+            <Button
+              size="sm"
+              type="submit"
+              form="order-create-form"
+              disabled={isSubmitting}
+              className="bg-brand text-brand-foreground hover:bg-brand/90"
+            >
               <Save className="size-4" />
               {isSubmitting ? 'Kaydediliyor...' : 'Siparişi Kaydet'}
             </Button>
@@ -515,7 +521,13 @@ export function OrderCreatePage() {
         <Button variant="outline" onClick={() => navigate('/orders')}>
           İptal
         </Button>
-        <Button size="lg" type="submit" form="order-create-form" disabled={isSubmitting}>
+        <Button
+          size="lg"
+          type="submit"
+          form="order-create-form"
+          disabled={isSubmitting}
+          className="bg-brand text-brand-foreground hover:bg-brand/90"
+        >
           <Save className="size-4" />
           {isSubmitting ? 'Kaydediliyor...' : 'Siparişi Kaydet'}
         </Button>

@@ -1,5 +1,6 @@
-import type { ComponentType, ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
+import { type ComponentType, type ReactNode, useEffect, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 
 import { useAuth } from '@/application/platform/iam/auth-context'
 import {
@@ -7,14 +8,28 @@ import {
   dashboardNavItem,
   footerNavItems,
   navGroups,
+  type NavGroup,
 } from '@/config/navigation'
 import { filterNavHref } from '@/domain/platform/iam/permission-policy'
 import type { KeplerRole } from '@/domain/platform/iam/types'
 import { cn } from '@/lib/utils'
 
+// Bir href'in "bölüm kökü" — /orders, /orders/new, /orders/123/edit hepsi
+// aynı gruba ait sayılsın diye ilk path segmentine indirgenir.
+function sectionRoot(href: string): string {
+  const segment = href.split('/').filter(Boolean)[0]
+  return segment ? `/${segment}` : '/'
+}
+
+function isGroupActive(group: NavGroup, pathname: string): boolean {
+  const currentRoot = sectionRoot(pathname)
+  return group.items.some((item) => sectionRoot(item.href) === currentRoot)
+}
+
 export function Sidebar() {
   const { user } = useAuth()
   const role = (user?.role ?? 'VIEWER') as KeplerRole
+  const location = useLocation()
 
   const visibleGroups = navGroups
     .map((group) => ({
@@ -24,6 +39,34 @@ export function Sidebar() {
     .filter((group) => group.items.length > 0)
 
   const visibleFooter = footerNavItems.filter((item) => filterNavHref(role, item.href))
+
+  // Başlangıçta sadece o an içinde bulunulan sayfanın grubu açık gelir.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const active = visibleGroups.find((g) => isGroupActive(g, location.pathname))
+    return new Set(active ? [active.title] : [])
+  })
+
+  // Sayfa değiştikçe (ör. dashboard'daki bir karttan doğrudan bir siparişe
+  // gidilince) ilgili grup görünür kalsın diye açık kümeye eklenir — daha
+  // önce kullanıcının manuel açtığı diğer gruplar kapanmaz.
+  useEffect(() => {
+    const active = visibleGroups.find((g) => isGroupActive(g, location.pathname))
+    if (!active) return
+    setOpenGroups((prev) => (prev.has(active.title) ? prev : new Set(prev).add(active.title)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
+
+  function toggleGroup(title: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(title)) {
+        next.delete(title)
+      } else {
+        next.add(title)
+      }
+      return next
+    })
+  }
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground print:hidden">
@@ -48,21 +91,46 @@ export function Sidebar() {
           </SidebarLink>
         ) : null}
 
-        {visibleGroups.map((group) => (
-          <div key={group.title} className="space-y-1">
-            <div className="flex items-center gap-2 px-3 py-1.5">
-              <group.icon className="size-3.5 shrink-0 text-sidebar-foreground/50" />
-              <p className="text-xs font-medium tracking-wider text-sidebar-foreground/50 uppercase">
-                {group.title}
-              </p>
+        {visibleGroups.map((group) => {
+          const isOpen = openGroups.has(group.title)
+          return (
+            <div key={group.title} className="space-y-1">
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.title)}
+                aria-expanded={isOpen}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left transition-colors hover:bg-sidebar-accent/40"
+              >
+                <group.icon className="size-3.5 shrink-0 text-sidebar-brand/80" />
+                <p className="flex-1 text-xs font-medium tracking-wider text-sidebar-foreground/50 uppercase">
+                  {group.title}
+                </p>
+                <ChevronRight
+                  className={cn(
+                    'size-3.5 shrink-0 text-sidebar-foreground/40 transition-transform duration-200',
+                    isOpen && 'rotate-90',
+                  )}
+                />
+              </button>
+              <div
+                className={cn(
+                  'grid transition-[grid-template-rows] duration-200 ease-in-out',
+                  isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+                )}
+                aria-hidden={!isOpen}
+                inert={!isOpen}
+              >
+                <div className="space-y-1 overflow-hidden">
+                  {group.items.map((item) => (
+                    <SidebarSubLink key={item.href} href={item.href}>
+                      {item.title}
+                    </SidebarSubLink>
+                  ))}
+                </div>
+              </div>
             </div>
-            {group.items.map((item) => (
-              <SidebarSubLink key={item.href} href={item.href}>
-                {item.title}
-              </SidebarSubLink>
-            ))}
-          </div>
-        ))}
+          )
+        })}
       </nav>
 
       <div className="border-t border-sidebar-border px-3 py-4">
@@ -89,10 +157,10 @@ function SidebarLink({ href, icon: Icon, children }: SidebarLinkProps) {
       end={href === '/dashboard'}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+          'flex items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm font-medium transition-colors',
           isActive
-            ? 'bg-sidebar-accent text-white'
-            : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-white',
+            ? 'border-sidebar-brand bg-sidebar-accent text-white'
+            : 'border-transparent text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-white',
         )
       }
     >
@@ -109,10 +177,10 @@ function SidebarSubLink({ href, children }: { href: string; children: ReactNode 
       end
       className={({ isActive }) =>
         cn(
-          'block rounded-md py-2 pr-3 pl-9 text-sm transition-colors',
+          'block rounded-md border-l-2 py-2 pr-3 pl-9 text-sm transition-colors',
           isActive
-            ? 'bg-sidebar-accent font-medium text-white'
-            : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-white',
+            ? 'border-sidebar-brand bg-sidebar-accent font-medium text-white'
+            : 'border-transparent text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-white',
         )
       }
     >
