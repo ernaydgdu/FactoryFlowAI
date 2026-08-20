@@ -9,6 +9,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
+      // html2pdf.js'in kullandığı html2canvas, Tailwind v4'ün oklch() renk
+      // fonksiyonunu ayrıştıramıyor - oklch/oklab/lab/lch destekli fork ile değiştiriyoruz.
+      html2canvas: 'html2canvas-pro',
     },
   },
   build: {

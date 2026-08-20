@@ -858,6 +858,7 @@ export type WorkOrderBOMLine = {
   plannedNeed: number
   unitPrice: number | null
   lineCost: number | null
+  supplierName: string | null
 }
 
 export type WorkOrderPackingList = {
@@ -873,6 +874,7 @@ export type WorkOrderDetail = ApiWorkOrder & {
     buyerName: string
     productName: string
     shipmentDate: string
+    createdAt: string
   }
   bomItems: WorkOrderBOMLine[]
   colorSizes: ApiOrderColorSize[]

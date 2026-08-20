@@ -254,6 +254,21 @@ export class WorkOrdersService {
     return result;
   }
 
+  // Bir malzeme adının siparişteki Material kayıtlarından eşleşen ilk
+  // tedarikçi adını döner (eşleşme yoksa null).
+  private buildSupplierMap(
+    materials: { materialName: string; supplierName: string }[],
+  ): Map<string, string> {
+    const result = new Map<string, string>();
+    for (const m of materials) {
+      const key = m.materialName.trim().toLocaleLowerCase('tr-TR');
+      if (!result.has(key)) {
+        result.set(key, m.supplierName);
+      }
+    }
+    return result;
+  }
+
   async getWorkOrderDetail(id: number, tenantId?: string) {
     const workOrder = await this.findOrThrow(
       () =>
@@ -287,16 +302,17 @@ export class WorkOrdersService {
       ]);
 
     const priceByName = this.buildAvgPriceMap(materials);
+    const supplierByName = this.buildSupplierMap(materials);
 
     const bomLines = bomItems.map((item) => {
       const plannedNeed =
         workOrder.plannedQuantity *
         item.unitConsumption *
         (1 + item.wastagePercent / 100);
-      const unitPrice =
-        priceByName.get(item.materialName.trim().toLocaleLowerCase('tr-TR')) ??
-        null;
+      const key = item.materialName.trim().toLocaleLowerCase('tr-TR');
+      const unitPrice = priceByName.get(key) ?? null;
       const lineCost = unitPrice != null ? plannedNeed * unitPrice : null;
+      const supplierName = supplierByName.get(key) ?? null;
       return {
         id: item.id,
         materialName: item.materialName,
@@ -307,6 +323,7 @@ export class WorkOrdersService {
         plannedNeed,
         unitPrice,
         lineCost,
+        supplierName,
       };
     });
 
@@ -400,6 +417,7 @@ export class WorkOrdersService {
         buyerName: order.buyerName,
         productName: order.productName,
         shipmentDate: order.shipmentDate,
+        createdAt: order.createdAt,
       },
       bomItems: bomLines,
       colorSizes,
