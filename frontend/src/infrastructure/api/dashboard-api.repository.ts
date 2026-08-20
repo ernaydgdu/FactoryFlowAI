@@ -91,18 +91,6 @@ export async function fetchSubcontractorPerformance(): Promise<SubcontractorPerf
   return data
 }
 
-export async function fetchAiAdvice(): Promise<{ advice: string }> {
-  try {
-    const { data } = await api.post<{ advice: string }>('/dashboard/ai-advice')
-    return data
-  } catch (err) {
-    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
-      throw new Error(err.response.data.message)
-    }
-    throw err
-  }
-}
-
 export async function fetchAskQuestion(question: string): Promise<{ answer: string }> {
   try {
     const { data } = await api.post<{ answer: string }>('/dashboard/ask', { question })

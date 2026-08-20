@@ -76,16 +76,6 @@ export class DashboardController {
     return this.analyticsService.getSubcontractorPerformance(scope);
   }
 
-  @Post('ai-advice')
-  async getAiAdvice(
-    @CurrentUser() user: JwtPayloadUser,
-    @Query('tenantId') tenantId?: string,
-  ) {
-    const scope = user.role === 'ADMIN' ? tenantId : user.tenantId;
-    const advice = await this.chatAssistantService.getAiAdvice(scope);
-    return { advice };
-  }
-
   @Post('ask')
   async ask(
     @CurrentUser() user: JwtPayloadUser,

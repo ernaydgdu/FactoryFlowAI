@@ -1,10 +1,8 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { Sparkles } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
 import { AiAdvisorChat } from '@/components/dashboard/AiAdvisorChat'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -13,7 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
-  fetchAiAdvice,
   fetchDashboard,
   fetchDashboardAlerts,
   fetchQualitySummary,
@@ -45,8 +42,6 @@ export function DashboardPage() {
     queryKey: applicationQueryKeys.dashboardSummary.alerts(),
     queryFn: fetchDashboardAlerts,
   })
-
-  const aiAdviceMutation = useMutation({ mutationFn: fetchAiAdvice })
 
   const qualitySummaryQuery = useQuery({
     queryKey: applicationQueryKeys.dashboardSummary.qualitySummary(),
@@ -163,7 +158,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-6">
+      <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Akıllı Uyarılar</CardTitle>
@@ -189,37 +184,6 @@ export function DashboardPage() {
             ) : (
               <p className="text-sm text-muted-foreground">Şu anda aktif uyarı yok.</p>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">AI Danışman</CardTitle>
-            <CardDescription>Yapay zeka destekli üretim önerileri</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button
-              size="sm"
-              onClick={() => aiAdviceMutation.mutate()}
-              disabled={aiAdviceMutation.isPending}
-            >
-              <Sparkles className="size-4" />
-              {aiAdviceMutation.isPending ? 'Analiz ediliyor...' : 'AI Danışman'}
-            </Button>
-
-            {aiAdviceMutation.isError ? (
-              <p className="text-sm text-destructive">
-                {aiAdviceMutation.error instanceof Error
-                  ? aiAdviceMutation.error.message
-                  : 'Öneri alınamadı.'}
-              </p>
-            ) : null}
-
-            {aiAdviceMutation.data ? (
-              <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3 text-sm">
-                {aiAdviceMutation.data.advice}
-              </div>
-            ) : null}
           </CardContent>
         </Card>
 

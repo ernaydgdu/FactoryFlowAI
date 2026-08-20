@@ -1,5 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import Anthropic from '@anthropic-ai/sdk';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AlertsService } from './alerts.service';
 import { AnalyticsService } from './analytics.service';
@@ -314,76 +313,6 @@ export class ChatAssistantService {
     private alertsService: AlertsService,
     private analyticsService: AnalyticsService,
   ) {}
-
-  async getAiAdvice(tenantId?: string): Promise<string> {
-    const orders = await this.prisma.order.findMany({
-      where: tenantId ? { tenantId } : undefined,
-      include: { materials: true },
-    });
-
-    const alerts = await this.alertsService.getAlerts(tenantId);
-
-    const { start, end } = todayRangeUTC();
-    const todayProductionEntries = await this.prisma.productionEntry.findMany({
-      where: {
-        date: { gte: start, lt: end },
-        ...(tenantId ? { order: { tenantId } } : {}),
-      },
-    });
-
-    const erpData = {
-      orders: orders.map((order) => ({
-        orderNo: order.orderNo,
-        buyerName: order.buyerName,
-        productName: order.productName,
-        totalQuantity: order.totalQuantity,
-        shipmentDate: order.shipmentDate,
-        status: order.status,
-        materials: order.materials.map((material) => ({
-          materialName: material.materialName,
-          materialType: material.materialType,
-          supplierName: material.supplierName,
-          orderedQuantity: material.orderedQuantity,
-          expectedArrival: material.expectedArrival,
-          arrivedQuantity: material.arrivedQuantity,
-          status: material.status,
-        })),
-      })),
-      alerts: alerts.map((alert) => ({
-        severity: alert.severity,
-        message: alert.message,
-      })),
-      todaysProduction: todayProductionEntries.map((entry) => ({
-        stage: entry.stage,
-        quantity: entry.quantity,
-      })),
-    };
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new InternalServerErrorException(
-        'ANTHROPIC_API_KEY tanımlı değil.',
-      );
-    }
-
-    const anthropic = new Anthropic({ apiKey });
-
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system:
-        'Sen bir tekstil üretim danışmanısın. Verilen ERP verilerini analiz edip Türkçe olarak kısa ve net öneriler ver.',
-      messages: [
-        {
-          role: 'user',
-          content: `Aşağıdaki tekstil üretim ERP verilerini analiz et ve kısa, net öneriler sun:\n\n${JSON.stringify(erpData, null, 2)}`,
-        },
-      ],
-    });
-
-    const textBlock = response.content.find((block) => block.type === 'text');
-    return textBlock?.type === 'text' ? textBlock.text : '';
-  }
 
   async answerQuestion(question: string, tenantId?: string): Promise<string> {
     const { intentId, clarification } = pickBestIntent(
