@@ -1782,6 +1782,75 @@ export const TEXTILE_KNOWLEDGE_LIBRARY: KnowledgeCard[] = [
     icerik:
       "Kumaşın üretime alınmadan veya sevkiyat öncesi kalite/performans standartlarına uygunluğunu doğrulamak için yapılan başlıca laboratuvar test yöntemleri şunlardır: Renk Haslığı (Colorfastness) Testleri — kumaşın rengini koruma kapasitesini ölçer; yıkama haslığı, sürtme haslığı (crocking — kuru ve yaş sürtmede boyanın diğer yüzeye bulaşıp bulaşmadığını ölçer), ışık haslığı ve ter haslığı gibi alt türleri vardır. Çekme/Büzülme Testi (Shrinkage Test) — kumaşın yıkama ve kurutma sonrası boyutsal değişimini ölçer; hazır giyimde genellikle %3-5 arası tolerans kabul edilir, bu değerin üzerindeki büzülme kalıp ölçülerinde sapmaya yol açar. Kopma Mukavemeti (Tensile Strength) — kumaşın boyuna ve enine yönde çekme kuvvetine dayanımını ölçer. Yırtılma Mukavemeti (Tear Strength) — kumaşın yırtılmaya karşı direncini ölçer. Boncuklanma/Pilling Testi — kumaş yüzeyinin sürtünme sonucu tüylenip küçük top/boncuk (pill) oluşturma eğilimini ölçer, genellikle Martindale test cihazıyla belirli tur sayısı sonunda görsel olarak 1-5 arası puanlanır (5 en iyi). Nefes Alabilirlik ve Su Geçirmezlik Testleri — özellikle outdoor ve spor kumaşlarında kumaşın hava/nem geçirgenliği ile su itme/geçirmezlik performansını ölçer. pH Testi — kumaşın asit-baz dengesini ölçer, cilt güvenliği açısından önemlidir ve OEKO-TEX Standard 100 kapsamında da test edilen bir parametredir. Bu testler genellikle SGS, Intertek, Bureau Veritas gibi bağımsız akredite laboratuvarlarda yapılır ve sonuçlar bir test raporu olarak buyer'a sunulur; testten geçemeyen kumaş partisi üretime alınmadan önce tedarikçiye iade edilir veya reddedilir; bu nedenle büyük hacimli siparişlerde üretime başlamadan önce kumaşın laboratuvar onayının alınması, sonradan yaşanacak toplu iade/ret riskini önler.",
   },
+  {
+    id: 'iplik-numaralandirma-sistemleri',
+    baslik: 'İplik Numaralandırma Sistemleri (Ne, Nm, Tex, Denye)',
+    kategori: 'kumas-bilgisi',
+    anahtarKelimeler: [
+      'iplik numarası',
+      'iplik numaralandırma',
+      'ne',
+      'nm',
+      'tex',
+      'denye',
+      'denier',
+      'metrik numara',
+      'pamuk numarası',
+      'ipliğin kalınlığı',
+    ],
+    icerik:
+      "İplik kalınlığını ifade etmek için sektörde birkaç farklı numaralandırma sistemi kullanılır. Ne (İngiliz pamuk numarası), pamuk ipliğinde en yaygın kullanılan sistemdir; belirli bir ağırlıktaki iplikte kaç adet standart uzunluk birimi olduğunu gösterir (dolaylı/indirekt sistem). Nm (metrik numara), Avrupa'da yaygın kullanılan bir başka dolaylı sistemdir, 1 kilogram ipliğin kaç kilometre uzunluğunda olduğunu ifade eder. Tex ve Denye ise doğrudan (direkt) sistemlerdir ve genellikle sentetik/filament ipliklerde (polyester, naylon vb.) kullanılır; Tex, 1000 metre ipliğin gram cinsinden ağırlığını, Denye ise 9000 metre ipliğin gram cinsinden ağırlığını gösterir. Bu dört sistem arasındaki en kritik ve karışıklığa yol açabilecek fark, sayı büyüklüğü ile iplik kalınlığı arasındaki ters ilişkidir: Ne ve Nm (dolaylı/indirekt) sistemlerinde sayı büyüdükçe iplik İNCELİR (ör. Ne 30 ipliği Ne 10 ipliğinden daha incedir), çünkü aynı ağırlıkta daha fazla uzunluk birimi sığdığı anlamına gelir. Tex ve Denye (doğrudan/direkt) sistemlerinde ise tam tersine sayı büyüdükçe iplik KALINLAŞIR, çünkü sabit uzunluktaki ipliğin ağırlığı artmaktadır. Bu ters ilişki nedeniyle farklı sistemler arası karşılaştırma yapılırken dikkatli olunmalı, gerekirse tümü ortak bir ara birime (genellikle Tex) çevrilerek kıyaslanmalıdır.",
+  },
+  {
+    id: 'oee-genel-ekipman-verimliligi',
+    baslik: 'OEE (Genel Ekipman Verimliliği) Nedir?',
+    kategori: 'uretim-planlama',
+    anahtarKelimeler: [
+      'oee',
+      'genel ekipman verimliliği',
+      'ekipman verimliliği',
+      'availability',
+      'performance',
+      'quality',
+      'kullanılabilirlik',
+      'performans',
+      'kalite oranı',
+    ],
+    icerik:
+      'OEE (Overall Equipment Effectiveness — Genel Ekipman Verimliliği), bir üretim hattının veya makinenin gerçek verimliliğini tek bir yüzde değerinde özetleyen, yalın üretimin temel performans göstergelerinden biridir. Üç bileşenin çarpımından oluşur: 1) Kullanılabilirlik (Availability) — planlanan üretim süresinin, duruşlar (arıza, ayar, bekleme) düşüldükten sonra fiilen çalışılabilen süreye oranıdır. 2) Performans (Performance) — fiilen çalışılan sürede, ideal hızla üretilebilecek miktara kıyasla gerçekte ne kadar üretildiğini gösterir (yavaşlamalar, küçük duruşlar bu oranı düşürür). 3) Kalite (Quality) — üretilen toplam miktarın ne kadarının ilk seferde hatasız (iyi) çıktığını gösterir. OEE = Kullanılabilirlik × Performans × Kalite formülüyle hesaplanır. Dünya standardında "iyi" veya "world class" kabul edilen OEE değeri genellikle %85 ve üzeri olarak kabul edilir; bu seviyeye ulaşan işletmeler son derece azdır. Tekstil ve konfeksiyon sektöründe ise makine/hat çeşitliliği, sık model değişimi ve manuel operasyonların yoğunluğu nedeniyle tipik OEE değerleri genellikle %60-75 aralığındadır. OEE\'nin düşük çıkması hangi bileşenin (kullanılabilirlik, performans veya kalite) sorunlu olduğunu ayrıştırarak iyileştirme çalışmalarının doğru alana odaklanmasını sağlar.',
+  },
+  {
+    id: 'basabas-noktasi-analizi',
+    baslik: 'Başabaş Noktası (Break-Even) Analizi',
+    kategori: 'maliyet',
+    anahtarKelimeler: [
+      'başabaş noktası',
+      'basabas noktasi',
+      'break even',
+      'break-even',
+      'sabit gider',
+      'değişken gider',
+      'kâra geçiş',
+      'zarar etmeme',
+    ],
+    icerik:
+      'Başabaş noktası (break-even point), bir işletmenin veya bir siparişin ne toplam kâr ne de toplam zarar ettiği, gelir ile giderlerin birbirine eşit olduğu üretim/satış miktarıdır. Hesaplama için giderlerin sabit ve değişken olarak ayrıştırılması gerekir: Sabit giderler (fixed costs) üretim miktarından bağımsız olarak oluşan giderlerdir (kira, sabit personel maaşları, makine amortismanı vb.); değişken giderler (variable costs) ise üretilen her birim için ayrı ayrı oluşan giderlerdir (hammadde, birim başına işçilik vb.). Başabaş noktası şu formülle hesaplanır: Başabaş Adedi = Sabit Giderler / (Birim Satış Fiyatı − Birim Değişken Gider). Üretim planlamasında başabaş noktası analizi kritik öneme sahiptir çünkü bir siparişin kaç adetten sonra kâra geçeceğini net biçimde gösterir; bu sayının altında kalan bir üretim miktarı işletmeyi zarara sokar, üzerindeki her ek adet ise doğrudan kâra katkı sağlar. Özellikle küçük hacimli veya numune maliyeti yüksek siparişlerde, sipariş kabul edilmeden önce başabaş noktasının sipariş miktarının altında kalıp kalmadığının kontrol edilmesi önerilir.',
+  },
+  {
+    id: 'boya-recetesi-owf',
+    baslik: 'Boya Reçetesi ve %OWF Kavramı',
+    kategori: 'kimya-boyama',
+    anahtarKelimeler: [
+      'boya reçetesi',
+      'boya miktarı',
+      'owf',
+      'on weight of fabric',
+      'boyar madde miktarı',
+      'boyama reçetesi',
+    ],
+    icerik:
+      '%OWF ("on weight of fabric" — kumaş ağırlığı üzerinden), boya reçetelerinde boyar madde miktarını ifade etmek için kullanılan standart endüstri terimidir; boyanacak kumaşın kuru ağırlığının belirli bir yüzdesi kadar boyar madde kullanılacağı anlamına gelir. Örneğin %1 owf, 1 kg kumaş için 10 gram boyar madde (1 kg × %1 = 0,01 kg = 10 g) kullanılacağı anlamına gelir. Boya reçetesi hazırlarken dikkat edilmesi gereken başlıca noktalar şunlardır: Kumaşın kuru ağırlığının doğru tartılması (nem oranı sonucu saptırabilir), hedeflenen renk tonuna göre doğru %owf oranının ve boyar madde tipinin (reaktif, dispers, asit vb. — kumaşın lif cinsine uygun) seçilmesi, banyo oranı (kumaş ağırlığına karşılık kullanılan su miktarı) ve sıcaklık/süre profilinin boyar madde üreticisinin teknik föyüne uygun ayarlanması, ve parti farklılıklarını (batch-to-batch) önlemek için her üretimde aynı reçete ve prosesin tutarlı biçimde uygulanmasıdır. Reçetede küçük bir hata (yanlış %owf, yanlış banyo oranı) ton farkına (renk tutmama) yol açabilir ve tüm partinin yeniden boyanmasını (rework) gerektirebilir — bu da hem malzeme hem zaman kaybı anlamına gelir.',
+  },
 ];
 
 function tokenize(text: string): string[] {

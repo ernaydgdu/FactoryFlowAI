@@ -31,9 +31,12 @@ export function OrderListPage() {
     if (searchFromUrl) {
       list.setSearch(searchFromUrl)
     }
-    // Sadece ilk yüklemede URL'den okunur — sonrasında arama kutusu kendi state'ini yönetir.
+    // Navbar'daki genel arama kutusu /orders?search=... ile yönlendirir - sayfa zaten
+    // /orders'taysa React Router bileşeni yeniden mount etmez, bu yüzden searchParams
+    // değiştiğinde de senkronize etmemiz gerekir (liste kendi arama kutusu URL'ye yazmaz,
+    // bu yüzden döngü oluşmaz).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [searchParams])
   const [pendingDelete, setPendingDelete] = useState<Order | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)

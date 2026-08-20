@@ -4,9 +4,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AlertsService } from './alerts.service';
 import { AnalyticsService } from './analytics.service';
 import {
+  calculateBreakEven,
+  calculateDyeRecipe,
   calculateFabricEfficiency,
   calculateFabricNeed,
+  calculateOEE,
+  calculateProfitMargin,
   calculateTopUsage,
+  convertYarnCount,
   FABRIC_WIDTH_ADVICE,
   findConsumptionRate,
   findProductType,
@@ -14,10 +19,16 @@ import {
   GOOD_EFFICIENCY_THRESHOLD,
   recommendCuttingOrderType,
   recommendWarehouseMethod,
+  WORLD_CLASS_OEE_THRESHOLD,
   type TeslimSekli,
+  type YarnCountUnit,
 } from '../knowledge/textile-knowledge';
 import { searchKnowledgeLibrary } from '../knowledge/textile-library';
 import { computeCompletionForecast } from '../orders/forecast.util';
+import {
+  computeExpectedProgress,
+  isWithinWorkday,
+} from '../common/line-pace.util';
 import { normalizeTr } from '../common/text-match.util';
 import { pickBestIntent, type IntentDefinition } from './intent-matcher.util';
 import {
@@ -35,6 +46,56 @@ type OrderLookup = {
   order: OrderWithMaterials | null;
   clarification: string | null;
 };
+
+const YARN_UNIT_NAMES: Record<YarnCountUnit, string> = {
+  NE: 'Ne',
+  NM: 'Nm',
+  TEX: 'Tex',
+  DENYE: 'Denye',
+};
+
+type YarnConversionQuery = {
+  value: number;
+  fromUnit: YarnCountUnit;
+  toUnit: YarnCountUnit;
+};
+
+// "30 Ne kaç Tex" gibi sorulardan değer + kaynak birim + hedef birimi
+// çıkarır. Kaynak birim, sayının HEMEN ardından (sadece boşlukla ayrılmış)
+// gelen bir birim kısaltmasıdır — bu katılık, "1040 ne durumda" gibi
+// alakasız sorularda "ne" kelimesinin yanlışlıkla birim sanılmasını önler
+// (böyle durumlarda ikinci bir birim kelimesi bulunamayacağı için sonuç
+// zaten null döner).
+function extractYarnConversionQuery(
+  question: string,
+): YarnConversionQuery | null {
+  const sourceMatch = question.match(
+    /(\d+(?:[.,]\d+)?)\s*(ne|nm|tex|denye)\b/i,
+  );
+  if (!sourceMatch || sourceMatch.index === undefined) return null;
+
+  const value = parseFloat(sourceMatch[1].replace(',', '.'));
+  const fromUnit = sourceMatch[2].toUpperCase() as YarnCountUnit;
+
+  const afterText = question.slice(sourceMatch.index + sourceMatch[0].length);
+  const targetMatch = afterText.match(/\b(ne|nm|tex|denye)\b/i);
+  if (!targetMatch) return null;
+
+  const toUnit = targetMatch[1].toUpperCase() as YarnCountUnit;
+  return { value, fromUnit, toUnit };
+}
+
+// Hesaplama intent'lerinin (OEE, başabaş noktası, kâr marjı, boya reçetesi)
+// salt tanım sorularıyla ("OEE nedir?") çakışmaması için: soru açıkça
+// "hesapla" içermiyorsa, en az beklenen sayıda değer geçmesi gerekir.
+// Aksi halde soru bilgi kütüphanesindeki tanım kartına düşer.
+function hasCalculationTrigger(
+  question: string,
+  requiredNumberCount: number,
+): boolean {
+  if (/hesapla/i.test(question)) return true;
+  return extractNumbers(question).length >= requiredNumberCount;
+}
 
 // Orijinal if-else zincirindeki sıra korunur — eşit (skor 1) çakışmalar bu
 // sıraya göre sessizce çözülür (bkz. intent-matcher.util.ts).
@@ -172,6 +233,77 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
     id: 'productionStatus',
     label: 'sipariş üretim durumu',
     clauses: [[['durum', 'ne durumda', 'vaziyet', 'ne aşamada']]],
+  },
+  {
+    id: 'yarnConversion',
+    label: 'iplik numaralandırma birim çevrimi',
+    clauses: [[['ne', 'nm', 'tex', 'denye']]],
+    gate: (q) => extractYarnConversionQuery(q) !== null,
+  },
+  {
+    // İkinci (tek gruplu) kloz, sayı bazlı tetiklemeyi (gate) kapsar; birinci
+    // kloz "hesapla" kelimesi de geçtiğinde daha yüksek skorla eşleşerek bu
+    // intent'in, gevşek/kelime-sırasız eşleşen 'unitCost' gibi diğer
+    // intent'lerle (ör. "... maliyet ... hesapla" içeren sorularla) skor
+    // çakışmasında öne çıkmasını sağlar.
+    id: 'oeeCalculation',
+    label: 'OEE (genel ekipman verimliliği) hesaplama',
+    clauses: [
+      [
+        ['oee', 'genel ekipman verimliliği', 'ekipman verimliliği'],
+        ['hesapla', 'hesaplama'],
+      ],
+      [['oee', 'genel ekipman verimliliği', 'ekipman verimliliği']],
+    ],
+    gate: (q) => hasCalculationTrigger(q, 6),
+  },
+  {
+    id: 'breakEvenCalculation',
+    label: 'başabaş noktası hesaplama',
+    clauses: [
+      [
+        ['başabaş', 'basabas', 'break even', 'break-even'],
+        ['hesapla', 'hesaplama'],
+      ],
+      [['başabaş', 'basabas', 'break even', 'break-even']],
+    ],
+    gate: (q) => hasCalculationTrigger(q, 3),
+  },
+  {
+    id: 'profitMarginCalculation',
+    label: 'kâr marjı / kârlılık hesaplama',
+    clauses: [
+      [
+        ['kar marjı', 'kâr marjı', 'karlılık', 'kârlılık'],
+        ['hesapla', 'hesaplama'],
+      ],
+      [['kar marjı', 'kâr marjı', 'karlılık', 'kârlılık']],
+    ],
+    gate: (q) => hasCalculationTrigger(q, 2),
+  },
+  {
+    id: 'dyeRecipeCalculation',
+    label: 'boya reçetesi / boya miktarı hesaplama',
+    clauses: [
+      [
+        ['boya reçetesi', 'boya recetesi', 'boya miktarı'],
+        ['hesapla', 'hesaplama'],
+      ],
+      [['boya reçetesi', 'boya recetesi', 'boya miktarı']],
+    ],
+    gate: (q) => hasCalculationTrigger(q, 2),
+  },
+  {
+    id: 'leanProductionAdvice',
+    label: 'yalın üretim önerisi / israf analizi',
+    clauses: [
+      [
+        ['yalın üretim', 'yalin uretim'],
+        ['öneri', 'önerisi', 'analiz', 'analizi'],
+      ],
+      [['israf'], ['analiz', 'analizi']],
+    ],
+    gate: (q) => /\d{2,}/.test(q),
   },
 ];
 
@@ -327,6 +459,27 @@ export class ChatAssistantService {
         return this.answerProductionStatus(lookup.order);
       }
 
+      case 'yarnConversion':
+        return this.answerYarnConversion(question);
+
+      case 'oeeCalculation':
+        return this.answerOEECalculation(question);
+
+      case 'breakEvenCalculation':
+        return this.answerBreakEvenCalculation(question);
+
+      case 'profitMarginCalculation':
+        return this.answerProfitMarginCalculation(question);
+
+      case 'dyeRecipeCalculation':
+        return this.answerDyeRecipeCalculation(question);
+
+      case 'leanProductionAdvice': {
+        const lookup = await this.findOrderFromQuestion(question, tenantId);
+        if (lookup.clarification) return lookup.clarification;
+        return this.answerLeanProductionAdvice(lookup.order);
+      }
+
       default: {
         const libraryMatch = searchKnowledgeLibrary(question);
         if (libraryMatch) {
@@ -354,6 +507,12 @@ export class ChatAssistantService {
       '• Sipariş üretim durumu — örn: "1040 ne durumda?"',
       '• Sipariş onay durumu — örn: "1040 onay durumu" veya "1040 hangi aşamada?"',
       '• Onay bekleyen / kesime hazır siparişler — örn: "hangi siparişler onay bekliyor?" veya "kesime hazır siparişler"',
+      '• İplik numarası çevirme (Ne/Nm/Tex/Denye) — örn: "30 Ne kaç Tex eder?"',
+      '• OEE (genel ekipman verimliliği) hesaplama — örn: "480 30 5 2000 2100 2000 için OEE hesapla"',
+      '• Başabaş noktası hesaplama — örn: "10000 sabit gider, 15 satış fiyatı, 9 değişken gider için başabaş noktası hesapla"',
+      '• Kâr marjı hesaplama — örn: "10.76 satış fiyatı, 8.97 toplam maliyet için kâr marjı hesapla"',
+      '• Boya reçetesi hesaplama — örn: "50 kg kumaş, %2 owf için boya miktarı hesapla"',
+      '• Yalın üretim önerisi / israf analizi — örn: "1040 için yalın üretim önerisi"',
     ].join('\n');
   }
 
@@ -738,5 +897,225 @@ export class ChatAssistantService {
       .join(', ');
 
     return `${order.orderNo} siparişi (${order.totalQuantity} adet, durum: ${order.status}) üretim özeti — ${stageSummary}.`;
+  }
+
+  private answerYarnConversion(question: string): string {
+    const parsed = extractYarnConversionQuery(question);
+    if (!parsed) {
+      return 'İplik numarası çevirmek için değer ve birimleri belirtir misiniz? Örn: "30 Ne kaç Tex eder?" (desteklenen birimler: Ne, Nm, Tex, Denye)';
+    }
+
+    const { value, fromUnit, toUnit } = parsed;
+    const result = convertYarnCount(value, fromUnit, toUnit);
+
+    return `${value} ${YARN_UNIT_NAMES[fromUnit]} = ${result.toFixed(2)} ${YARN_UNIT_NAMES[toUnit]}.`;
+  }
+
+  private answerOEECalculation(question: string): string {
+    const numbers = extractNumbers(question);
+    if (numbers.length < 6) {
+      return 'OEE hesaplamak için şu 6 değeri sırayla belirtir misiniz: planlanan süre (dk), duruş süresi (dk), ideal hız (adet/dk), gerçekleşen üretim (adet), toplam üretim (adet), iyi üretim (adet). Örn: "480 30 5 2000 2100 2000 için OEE hesapla"';
+    }
+
+    const [
+      plannedMinutes,
+      downtimeMinutes,
+      idealRatePerMinute,
+      actualOutput,
+      totalOutput,
+      goodOutput,
+    ] = numbers;
+    const result = calculateOEE(
+      plannedMinutes,
+      downtimeMinutes,
+      idealRatePerMinute,
+      actualOutput,
+      totalOutput,
+      goodOutput,
+    );
+
+    const assessment =
+      result.oeePercent >= WORLD_CLASS_OEE_THRESHOLD
+        ? `dünya standardı "iyi" seviyenin (%${WORLD_CLASS_OEE_THRESHOLD}) üzerinde.`
+        : 'tekstilde tipik aralık olan %60-75 civarında veya altında.';
+
+    return `OEE: %${result.oeePercent.toFixed(1)} (Kullanılabilirlik: %${result.availabilityPercent.toFixed(1)} × Performans: %${result.performancePercent.toFixed(1)} × Kalite: %${result.qualityPercent.toFixed(1)}). Bu değer ${assessment}`;
+  }
+
+  private answerBreakEvenCalculation(question: string): string {
+    const numbers = extractNumbers(question);
+    if (numbers.length < 3) {
+      return 'Başabaş noktasını hesaplamak için şu 3 değeri sırayla belirtir misiniz: sabit giderler, birim satış fiyatı, birim değişken gider. Örn: "10000 sabit gider, 15 satış fiyatı, 9 değişken gider için başabaş noktası hesapla"';
+    }
+
+    const [fixedCosts, sellingPricePerUnit, variableCostPerUnit] = numbers;
+    const result = calculateBreakEven(
+      fixedCosts,
+      sellingPricePerUnit,
+      variableCostPerUnit,
+    );
+
+    if (!result.ok) {
+      return result.message;
+    }
+
+    return `Başabaş noktası: ${result.breakEvenUnits.toFixed(1)} adet. (Sabit giderler: ${fixedCosts} / (Satış fiyatı: ${sellingPricePerUnit} − Değişken gider: ${variableCostPerUnit})). Bu adedin altında zarar, üzerinde kâr edilir.`;
+  }
+
+  private answerProfitMarginCalculation(question: string): string {
+    const numbers = extractNumbers(question);
+    if (numbers.length < 2) {
+      return 'Kâr marjını hesaplamak için satış fiyatını ve toplam maliyeti belirtir misiniz? Örn: "10.76 satış fiyatı, 8.97 toplam maliyet için kâr marjı hesapla"';
+    }
+
+    const [sellingPrice, totalCost] = numbers;
+    const result = calculateProfitMargin(sellingPrice, totalCost);
+
+    return `Kâr: ${result.profit.toFixed(2)}, kâr marjı: %${result.marginPercent.toFixed(1)} (Satış fiyatı: ${sellingPrice} − Toplam maliyet: ${totalCost}, marj = kâr / satış fiyatı × 100).`;
+  }
+
+  private answerDyeRecipeCalculation(question: string): string {
+    const numbers = extractNumbers(question);
+    if (numbers.length < 2) {
+      return 'Boya reçetesi hesaplamak için kumaş ağırlığını (kg) ve hedeflenen %owf oranını belirtir misiniz? Örn: "50 kg kumaş, %2 owf için boya miktarı hesapla"';
+    }
+
+    const [fabricWeightKg, dyePercentOWF] = numbers;
+    const result = calculateDyeRecipe(fabricWeightKg, dyePercentOWF);
+
+    return `${fabricWeightKg} kg kumaş için %${dyePercentOWF} owf oranında gereken boya miktarı: ${result.dyeAmountGrams.toFixed(1)} gram (${(result.dyeAmountGrams / 1000).toFixed(3)} kg).`;
+  }
+
+  private async answerLeanProductionAdvice(
+    order: OrderWithMaterials | null,
+  ): Promise<string> {
+    if (!order) {
+      return 'Hangi sipariş için yalın üretim analizi yapmamı istediğinizi anlayamadım. Lütfen sipariş numarasını belirtin (örn: "1040 için yalın üretim önerisi").';
+    }
+
+    const issues: string[] = [];
+
+    const qualityEntries = await this.prisma.qualityEntry.findMany({
+      where: { orderId: order.id },
+    });
+    const totalChecked = qualityEntries.reduce(
+      (sum, entry) => sum + entry.checkedQty,
+      0,
+    );
+    if (totalChecked > 0) {
+      const totalRejected = qualityEntries.reduce(
+        (sum, entry) => sum + entry.rejected,
+        0,
+      );
+      const totalSecondQuality = qualityEntries.reduce(
+        (sum, entry) => sum + entry.secondQuality,
+        0,
+      );
+      const rejectionRate = (totalRejected / totalChecked) * 100;
+      const secondQualityRate = (totalSecondQuality / totalChecked) * 100;
+
+      if (rejectionRate > 5) {
+        issues.push(
+          `⚠️ Hatalı Üretim/Fire (Defects): Kalite kontrolde fire oranı %${rejectionRate.toFixed(1)} - kabul edilebilir sınırın (%5) üzerinde.`,
+        );
+      }
+      if (secondQualityRate > 5) {
+        issues.push(
+          `⚠️ Hatalı Üretim/Fire (Defects): 2. kalite oranı %${secondQualityRate.toFixed(1)} - normalin (%5) üzerinde, üretim sürecini kontrol edin.`,
+        );
+      }
+    }
+
+    const pendingStages = await this.prisma.approvalStage.findMany({
+      where: { orderId: order.id, status: 'PENDING' },
+    });
+    const todayStartMs = dateOnlyUTC(new Date());
+    const APPROVAL_STALLED_DAYS = 3;
+    for (const stage of pendingStages) {
+      const daysPending = daysBetweenUTC(
+        dateOnlyUTC(stage.createdAt),
+        todayStartMs,
+      );
+      if (daysPending > APPROVAL_STALLED_DAYS) {
+        const stageLabel =
+          APPROVAL_STAGE_LABEL[stage.stageType] ?? stage.stageType;
+        issues.push(
+          `⚠️ Bekleme (Waiting): ${stageLabel} onayı ${daysPending} gündür bekliyor - süreç tıkanmış olabilir.`,
+        );
+      }
+    }
+
+    const now = new Date();
+    if (isWithinWorkday(now)) {
+      const productionEntries = await this.prisma.productionEntry.findMany({
+        where: { orderId: order.id },
+      });
+      const lineNames = [
+        ...new Set(
+          productionEntries
+            .map((entry) => entry.lineNo)
+            .filter((lineNo): lineNo is string => !!lineNo),
+        ),
+      ];
+
+      if (lineNames.length > 0) {
+        const { start, end } = todayRangeUTC();
+        const lines = await this.prisma.productionLine.findMany({
+          where: { name: { in: lineNames } },
+        });
+        const todayLineEntries = await this.prisma.productionEntry.findMany({
+          where: { lineNo: { in: lineNames }, date: { gte: start, lt: end } },
+        });
+
+        for (const line of lines) {
+          const entries = todayLineEntries.filter(
+            (entry) => entry.lineNo === line.name,
+          );
+          if (entries.length === 0) continue;
+
+          const todayProduction = entries.reduce(
+            (sum, entry) => sum + entry.quantity,
+            0,
+          );
+          const expectedProgressByNow = computeExpectedProgress(
+            line.capacity,
+            now,
+          );
+          const onPace = todayProduction >= expectedProgressByNow;
+
+          if (!onPace) {
+            issues.push(
+              `⚠️ Bekleme (Waiting): ${line.name} hattı bugünkü hedefin gerisinde - beklenen ${expectedProgressByNow} adet, gerçekleşen ${todayProduction} adet.`,
+            );
+          }
+        }
+      }
+    }
+
+    const fasonShipments = await this.prisma.fasonShipment.findMany({
+      where: { orderId: order.id },
+    });
+    for (const shipment of fasonShipments) {
+      if (shipment.receivedQuantity == null || shipment.sentQuantity <= 0) {
+        continue;
+      }
+      const fireQuantity = Math.max(
+        0,
+        shipment.sentQuantity - shipment.receivedQuantity,
+      );
+      const fireRate = (fireQuantity / shipment.sentQuantity) * 100;
+      if (fireRate > 5) {
+        issues.push(
+          `⚠️ Hatalı Üretim/Fire (Defects): ${shipment.subcontractorName} atölyesinden dönen fason işçilikte fire oranı %${fireRate.toFixed(1)} - kabul edilebilir sınırın (%5) üzerinde.`,
+        );
+      }
+    }
+
+    const body =
+      issues.length > 0
+        ? issues.join('\n\n')
+        : '✓ Şu an belirgin bir israf tespit edilmedi.';
+
+    return `📊 ${order.orderNo} Yalın Üretim Analizi:\n\n${body}`;
   }
 }

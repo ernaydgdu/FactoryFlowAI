@@ -288,3 +288,140 @@ export function recommendCuttingOrderType(
 
 export const FABRIC_WIDTH_ADVICE =
   'Geniş kumaş enleri genelde daha verimli pastal imkânı sağlar çünkü küçük parçalar aralardan alınabilir.';
+
+// === 8. İPLİK NUMARALANDIRMA SİSTEMLERİ ARASI ÇEVRİM ===
+
+export type YarnCountUnit = 'NE' | 'NM' | 'TEX' | 'DENYE';
+
+function yarnUnitToTex(value: number, unit: YarnCountUnit): number {
+  switch (unit) {
+    case 'NE':
+      return 590.5 / value;
+    case 'NM':
+      return 1000 / value;
+    case 'DENYE':
+      return value / 9;
+    case 'TEX':
+      return value;
+  }
+}
+
+function texToYarnUnit(tex: number, unit: YarnCountUnit): number {
+  switch (unit) {
+    case 'NE':
+      return 590.5 / tex;
+    case 'NM':
+      return 1000 / tex;
+    case 'DENYE':
+      return tex * 9;
+    case 'TEX':
+      return tex;
+  }
+}
+
+// Önce Tex'e, sonra Tex'ten hedef birime çevirir. Ne/Nm sistemlerinde
+// sayı büyüdükçe iplik incelir; Tex/Denye'de sayı büyüdükçe iplik
+// kalınlaşır — bu yüzden ara birim olarak sabit (doğrusal) Tex kullanılır.
+export function convertYarnCount(
+  value: number,
+  fromUnit: YarnCountUnit,
+  toUnit: YarnCountUnit,
+): number {
+  if (fromUnit === toUnit) return value;
+  const tex = yarnUnitToTex(value, fromUnit);
+  return texToYarnUnit(tex, toUnit);
+}
+
+// === 9. OEE (GENEL EKİPMAN VERİMLİLİĞİ) ===
+
+// Dünya standardında "iyi" kabul edilen OEE değeri; tekstilde tipik
+// değerler genelde %60-75 aralığındadır.
+export const WORLD_CLASS_OEE_THRESHOLD = 85;
+
+export type OEEResult = {
+  availabilityPercent: number;
+  performancePercent: number;
+  qualityPercent: number;
+  oeePercent: number;
+};
+
+export function calculateOEE(
+  plannedMinutes: number,
+  downtimeMinutes: number,
+  idealRatePerMinute: number,
+  actualOutput: number,
+  totalOutput: number,
+  goodOutput: number,
+): OEEResult {
+  const operatingMinutes = plannedMinutes - downtimeMinutes;
+  const availability =
+    plannedMinutes > 0 ? operatingMinutes / plannedMinutes : 0;
+  const performanceRaw =
+    operatingMinutes > 0 && idealRatePerMinute > 0
+      ? actualOutput / (operatingMinutes * idealRatePerMinute)
+      : 0;
+  const performance = Math.min(1, performanceRaw);
+  const quality = totalOutput > 0 ? goodOutput / totalOutput : 0;
+  const oee = availability * performance * quality;
+
+  return {
+    availabilityPercent: availability * 100,
+    performancePercent: performance * 100,
+    qualityPercent: quality * 100,
+    oeePercent: oee * 100,
+  };
+}
+
+// === 10. BAŞABAŞ NOKTASI ANALİZİ ===
+
+export type BreakEvenResult =
+  { ok: true; breakEvenUnits: number } | { ok: false; message: string };
+
+export function calculateBreakEven(
+  fixedCosts: number,
+  sellingPricePerUnit: number,
+  variableCostPerUnit: number,
+): BreakEvenResult {
+  if (sellingPricePerUnit <= variableCostPerUnit) {
+    return {
+      ok: false,
+      message:
+        'Satış fiyatı birim değişken maliyetin üzerinde olmadığı için asla başabaşa ulaşılamaz.',
+    };
+  }
+
+  const breakEvenUnits =
+    fixedCosts / (sellingPricePerUnit - variableCostPerUnit);
+  return { ok: true, breakEvenUnits };
+}
+
+// === 11. KÂR MARJI ===
+
+export type ProfitMarginResult = {
+  profit: number;
+  marginPercent: number;
+};
+
+export function calculateProfitMargin(
+  sellingPrice: number,
+  totalCost: number,
+): ProfitMarginResult {
+  const profit = sellingPrice - totalCost;
+  const marginPercent = sellingPrice !== 0 ? (profit / sellingPrice) * 100 : 0;
+  return { profit, marginPercent };
+}
+
+// === 12. BOYA REÇETESİ (%OWF YÖNTEMİ) ===
+
+export type DyeRecipeResult = {
+  dyeAmountGrams: number;
+};
+
+// %owf ("on weight of fabric") — boyanacak kumaş ağırlığının yüzdesi
+// üzerinden hesaplanan basit reçete yöntemi.
+export function calculateDyeRecipe(
+  fabricWeightKg: number,
+  dyePercentOWF: number,
+): DyeRecipeResult {
+  return { dyeAmountGrams: fabricWeightKg * 10 * dyePercentOWF };
+}
