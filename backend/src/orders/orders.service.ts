@@ -1356,6 +1356,14 @@ export class OrdersService {
       },
     });
 
+    const fasonShipments = await this.prisma.fasonShipment.findMany({
+      where: { orderId },
+    });
+
+    const bomItemCount = await this.prisma.orderBOMItem.count({
+      where: { orderId },
+    });
+
     const productionByStage = PRODUCTION_STAGE_KEYS.reduce(
       (acc, stage) => {
         acc[stage] = order.productionEntries
@@ -1454,6 +1462,12 @@ export class OrdersService {
     const colorSizeMatches =
       order.colorSizes.length === 0 || colorSizeTotal === order.totalQuantity;
 
+    const pendingFasonShipments = fasonShipments.filter(
+      (s) => s.status === 'GONDERILDI' || s.status === 'KISMEN_DONDU',
+    );
+    const fasonComplete = pendingFasonShipments.length === 0;
+    const bomDefined = bomItemCount > 0;
+
     const missingItems: string[] = [];
     if (!approvalsComplete) missingItems.push('Onay süreci tamamlanmadı');
     if (!cuttingComplete)
@@ -1472,6 +1486,15 @@ export class OrdersService {
     if (!qualityChecked) missingItems.push('Kalite kontrolü yapılmadı');
     if (!colorSizeMatches)
       missingItems.push('Renk/beden dağılımı toplam miktarla eşleşmiyor');
+    if (!fasonComplete)
+      missingItems.push(
+        `Fason gönderimi tamamlanmadı (${pendingFasonShipments.length} gönderim hâlâ atölyede)`,
+      );
+
+    const warnings: string[] = [];
+    if (!bomDefined) {
+      warnings.push('Bu sipariş için BOM (Ürün Ağacı) tanımlanmamış');
+    }
 
     const readyToClose = missingItems.length === 0;
 
@@ -1483,8 +1506,11 @@ export class OrdersService {
       shipmentComplete,
       qualityChecked,
       colorSizeMatches,
+      fasonComplete,
+      bomDefined,
       readyToClose,
       missingItems,
+      warnings,
       alreadyClosed: order.closedAt != null,
       closedAt: order.closedAt,
       closedBy: order.closedBy,

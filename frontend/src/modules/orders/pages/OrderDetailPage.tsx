@@ -2826,7 +2826,16 @@ function OrderClosingPanel({ orderId }: { orderId: string }) {
             ok={checklist.colorSizeMatches}
             label="Renk/beden dağılımı toplam miktarla eşleşiyor"
           />
+          <ChecklistRow ok={checklist.fasonComplete} label="Fason Tamamlandı" />
         </div>
+
+        {checklist.warnings.length > 0 ? (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
+            {checklist.warnings.map((warning) => (
+              <p key={warning}>ℹ️ {warning}</p>
+            ))}
+          </div>
+        ) : null}
 
         {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
 

@@ -689,8 +689,11 @@ export type ClosingChecklist = {
   shipmentComplete: boolean
   qualityChecked: boolean
   colorSizeMatches: boolean
+  fasonComplete: boolean
+  bomDefined: boolean
   readyToClose: boolean
   missingItems: string[]
+  warnings: string[]
   alreadyClosed: boolean
   closedAt: string | null
   closedBy: string | null
