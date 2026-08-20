@@ -26,8 +26,7 @@ function buildCostBreakdown(
   planned: number | null,
   actual: number | null,
 ): CostBreakdown {
-  const variance =
-    planned != null && actual != null ? actual - planned : null;
+  const variance = planned != null && actual != null ? actual - planned : null;
   const variancePercent =
     variance != null && planned != null && planned !== 0
       ? (variance / planned) * 100
@@ -152,9 +151,7 @@ export class WorkOrdersService {
         productionLineId:
           data.producerType === 'INTERNAL' ? data.productionLineId : null,
         subcontractorName:
-          data.producerType === 'FASON'
-            ? data.subcontractorName?.trim()
-            : null,
+          data.producerType === 'FASON' ? data.subcontractorName?.trim() : null,
         plannedQuantity: data.plannedQuantity,
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
@@ -405,7 +402,13 @@ export class WorkOrdersService {
         looseQty: acc.looseQty + cs.looseQty,
         totalCartons: acc.totalCartons + (cs.totalCartons ?? 0),
       }),
-      { totalQty: 0, fullCartons: 0, lottedQty: 0, looseQty: 0, totalCartons: 0 },
+      {
+        totalQty: 0,
+        fullCartons: 0,
+        lottedQty: 0,
+        looseQty: 0,
+        totalCartons: 0,
+      },
     );
 
     return {
@@ -460,10 +463,7 @@ export class WorkOrdersService {
     );
     lines.push(row(['Ürün', data.order.productName]));
     lines.push(
-      row([
-        'EXF Tarihi',
-        data.order.shipmentDate.toISOString().slice(0, 10),
-      ]),
+      row(['EXF Tarihi', data.order.shipmentDate.toISOString().slice(0, 10)]),
     );
     lines.push(
       row([

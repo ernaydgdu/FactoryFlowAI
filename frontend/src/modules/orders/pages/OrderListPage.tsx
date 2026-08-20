@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import html2pdf from 'html2pdf.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
@@ -19,6 +20,14 @@ import type { Order, QuickFilter } from '../types'
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function formatReportDate(): string {
+  return new Date().toLocaleDateString('tr-TR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 export function OrderListPage() {
@@ -41,9 +50,11 @@ export function OrderListPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
-  const [pdfComingSoon, setPdfComingSoon] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
+  const [pdfError, setPdfError] = useState<string | null>(null)
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null)
+  const printListRef = useRef<HTMLDivElement>(null)
 
   const deleteMutation = useMutation({
     mutationFn: (order: Order) => deleteOrder(order.id),
@@ -105,8 +116,27 @@ export function OrderListPage() {
     }
   }
 
-  function handleExportPdf() {
-    setPdfComingSoon(true)
+  async function handleExportPdf() {
+    setPdfError(null)
+    if (!printListRef.current) return
+    setIsExportingPdf(true)
+    try {
+      await html2pdf()
+        .from(printListRef.current)
+        .set({
+          filename: `siparis-listesi-${todayIso()}.pdf`,
+          margin: [10, 10, 10, 10],
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+          pagebreak: { mode: ['css', 'avoid-all'], avoid: '.break-inside-avoid' },
+        })
+        .save()
+    } catch (err) {
+      setPdfError(err instanceof Error ? err.message : 'PDF oluşturma başarısız.')
+    } finally {
+      setIsExportingPdf(false)
+    }
   }
 
   const selectedOrders = list.allOrders.filter((o) => list.selectedIds.has(o.id))
@@ -174,9 +204,9 @@ export function OrderListPage() {
         </div>
       )}
 
-      {pdfComingSoon && (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-          PDF dışa aktarma yakında kullanıma sunulacak.
+      {pdfError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {pdfError}
         </div>
       )}
 
@@ -190,6 +220,7 @@ export function OrderListPage() {
             selectedCount={selectedCount}
             totalCount={list.totalCount}
             isExporting={isExporting}
+            isExportingPdf={isExportingPdf}
             onExportExcel={handleExportExcel}
             onExportPdf={handleExportPdf}
             onDeleteSelected={handleDeleteSelected}
@@ -246,6 +277,83 @@ export function OrderListPage() {
         onConfirm={handleConfirmBulkDelete}
         onCancel={() => setBulkDeleteConfirmOpen(false)}
       />
+
+      {/* PDF export için ekran dışına konumlandırılmış, yazdırılabilir liste görünümü */}
+      <div className="fixed top-0 left-[-9999px] w-[1100px]">
+        <div ref={printListRef} className="bg-white text-neutral-900">
+          <div className="flex items-center justify-between gap-4 border-b-2 border-neutral-800 px-6 py-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-wide text-neutral-900">
+                SİPARİŞ LİSTESİ RAPORU
+              </h1>
+              <p className="text-sm text-neutral-600">Rapor tarihi: {formatReportDate()}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <img src="/kepler-mountain-logo.svg" alt="Kepler" className="h-10 w-10" />
+              <span className="text-xl font-bold tracking-wide" style={{ color: '#7f1d1d' }}>
+                KEPLER
+              </span>
+            </div>
+          </div>
+
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                <th className="border border-neutral-300 bg-neutral-50 px-3 py-2 text-left">
+                  Sipariş No
+                </th>
+                <th className="border border-neutral-300 bg-neutral-50 px-3 py-2 text-left">
+                  Müşteri
+                </th>
+                <th className="border border-neutral-300 bg-neutral-50 px-3 py-2 text-left">
+                  Ürün
+                </th>
+                <th className="border border-neutral-300 bg-neutral-50 px-3 py-2 text-right">
+                  Miktar
+                </th>
+                <th className="border border-neutral-300 bg-neutral-50 px-3 py-2 text-left">
+                  EXF
+                </th>
+                <th className="border border-neutral-300 bg-neutral-50 px-3 py-2 text-left">
+                  Durum
+                </th>
+                <th className="border border-neutral-300 bg-neutral-50 px-3 py-2 text-left">
+                  Risk
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.filtered.length > 0 ? (
+                list.filtered.map((order) => (
+                  <tr key={order.id}>
+                    <td className="border border-neutral-300 px-3 py-2">{order.orderNo}</td>
+                    <td className="border border-neutral-300 px-3 py-2">{order.customer}</td>
+                    <td className="border border-neutral-300 px-3 py-2">{order.model}</td>
+                    <td className="border border-neutral-300 px-3 py-2 text-right tabular-nums">
+                      {order.totalQuantity.toLocaleString('tr-TR')}
+                    </td>
+                    <td className="border border-neutral-300 px-3 py-2">{order.exfDate}</td>
+                    <td className="border border-neutral-300 px-3 py-2">{order.productionStatus}</td>
+                    <td className="border border-neutral-300 px-3 py-2">
+                      {order.terminRisk ? 'Riskli' : '—'}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="border border-neutral-300 px-3 py-6 text-center text-neutral-500">
+                    Gösterilecek sipariş yok.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <p className="px-6 py-3 text-xs text-neutral-500">
+            Toplam {list.filtered.length} sipariş listelendi.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

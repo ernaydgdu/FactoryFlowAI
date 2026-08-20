@@ -93,10 +93,8 @@ export class WorkOrdersController {
     @Param('id', ParseIntPipe) id: number,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { csv, workOrderNo } = await this.workOrdersService.exportWorkOrderCsv(
-      id,
-      this.scopeFor(user),
-    );
+    const { csv, workOrderNo } =
+      await this.workOrdersService.exportWorkOrderCsv(id, this.scopeFor(user));
 
     const today = new Date().toISOString().slice(0, 10);
     res.set({

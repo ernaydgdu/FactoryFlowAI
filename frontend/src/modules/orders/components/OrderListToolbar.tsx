@@ -16,6 +16,7 @@ type OrderListToolbarProps = {
   selectedCount: number
   totalCount: number
   isExporting: boolean
+  isExportingPdf: boolean
   onExportExcel: () => void
   onExportPdf: () => void
   onDeleteSelected: () => void
@@ -27,6 +28,7 @@ export function OrderListToolbar({
   selectedCount,
   totalCount,
   isExporting,
+  isExportingPdf,
   onExportExcel,
   onExportPdf,
   onDeleteSelected,
@@ -48,14 +50,9 @@ export function OrderListToolbar({
             <FileSpreadsheet className="size-4" />
             {isExporting ? 'İndiriliyor...' : 'Excel'}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onExportPdf}
-            title="Yakında kullanıma sunulacak"
-          >
+          <Button variant="outline" size="sm" onClick={onExportPdf} disabled={isExportingPdf}>
             <FileText className="size-4" />
-            PDF
+            {isExportingPdf ? 'PDF oluşturuluyor...' : 'PDF'}
           </Button>
           {selectedCount > 0 ? (
             <Button variant="outline" size="sm" onClick={onDeleteSelected}>
