@@ -281,6 +281,88 @@ export function WorkOrderDetailPage() {
 
       <Card className="break-inside-avoid">
         <CardContent className="pt-6">
+          <p className="mb-3 text-sm font-semibold">Koli Dağılımı</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+                  <th className="px-3 py-2">Renk</th>
+                  <th className="px-3 py-2">Beden</th>
+                  <th className="px-3 py-2 text-right">Toplam Adet</th>
+                  <th className="px-3 py-2 text-right">Koli Başına Adet</th>
+                  <th className="px-3 py-2 text-right">Tam Koli</th>
+                  <th className="px-3 py-2 text-right">Lotlu Adet</th>
+                  <th className="px-3 py-2 text-right">Açık Adet</th>
+                  <th className="px-3 py-2 text-right">Toplam Koli</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.packingList.colorSizes.length > 0 ? (
+                  <>
+                    {data.packingList.colorSizes.map((cs, i) => (
+                      <tr key={`${cs.color}-${cs.size}-${i}`} className="border-b border-border/60">
+                        <td className="px-3 py-2">{cs.color}</td>
+                        <td className="px-3 py-2">{cs.size}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {cs.totalQty.toLocaleString('tr-TR')}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {cs.unitsPerCarton?.toLocaleString('tr-TR') ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {cs.fullCartons?.toLocaleString('tr-TR') ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {cs.lottedQty?.toLocaleString('tr-TR') ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {cs.looseQty.toLocaleString('tr-TR')}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {cs.totalCartons?.toLocaleString('tr-TR') ?? '—'}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="border-b border-border/60 font-semibold">
+                      <td className="px-3 py-2" colSpan={2}>
+                        Genel Toplam
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {data.packingList.grandTotal.totalQty.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="px-3 py-2" />
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {data.packingList.grandTotal.fullCartons.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {data.packingList.grandTotal.lottedQty.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {data.packingList.grandTotal.looseQty.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {data.packingList.grandTotal.totalCartons.toLocaleString('tr-TR')}
+                      </td>
+                    </tr>
+                  </>
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
+                      Bu sipariş için renk/beden dağılımı girilmemiş.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {data.packingList.colorSizes.length > 0 ? (
+            <p className="mt-3 text-xs text-muted-foreground">{data.packingList.note}</p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="break-inside-avoid">
+        <CardContent className="pt-6">
           <p className="mb-3 text-sm font-semibold">Maliyet Özeti</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

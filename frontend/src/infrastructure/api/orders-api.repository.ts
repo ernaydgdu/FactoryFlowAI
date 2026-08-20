@@ -860,6 +860,12 @@ export type WorkOrderBOMLine = {
   lineCost: number | null
 }
 
+export type WorkOrderPackingList = {
+  colorSizes: PackingListColorSize[]
+  grandTotal: PackingListGrandTotal
+  note: string
+}
+
 export type WorkOrderDetail = ApiWorkOrder & {
   order: {
     id: number
@@ -870,6 +876,7 @@ export type WorkOrderDetail = ApiWorkOrder & {
   }
   bomItems: WorkOrderBOMLine[]
   colorSizes: ApiOrderColorSize[]
+  packingList: WorkOrderPackingList
   costs: {
     fabric: WorkOrderCostBreakdown
     material: WorkOrderCostBreakdown

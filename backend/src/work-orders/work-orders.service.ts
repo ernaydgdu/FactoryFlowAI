@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { computeCartonBreakdown } from '../common/carton.util';
 import type {
   CreateWorkOrderDto,
   UpdateWorkOrderDto,
@@ -378,6 +379,18 @@ export class WorkOrdersService {
         ? (workOrder.subcontractorName ?? 'Bilinmiyor')
         : (productionLine?.name ?? 'Bilinmiyor');
 
+    const cartonBreakdown = colorSizes.map((cs) => computeCartonBreakdown(cs));
+    const cartonGrandTotal = cartonBreakdown.reduce(
+      (acc, cs) => ({
+        totalQty: acc.totalQty + cs.totalQty,
+        fullCartons: acc.fullCartons + (cs.fullCartons ?? 0),
+        lottedQty: acc.lottedQty + (cs.lottedQty ?? 0),
+        looseQty: acc.looseQty + cs.looseQty,
+        totalCartons: acc.totalCartons + (cs.totalCartons ?? 0),
+      }),
+      { totalQty: 0, fullCartons: 0, lottedQty: 0, looseQty: 0, totalCartons: 0 },
+    );
+
     return {
       ...workOrder,
       producerName,
@@ -390,6 +403,11 @@ export class WorkOrdersService {
       },
       bomItems: bomLines,
       colorSizes,
+      packingList: {
+        colorSizes: cartonBreakdown,
+        grandTotal: cartonGrandTotal,
+        note: `Not: Bu koli dağılımı siparişin tamamına aittir, bu iş emri planlanan adedi ${workOrder.plannedQuantity}/${order.totalQuantity} oranını temsil eder.`,
+      },
       costs: {
         fabric: buildCostBreakdown(plannedFabricCost, actualFabricCost),
         material: buildCostBreakdown(plannedMaterialCost, actualMaterialCost),
@@ -486,6 +504,47 @@ export class WorkOrdersService {
         ]),
       );
     }
+    lines.push('');
+
+    lines.push(
+      row([
+        'Renk',
+        'Beden',
+        'Toplam Adet',
+        'Koli Başına Adet',
+        'Tam Koli',
+        'Lotlu Adet',
+        'Açık Adet',
+        'Toplam Koli',
+      ]),
+    );
+    for (const cs of data.packingList.colorSizes) {
+      lines.push(
+        row([
+          cs.color,
+          cs.size,
+          String(cs.totalQty),
+          cs.unitsPerCarton != null ? String(cs.unitsPerCarton) : '—',
+          cs.fullCartons != null ? String(cs.fullCartons) : '—',
+          cs.lottedQty != null ? String(cs.lottedQty) : '—',
+          String(cs.looseQty),
+          cs.totalCartons != null ? String(cs.totalCartons) : '—',
+        ]),
+      );
+    }
+    lines.push(
+      row([
+        'TOPLAM',
+        '',
+        String(data.packingList.grandTotal.totalQty),
+        '',
+        String(data.packingList.grandTotal.fullCartons),
+        String(data.packingList.grandTotal.lottedQty),
+        String(data.packingList.grandTotal.looseQty),
+        String(data.packingList.grandTotal.totalCartons),
+      ]),
+    );
+    lines.push(row([data.packingList.note]));
     lines.push('');
 
     lines.push(
