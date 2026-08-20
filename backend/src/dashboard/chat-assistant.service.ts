@@ -28,6 +28,8 @@ import {
   computeExpectedProgress,
   isWithinWorkday,
 } from '../common/line-pace.util';
+import { computeFasonFireStats } from '../common/fason.util';
+import { isFabricMaterialType } from '../common/material-type.util';
 import { normalizeTr } from '../common/text-match.util';
 import { pickBestIntent, type IntentDefinition } from './intent-matcher.util';
 import {
@@ -660,7 +662,7 @@ export class ChatAssistantService {
 
     const fabricMaterials = order.materials.filter(
       (material) =>
-        material.materialType.toLocaleLowerCase('tr-TR') === 'kumaş' &&
+        isFabricMaterialType(material.materialType) &&
         material.unitPrice != null,
     );
 
@@ -1025,15 +1027,11 @@ export class ChatAssistantService {
       where: { orderId: order.id },
     });
     for (const shipment of fasonShipments) {
-      if (shipment.receivedQuantity == null || shipment.sentQuantity <= 0) {
-        continue;
-      }
-      const fireQuantity = Math.max(
-        0,
-        shipment.sentQuantity - shipment.receivedQuantity,
+      const { fireRate } = computeFasonFireStats(
+        shipment.sentQuantity,
+        shipment.receivedQuantity,
       );
-      const fireRate = (fireQuantity / shipment.sentQuantity) * 100;
-      if (fireRate > 5) {
+      if (fireRate != null && fireRate > 5) {
         issues.push(
           `⚠️ Hatalı Üretim/Fire (Defects): ${shipment.subcontractorName} atölyesinden dönen fason işçilikte fire oranı %${fireRate.toFixed(1)} - kabul edilebilir sınırın (%5) üzerinde.`,
         );

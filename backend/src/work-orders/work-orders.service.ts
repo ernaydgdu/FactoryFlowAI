@@ -5,15 +5,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { computeCartonBreakdown } from '../common/carton.util';
+import { isFabricMaterialType } from '../common/material-type.util';
 import type {
   CreateWorkOrderDto,
   UpdateWorkOrderDto,
 } from '../orders/dto/work-order.dto';
-
-function isFabricType(materialType: string): boolean {
-  const normalized = materialType.toLocaleLowerCase('tr-TR');
-  return normalized === 'kumas' || normalized === 'kumaş';
-}
 
 type CostBreakdown = {
   planned: number | null;
@@ -324,9 +320,11 @@ export class WorkOrdersService {
       };
     });
 
-    const fabricLines = bomLines.filter((l) => isFabricType(l.materialType));
+    const fabricLines = bomLines.filter((l) =>
+      isFabricMaterialType(l.materialType),
+    );
     const accessoryLines = bomLines.filter(
-      (l) => !isFabricType(l.materialType),
+      (l) => !isFabricMaterialType(l.materialType),
     );
 
     const plannedFabricCost = fabricLines.some((l) => l.lineCost != null)
@@ -359,7 +357,7 @@ export class WorkOrdersService {
 
     const avgFabricPrice = (() => {
       const fabricMaterials = materials.filter((m) =>
-        isFabricType(m.materialType),
+        isFabricMaterialType(m.materialType),
       );
       const priced = fabricMaterials.filter((m) => m.unitPrice != null);
       if (priced.length === 0) return null;
@@ -374,7 +372,7 @@ export class WorkOrdersService {
     // Gerçekleşen malzeme (aksesuar) maliyeti iş emri bazında ayrıştırılamadığı
     // için sipariş genelinde hesaplanır (bkz. dönen `materialCostNote`).
     const actualMaterialCost = materials
-      .filter((m) => !isFabricType(m.materialType))
+      .filter((m) => !isFabricMaterialType(m.materialType))
       .reduce((sum, m) => sum + m.arrivedQuantity * (m.unitPrice ?? 0), 0);
 
     const productionEntries = await this.prisma.productionEntry.findMany({

@@ -12,6 +12,8 @@ import {
   findProductType,
 } from '../knowledge/textile-knowledge';
 import { computeCartonBreakdown } from '../common/carton.util';
+import { computeFasonFireStats } from '../common/fason.util';
+import { isFabricMaterialType } from '../common/material-type.util';
 import {
   computeCompletionForecast,
   type CompletionForecast,
@@ -291,8 +293,8 @@ export class OrdersService {
       wastagePercent: number;
     }[];
   }): OrderAiSuggestion {
-    const fabricBomItems = (order.bomItems ?? []).filter(
-      (item) => item.materialType.toLocaleLowerCase('tr-TR') === 'kumas',
+    const fabricBomItems = (order.bomItems ?? []).filter((item) =>
+      isFabricMaterialType(item.materialType),
     );
 
     const match = findProductType(order.productName);
@@ -322,9 +324,8 @@ export class OrdersService {
 
     const bomSuffix = usingBom ? ' (BOM verisine göre)' : '';
 
-    const fabricMaterials = order.materials.filter(
-      (material) =>
-        material.materialType.toLocaleLowerCase('tr-TR') === 'kumaş',
+    const fabricMaterials = order.materials.filter((material) =>
+      isFabricMaterialType(material.materialType),
     );
 
     if (fabricMaterials.length === 0) {
@@ -639,16 +640,13 @@ export class OrdersService {
     sentQuantity: number;
     receivedQuantity: number | null;
   }) {
-    const fireQuantity =
-      shipment.receivedQuantity != null
-        ? Math.max(0, shipment.sentQuantity - shipment.receivedQuantity)
-        : null;
-    const fireRate =
-      fireQuantity != null && shipment.sentQuantity > 0
-        ? (fireQuantity / shipment.sentQuantity) * 100
-        : null;
-
-    return { ...shipment, fireQuantity, fireRate };
+    return {
+      ...shipment,
+      ...computeFasonFireStats(
+        shipment.sentQuantity,
+        shipment.receivedQuantity,
+      ),
+    };
   }
 
   async addFasonShipment(
