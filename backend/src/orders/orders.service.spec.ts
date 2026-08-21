@@ -14,7 +14,7 @@ type PrismaMock = {
     delete: MockFn;
   };
   material: { deleteMany: MockFn };
-  productionEntry: { deleteMany: MockFn };
+  productionEntry: { deleteMany: MockFn; create: MockFn };
   qualityEntry: { deleteMany: MockFn };
   orderColorSize: { deleteMany: MockFn };
   approvalStage: {
@@ -37,9 +37,17 @@ type PrismaMock = {
     deleteMany: MockFn;
   };
   workOrder: { deleteMany: MockFn };
-  warehouse: { findFirst: MockFn };
-  stockLot: { findFirst: MockFn; updateMany: MockFn };
-  stockMovement: { findMany: MockFn };
+  warehouse: { findFirst: MockFn; findUnique: MockFn };
+  productionLine: { findFirst: MockFn };
+  stockLot: {
+    findFirst: MockFn;
+    findUnique: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
+  stockMovement: { findMany: MockFn; create: MockFn };
   $transaction: MockFn;
 };
 
@@ -53,7 +61,7 @@ function createPrismaMock(): PrismaMock {
       delete: jest.fn(),
     },
     material: { deleteMany: jest.fn() },
-    productionEntry: { deleteMany: jest.fn() },
+    productionEntry: { deleteMany: jest.fn(), create: jest.fn() },
     qualityEntry: { deleteMany: jest.fn() },
     orderColorSize: { deleteMany: jest.fn() },
     approvalStage: {
@@ -76,9 +84,17 @@ function createPrismaMock(): PrismaMock {
       deleteMany: jest.fn(),
     },
     workOrder: { deleteMany: jest.fn() },
-    warehouse: { findFirst: jest.fn() },
-    stockLot: { findFirst: jest.fn(), updateMany: jest.fn() },
-    stockMovement: { findMany: jest.fn() },
+    warehouse: { findFirst: jest.fn(), findUnique: jest.fn() },
+    productionLine: { findFirst: jest.fn() },
+    stockLot: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    stockMovement: { findMany: jest.fn(), create: jest.fn() },
     $transaction: jest.fn(),
   };
 }
@@ -624,6 +640,138 @@ describe('OrdersService', () => {
       expect(checklist.bomDefined).toBe(true);
       expect(checklist.warnings).toEqual([]);
       expect(checklist.readyToClose).toBe(true);
+    });
+  });
+
+  describe('addProductionEntry (CUTTING) — hat deposu otomatik transfer takviyesi', () => {
+    function mockOrder() {
+      prisma.order.findFirst.mockResolvedValue({
+        id: 7,
+        orderNo: 'TEST-2001',
+        productName: 'T-Shirt',
+        tenantId: 'kepler-default',
+      });
+      prisma.$transaction.mockImplementation((cb: (tx: PrismaMock) => unknown) =>
+        cb(prisma),
+      );
+      prisma.productionEntry.create.mockResolvedValue({
+        id: 1,
+        orderId: 7,
+        stage: 'CUTTING',
+        quantity: 100,
+        notes: undefined,
+      });
+    }
+
+    it('hat deposunda stok yokken genel Kumaş Deposu yeterliyse otomatik transfer yapıp kesimi başarıyla tamamlamalı', async () => {
+      mockOrder();
+
+      prisma.productionLine.findFirst.mockResolvedValue({
+        id: 2,
+        name: 'LINE-2',
+      });
+      // 1. çağrı: hat deposu (ATOLYE_HAMMADDE), 2. çağrı: genel Kumaş Deposu
+      prisma.warehouse.findFirst
+        .mockResolvedValueOnce({ id: 5, name: 'LINE-2 Hammadde Deposu' })
+        .mockResolvedValueOnce({ id: 1, name: 'Kumaş Deposu' });
+      // 1. çağrı: hat deposundaki mevcut lotlar (boş), 2. çağrı: merkez depodaki lotlar,
+      // 3. çağrı: transfer sonrası hat deposundaki lotlar (tüketim için)
+      prisma.stockLot.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 10,
+            remainingQty: 500,
+            materialName: 'Ana Kumaş',
+            materialType: 'Kumaş',
+            supplierName: 'Söktaş',
+            unitPrice: 45,
+            currency: 'TRY',
+          },
+        ])
+        .mockResolvedValueOnce([
+          { id: 20, remainingQty: 139.05, materialName: 'Ana Kumaş' },
+        ]);
+      prisma.stockLot.findUnique.mockResolvedValue({
+        id: 10,
+        remainingQty: 500,
+        materialName: 'Ana Kumaş',
+        materialType: 'Kumaş',
+        supplierName: 'Söktaş',
+        unitPrice: 45,
+        currency: 'TRY',
+        warehouse: { name: 'Kumaş Deposu' },
+      });
+      prisma.warehouse.findUnique.mockResolvedValue({
+        id: 5,
+        name: 'LINE-2 Hammadde Deposu',
+      });
+      prisma.stockLot.findFirst.mockResolvedValue(null); // hedef depoda eşleşen lot yok
+      prisma.stockLot.create.mockResolvedValue({
+        id: 20,
+        warehouseId: 5,
+        materialName: 'Ana Kumaş',
+        receivedQty: 139.05,
+        remainingQty: 139.05,
+      });
+      prisma.stockLot.update.mockResolvedValue({ id: 0, remainingQty: 0 });
+      prisma.stockMovement.create.mockResolvedValue({ id: 1 });
+
+      const result = await service.addProductionEntry(
+        7,
+        { stage: 'CUTTING', quantity: 100, lineNo: 'LINE-2' } as never,
+        undefined,
+        'admin@kepler-erp.com',
+      );
+
+      // Merkez depodan hat deposuna otomatik transfer gerçekleşmiş olmalı.
+      expect(prisma.stockLot.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          materialName: 'Ana Kumaş',
+          warehouseId: 5,
+        }),
+      });
+      // Transfer sonrası tüketim başarılı olmalı, uyarı notu eklenmemeli.
+      expect(result.fabricConsumption?.success).toBe(true);
+      expect(result.fabricConsumption?.consumedQty).toBeCloseTo(139.05, 2);
+      expect(prisma.productionEntry.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ notes: undefined }),
+      });
+    });
+
+    it('hat deposu boş ve genel Kumaş Deposu da yoksa/yetersizse kesim başarısız olmalı ve uyarı notu eklenmeli', async () => {
+      mockOrder();
+
+      prisma.productionLine.findFirst.mockResolvedValue({
+        id: 2,
+        name: 'LINE-2',
+      });
+      // Hat deposu bulunuyor ama genel Kumaş Deposu (type: KUMAS) hiç yok.
+      prisma.warehouse.findFirst
+        .mockResolvedValueOnce({ id: 5, name: 'LINE-2 Hammadde Deposu' })
+        .mockResolvedValueOnce(null);
+      // 1. çağrı: hat deposu lotları (boş, topUp içinde), 2. çağrı: tüketim öncesi hat deposu lotları (hâlâ boş)
+      prisma.stockLot.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.addProductionEntry(
+        7,
+        { stage: 'CUTTING', quantity: 100, lineNo: 'LINE-2' } as never,
+        undefined,
+        'admin@kepler-erp.com',
+      );
+
+      expect(prisma.stockLot.create).not.toHaveBeenCalled();
+      expect(prisma.stockLot.update).not.toHaveBeenCalled();
+      expect(result.fabricConsumption?.success).toBe(false);
+      expect(prisma.productionEntry.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          notes: expect.stringContaining(
+            '⚠️ Otomatik kumaş erimesi başarısız - depoda yeterli stok yok',
+          ),
+        }),
+      });
     });
   });
 });

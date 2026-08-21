@@ -695,6 +695,7 @@ type MaterialEditFormState = {
   materialName: string
   supplierName: string
   orderedQuantity: string
+  arrivedQuantity: string
   expectedArrival: string
   fabricWidth: string
   fabricWeight: string
@@ -707,6 +708,7 @@ function materialToEditForm(material: ApiMaterial): MaterialEditFormState {
     materialName: material.materialName,
     supplierName: material.supplierName,
     orderedQuantity: String(material.orderedQuantity),
+    arrivedQuantity: String(material.arrivedQuantity),
     expectedArrival: material.expectedArrival ? material.expectedArrival.slice(0, 10) : '',
     fabricWidth: material.fabricWidth != null ? String(material.fabricWidth) : '',
     fabricWeight: material.fabricWeight != null ? String(material.fabricWeight) : '',
@@ -764,12 +766,18 @@ function MaterialRow({
       setEditError('Sipariş miktarı geçerli bir sayı olmalıdır.')
       return
     }
+    const arrivedQuantity = editForm.arrivedQuantity === '' ? undefined : Number(editForm.arrivedQuantity)
+    if (arrivedQuantity !== undefined && (Number.isNaN(arrivedQuantity) || arrivedQuantity < 0)) {
+      setEditError('Gelen miktar geçerli bir sayı olmalıdır.')
+      return
+    }
 
     try {
       await onSaveEdit({
         materialName: editForm.materialName.trim(),
         supplierName: editForm.supplierName.trim(),
         orderedQuantity,
+        arrivedQuantity,
         expectedArrival: editForm.expectedArrival || undefined,
         fabricWidth: editForm.fabricWidth ? Number(editForm.fabricWidth) : undefined,
         fabricWeight: editForm.fabricWeight ? Number(editForm.fabricWeight) : undefined,
@@ -809,7 +817,15 @@ function MaterialRow({
             className="h-8 w-24"
           />
         </td>
-        <td className="px-3 py-2 tabular-nums">{material.arrivedQuantity.toLocaleString('tr-TR')}</td>
+        <td className="px-3 py-2">
+          <Input
+            type="number"
+            min="0"
+            value={editForm.arrivedQuantity}
+            onChange={(e) => updateEditField('arrivedQuantity', e.target.value)}
+            className="h-8 w-24"
+          />
+        </td>
         <td className="px-3 py-2">
           <Input
             type="date"

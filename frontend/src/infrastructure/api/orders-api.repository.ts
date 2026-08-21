@@ -253,6 +253,7 @@ export type UpdateMaterialInput = {
   materialName?: string
   supplierName?: string
   orderedQuantity?: number
+  arrivedQuantity?: number
   expectedArrival?: string
   fabricWidth?: number
   fabricWeight?: number

@@ -4,7 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { ConsumeStockLotDto, CreateStockLotDto } from './dto/stock.dto';
+import { performStockTransfer } from '../common/stock-transfer.util';
+import type {
+  ConsumeStockLotDto,
+  CreateStockLotDto,
+  TransferStockDto,
+} from './dto/stock.dto';
 
 export type FifoSuggestionLine = {
   lotId: number;
@@ -218,6 +223,18 @@ export class StockService {
 
       return updatedLot;
     });
+  }
+
+  async transferStock(data: TransferStockDto, performedBy?: string) {
+    return this.prisma.$transaction((tx) =>
+      performStockTransfer(tx, {
+        fromLotId: data.fromLotId,
+        toWarehouseId: data.toWarehouseId,
+        quantity: data.quantity,
+        notes: data.notes,
+        performedBy,
+      }),
+    );
   }
 
   async getMovements(lotId: number) {

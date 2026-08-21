@@ -135,6 +135,32 @@ export async function consumeStockLot(
   }
 }
 
+export type TransferStockLotInput = {
+  fromLotId: number
+  toWarehouseId: number
+  quantity: number
+  notes?: string
+}
+
+export type TransferStockLotResult = {
+  fromLot: ApiStockLot
+  toLot: ApiStockLot
+}
+
+export async function transferStockLot(
+  input: TransferStockLotInput,
+): Promise<TransferStockLotResult> {
+  try {
+    const { data } = await api.post<TransferStockLotResult>('/stock/transfer', input)
+    return data
+  } catch (err) {
+    if (isAxiosError(err) && typeof err.response?.data?.message === 'string') {
+      throw new Error(err.response.data.message)
+    }
+    throw err
+  }
+}
+
 export type ApiStockMovement = {
   id: number
   stockLotId: number

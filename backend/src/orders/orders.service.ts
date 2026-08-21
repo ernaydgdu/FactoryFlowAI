@@ -14,6 +14,7 @@ import {
 import { computeCartonBreakdown } from '../common/carton.util';
 import { computeFasonFireStats } from '../common/fason.util';
 import { isFabricMaterialType } from '../common/material-type.util';
+import { performStockTransfer } from '../common/stock-transfer.util';
 import {
   computeCompletionForecast,
   type CompletionForecast,
@@ -900,6 +901,14 @@ export class OrdersService {
             : null;
 
           if (warehouse) {
+            await this.topUpLineWarehouseFromCentralStock(
+              tx,
+              orderId,
+              warehouse.id,
+              consumedQty,
+              performedBy,
+            );
+
             fabricConsumption = await this.consumeFabricFromWarehouse(
               tx,
               orderId,
@@ -1042,6 +1051,56 @@ export class OrdersService {
 
       return { ...entry, fabricConsumption, finishedGoodsEntry, shipmentEntry };
     });
+  }
+
+  // Hat deposunda kesim ihtiyacını karşılayacak kadar stok yoksa, eksik
+  // kısmı genel "Kumaş Deposu"ndan (tip: KUMAS) FIFO sırasıyla otomatik
+  // olarak hat deposuna transfer eder. Genel depoda da yeterli stok yoksa
+  // sessizce çıkar - ardından çağrılan consumeFabricFromWarehouse mevcut
+  // (kısmi transfer sonrası hâlâ yetersiz) miktarla başarısız olur ve
+  // kullanıcıya standart uyarı notu düşülür.
+  private async topUpLineWarehouseFromCentralStock(
+    tx: Prisma.TransactionClient,
+    orderId: number,
+    lineWarehouseId: number,
+    neededQty: number,
+    performedBy?: string,
+  ): Promise<void> {
+    const lineLots = await tx.stockLot.findMany({
+      where: { warehouseId: lineWarehouseId, remainingQty: { gt: 0 } },
+    });
+    const lineAvailable = lineLots.reduce(
+      (sum, lot) => sum + lot.remainingQty,
+      0,
+    );
+    const shortfall = neededQty - lineAvailable;
+    if (shortfall <= 0) return;
+
+    const centralWarehouse = await tx.warehouse.findFirst({
+      where: { type: 'KUMAS' },
+    });
+    if (!centralWarehouse) return;
+
+    const centralLots = await tx.stockLot.findMany({
+      where: { warehouseId: centralWarehouse.id, remainingQty: { gt: 0 } },
+      orderBy: { receivedDate: 'asc' },
+    });
+
+    let remainingShortfall = shortfall;
+    for (const lot of centralLots) {
+      if (remainingShortfall <= 0) break;
+
+      const transferQty = Math.min(lot.remainingQty, remainingShortfall);
+      await performStockTransfer(tx, {
+        fromLotId: lot.id,
+        toWarehouseId: lineWarehouseId,
+        quantity: transferQty,
+        notes: `Otomatik kumaş transferi - Kesim ihtiyacı - Sipariş #${orderId}`,
+        orderId,
+        performedBy,
+      });
+      remainingShortfall -= transferQty;
+    }
   }
 
   private async consumeFabricFromWarehouse(

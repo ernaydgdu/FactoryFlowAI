@@ -68,3 +68,19 @@ export class ConsumeStockLotDto {
   @IsInt()
   orderId?: number;
 }
+
+export class TransferStockDto {
+  @IsInt()
+  fromLotId!: number;
+
+  @IsInt()
+  toWarehouseId!: number;
+
+  @IsNumber()
+  @Min(0)
+  quantity!: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}

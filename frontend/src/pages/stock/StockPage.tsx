@@ -23,12 +23,14 @@ import {
   fetchStockLots,
   fetchStockMovements,
   fetchWarehouses,
+  transferStockLot,
   type ApiStockLot,
   type ApiStockMovement,
   type ApiWarehouse,
   type ConsumeStockLotInput,
   type CreateStockLotInput,
   type FifoSuggestion,
+  type TransferStockLotInput,
 } from '@/infrastructure/api/stock-api.repository'
 import { cn } from '@/lib/utils'
 
@@ -474,6 +476,7 @@ function StockLotsPanel({
                 <StockLotRow
                   key={lot.id}
                   lot={lot}
+                  warehouses={warehouses}
                   isConsuming={consumingLotId === lot.id}
                   onToggleConsume={() =>
                     setConsumingLotId((id) => (id === lot.id ? null : lot.id))
@@ -501,12 +504,14 @@ function StockLotsPanel({
 
 function StockLotRow({
   lot,
+  warehouses,
   isConsuming,
   onToggleConsume,
   onConsumed,
   autoOpenMovements,
 }: {
   lot: ApiStockLot
+  warehouses: ApiWarehouse[]
   isConsuming: boolean
   onToggleConsume: () => void
   onConsumed: () => void
@@ -516,6 +521,7 @@ function StockLotRow({
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [showMovements, setShowMovements] = useState(autoOpenMovements ?? false)
+  const [isTransferring, setIsTransferring] = useState(false)
 
   const consumeMutation = useMutation({
     mutationFn: (input: ConsumeStockLotInput) => consumeStockLot(lot.id, input),
@@ -583,6 +589,14 @@ function StockLotRow({
             </Button>
             <Button
               size="sm"
+              variant="outline"
+              disabled={isOut}
+              onClick={() => setIsTransferring((v) => !v)}
+            >
+              Transfer Et
+            </Button>
+            <Button
+              size="sm"
               variant="ghost"
               className="px-2"
               onClick={() => setShowMovements(true)}
@@ -597,6 +611,17 @@ function StockLotRow({
         <StockMovementsModal
           lot={lot}
           onClose={() => setShowMovements(false)}
+        />
+      ) : null}
+      {isTransferring ? (
+        <StockTransferRow
+          lot={lot}
+          warehouses={warehouses}
+          onCancel={() => setIsTransferring(false)}
+          onTransferred={() => {
+            setIsTransferring(false)
+            onConsumed()
+          }}
         />
       ) : null}
       {isConsuming ? (
@@ -639,6 +664,116 @@ function StockLotRow({
         </tr>
       ) : null}
     </>
+  )
+}
+
+function StockTransferRow({
+  lot,
+  warehouses,
+  onCancel,
+  onTransferred,
+}: {
+  lot: ApiStockLot
+  warehouses: ApiWarehouse[]
+  onCancel: () => void
+  onTransferred: () => void
+}) {
+  const targetWarehouses = warehouses.filter((wh) => wh.id !== lot.warehouseId)
+  const [toWarehouseId, setToWarehouseId] = useState('')
+  const [quantity, setQuantity] = useState('')
+  const [notes, setNotes] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const transferMutation = useMutation({
+    mutationFn: (input: TransferStockLotInput) => transferStockLot(input),
+    onSuccess: () => {
+      setQuantity('')
+      setNotes('')
+      setError(null)
+      onTransferred()
+    },
+  })
+
+  async function handleTransfer(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const qty = Number(quantity)
+    if (!toWarehouseId) {
+      setError('Hedef depo seçilmelidir.')
+      return
+    }
+    if (!quantity || Number.isNaN(qty) || qty <= 0) {
+      setError('Miktar geçerli bir sayı olmalıdır.')
+      return
+    }
+
+    try {
+      await transferMutation.mutateAsync({
+        fromLotId: lot.id,
+        toWarehouseId: Number(toWarehouseId),
+        quantity: qty,
+        notes: notes.trim() || undefined,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Transfer kaydedilemedi.')
+    }
+  }
+
+  return (
+    <tr className="border-b border-border/60 bg-muted/20">
+      <td colSpan={11} className="px-3 py-3">
+        <form onSubmit={handleTransfer} className="flex flex-wrap items-end gap-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor={`transferWarehouse-${lot.id}`}>Hedef Depo</Label>
+            <select
+              id={`transferWarehouse-${lot.id}`}
+              value={toWarehouseId}
+              onChange={(e) => setToWarehouseId(e.target.value)}
+              className="h-9 w-56 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              <option value="">Seçiniz</option>
+              {targetWarehouses.map((wh) => (
+                <option key={wh.id} value={wh.id}>
+                  {wh.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor={`transferQty-${lot.id}`}>Miktar</Label>
+            <Input
+              id={`transferQty-${lot.id}`}
+              type="number"
+              min="0"
+              step="0.01"
+              max={lot.remainingQty}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder={`Maks. ${lot.remainingQty}`}
+              className="w-32"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor={`transferNotes-${lot.id}`}>Notlar (Opsiyonel)</Label>
+            <Input
+              id={`transferNotes-${lot.id}`}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="örn: LINE-2 kesim ihtiyacı"
+              className="w-64"
+            />
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+            İptal
+          </Button>
+          <Button type="submit" size="sm" disabled={transferMutation.isPending}>
+            {transferMutation.isPending ? 'Aktarılıyor...' : 'Transfer Et'}
+          </Button>
+          {error ? <p className="w-full text-sm text-destructive">{error}</p> : null}
+        </form>
+      </td>
+    </tr>
   )
 }
 
