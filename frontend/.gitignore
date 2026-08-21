@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# electron-builder çıktısı (kurulum .exe'leri, unpacked build) - büyük, yeniden üretilebilir
+release/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

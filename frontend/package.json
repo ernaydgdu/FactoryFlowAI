@@ -3,13 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "validate:routes": "node scripts/validate-routes.mjs",
     "build": "npm run validate:routes && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:icon": "node scripts/build-icon.mjs",
+    "electron:dev": "concurrently -k -n VITE,BACKEND,ELECTRON -c blue,green,magenta \"npm:dev\" \"npm run start:dev --prefix ../backend\" \"wait-on tcp:5173 tcp:3000 -t 45000 && electron .\"",
+    "electron:build": "npm run build && npm run build --prefix ../backend && electron-builder --win"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.6",
@@ -39,11 +43,50 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
+    "concurrently": "^10.0.5",
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
     "jsdom": "^30.0.1",
     "oxlint": "^1.75.0",
+    "png-to-ico": "^3.0.2",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wait-on": "^9.1.0"
+  },
+  "allowScripts": {
+    "core-js@3.50.0": true,
+    "electron-winstaller@5.4.0": true
+  },
+  "build": {
+    "appId": "com.kepler.factoryflowai",
+    "productName": "Kepler ERP",
+    "directories": {
+      "output": "C:/Users/ErenCan/AppData/Local/FactoryFlowAI-release"
+    },
+    "files": [
+      "electron/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "dist", "to": "frontend-dist" },
+      { "from": "../backend/dist", "to": "backend/dist" },
+      { "from": "../backend/node_modules", "to": "backend/node_modules" },
+      { "from": "../backend/.env", "to": "backend/.env" },
+      { "from": "../backend/package.json", "to": "backend/package.json" }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }
