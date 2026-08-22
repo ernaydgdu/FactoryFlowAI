@@ -91,6 +91,31 @@ export function calculateFabricNeed(
   return orderQuantity * consumptionRate * WASTE_RATE_MULTIPLIER;
 }
 
+// Ters yön: elde belli miktarda kumaş varken, verilen sarfiyat oranıyla
+// (kullanıcının kendi belirttiği oran — bilgi kütüphanesindeki sabit değer
+// DEĞİL) en fazla kaç adet üretilebileceğini hesaplar.
+export type MaxUnitsFromFabricResult = {
+  maxUnits: number;
+  effectiveConsumption: number;
+  remainingFabric: number;
+};
+
+export function calculateMaxUnitsFromFabric(
+  availableFabricMeters: number,
+  consumptionPerUnit: number,
+  wastagePercent = 0,
+): MaxUnitsFromFabricResult {
+  const effectiveConsumption = consumptionPerUnit * (1 + wastagePercent / 100);
+  const maxUnits =
+    effectiveConsumption > 0
+      ? Math.floor(availableFabricMeters / effectiveConsumption)
+      : 0;
+  const remainingFabric =
+    availableFabricMeters - maxUnits * effectiveConsumption;
+
+  return { maxUnits, effectiveConsumption, remainingFabric };
+}
+
 // === 2. TOP/PASTAL HESAPLAMA ===
 
 export type TopUsageResult = {

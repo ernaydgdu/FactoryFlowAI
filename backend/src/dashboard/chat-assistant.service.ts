@@ -7,6 +7,7 @@ import {
   calculateDyeRecipe,
   calculateFabricEfficiency,
   calculateFabricNeed,
+  calculateMaxUnitsFromFabric,
   calculateOEE,
   calculateProfitMargin,
   calculateTopUsage,
@@ -117,6 +118,55 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
     ],
   },
   {
+    // Kullanıcı "95645 mt kumaş var sarfiyatta 1,35 mt kaç tane gömlek
+    // çıkar" gibi kendi rakamlarını verdiğinde, bu rakamları görmezden
+    // gelip bilgi kütüphanesindeki sabit sarfiyat kartını döndürmemek için
+    // 'genericConsumptionRate'ten DAHA YÜKSEK skorla (3 grup, bkz.
+    // intent-matcher.util.ts) önce eşleşmesi gerekir. Üçüncü grup (tane/
+    // adet/parça veya bir ürün adı) hem "kaç tane/adet çıkar" hem
+    // "kaç gömlek çıkar" gibi doğrudan ürün adlı sorularını kapsar; `gate`
+    // ise soruda gerçekten iki sayı (kumaş miktarı + sarfiyat oranı)
+    // geçtiğini zorunlu kılarak "kaç gömlek çıkar?" gibi sayısız sorularda
+    // bu intent'e düşülmesini engeller.
+    id: 'fabricUnitsFromRate',
+    label: 'kumaş miktarından üretilebilecek adet hesaplama',
+    clauses: [
+      [
+        ['kaç'],
+        [
+          'çıkar',
+          'çıkarır',
+          'çıkıyor',
+          'çıkacak',
+          'üretilir',
+          'üretilebilir',
+          'dikilir',
+          'dikilebilir',
+          'biçilir',
+        ],
+        [
+          'tane',
+          'adet',
+          'parça',
+          'gömlek',
+          'gomlek',
+          'tişört',
+          'tisort',
+          't-shirt',
+          'tshirt',
+          'pantolon',
+          'ceket',
+          'elbise',
+          'etek',
+          'ürün',
+          'urun',
+        ],
+      ],
+    ],
+    gate: (q) => extractNumbers(q).length >= 2,
+    calculationType: true,
+  },
+  {
     id: 'genericConsumptionRate',
     label: 'standart kumaş sarfiyat oranı',
     clauses: [
@@ -158,6 +208,7 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
     label: 'sipariş birim maliyeti hesaplama',
     clauses: [[['birim maliyet', 'maliyet hesapla', 'maliyeti hesapla']]],
     gate: (q) => /\d{2,}/.test(q),
+    calculationType: true,
   },
   {
     id: 'topUsage',
@@ -169,11 +220,13 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
       ],
       [['kaç pastal']],
     ],
+    calculationType: true,
   },
   {
     id: 'fabricEfficiency',
     label: 'kumaş/pastal verimliliği hesaplama',
     clauses: [[['verimlilik', 'verim', 'faydalanma', 'pastal verimi']]],
+    calculationType: true,
   },
   {
     id: 'cuttingCostHelp',
@@ -240,6 +293,7 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
     label: 'iplik numaralandırma birim çevrimi',
     clauses: [[['ne', 'nm', 'tex', 'denye']]],
     gate: (q) => extractYarnConversionQuery(q) !== null,
+    calculationType: true,
   },
   {
     // İkinci (tek gruplu) kloz, sayı bazlı tetiklemeyi (gate) kapsar; birinci
@@ -257,6 +311,7 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
       [['oee', 'genel ekipman verimliliği', 'ekipman verimliliği']],
     ],
     gate: (q) => hasCalculationTrigger(q, 6),
+    calculationType: true,
   },
   {
     id: 'breakEvenCalculation',
@@ -269,6 +324,7 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
       [['başabaş', 'basabas', 'break even', 'break-even']],
     ],
     gate: (q) => hasCalculationTrigger(q, 3),
+    calculationType: true,
   },
   {
     id: 'profitMarginCalculation',
@@ -281,6 +337,7 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
       [['kar marjı', 'kâr marjı', 'karlılık', 'kârlılık']],
     ],
     gate: (q) => hasCalculationTrigger(q, 2),
+    calculationType: true,
   },
   {
     id: 'dyeRecipeCalculation',
@@ -293,6 +350,7 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
       [['boya reçetesi', 'boya recetesi', 'boya miktarı']],
     ],
     gate: (q) => hasCalculationTrigger(q, 2),
+    calculationType: true,
   },
   {
     id: 'leanProductionAdvice',
@@ -329,6 +387,9 @@ export class ChatAssistantService {
     switch (intentId) {
       case 'capabilities':
         return this.answerCapabilities();
+
+      case 'fabricUnitsFromRate':
+        return this.answerFabricUnitsFromRate(question);
 
       case 'genericConsumptionRate':
         return this.answerGenericConsumptionRate(question);
@@ -426,6 +487,7 @@ export class ChatAssistantService {
     return [
       'Şu konularda yardımcı olabilirim:',
       '• Kumaş ihtiyacı hesaplama — örn: "1040 için kumaş ne kadar gerekir?"',
+      '• Elde kumaştan üretilebilecek adet hesaplama — örn: "95645 metre kumaş var, sarfiyat 1.35 m/adet, kaç tane gömlek çıkar?"',
       '• Tahmini hammadde birim maliyeti — örn: "1040 için birim maliyet hesapla"',
       '• Top/pastal hesaplama — örn: "35 metre topdan 5.1 metre pastal ile kaç pastal çıkar?"',
       '• Kumaş verimliliği / pastal verimi — örn: "12 m² şablon, 1.5 en, 10 boy ile verimlilik nedir?"',
@@ -679,6 +741,21 @@ export class ChatAssistantService {
     const fabricCost = order.totalQuantity * rate.avg * avgUnitPrice;
 
     return `${order.orderNo} siparişi (${order.productName}, ${order.totalQuantity} adet) için tahmini hammadde (kumaş) maliyeti: ${fabricCost.toFixed(2)} ${currency} (${order.totalQuantity} adet × ${rate.avg.toFixed(2)} m/adet sarfiyat × ${avgUnitPrice.toFixed(2)} ${currency} ortalama kumaş fiyatı). Not: Bu sadece hammadde maliyetidir; işçilik ve genel gider dahil değildir.`;
+  }
+
+  private answerFabricUnitsFromRate(question: string): string {
+    const numbers = extractNumbers(question);
+    if (numbers.length < 2) {
+      return 'Elinizdeki kumaş miktarını ve sarfiyat oranını birlikte belirtir misiniz? Örn: "95645 metre kumaş var, sarfiyat 1.35 m/adet, kaç tane gömlek çıkar?"';
+    }
+
+    const [availableFabricMeters, consumptionPerUnit] = numbers;
+    const result = calculateMaxUnitsFromFabric(
+      availableFabricMeters,
+      consumptionPerUnit,
+    );
+
+    return `${availableFabricMeters} metre kumaş ile ${consumptionPerUnit} m/adet sarfiyat oranında yaklaşık ${result.maxUnits} adet üretilebilir (kalan: ${result.remainingFabric.toFixed(1)} metre).`;
   }
 
   private answerGenericConsumptionRate(question: string): string {

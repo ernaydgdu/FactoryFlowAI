@@ -1,6 +1,6 @@
 // Electron ana süreç dosyası. .cjs uzantısı kullanılıyor çünkü frontend/package.json
 // "type": "module" ayarlı - main process CommonJS gerektiriyor.
-const { app, BrowserWindow, Menu, shell, dialog } = require('electron')
+const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
 const http = require('node:http')
@@ -103,9 +103,11 @@ function createWindow() {
     icon: getIconPath(),
     show: false,
     autoHideMenuBar: true,
+    frame: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   })
 
@@ -113,9 +115,29 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window:maximized-changed', true)
+  })
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window:maximized-changed', false)
+  })
 
   mainWindow.loadURL(loadingHtml('Kepler ERP başlatılıyor...'))
 }
+
+// Özel (frameless) pencere başlık çubuğundaki Küçült/Büyüt/Kapat butonları
+// preload.cjs üzerinden bu kanallara mesaj gönderir.
+ipcMain.on('window:minimize', () => mainWindow?.minimize())
+ipcMain.on('window:maximize-toggle', () => {
+  if (!mainWindow) return
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow.maximize()
+  }
+})
+ipcMain.on('window:close', () => mainWindow?.close())
+ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
 
 // url'den 200 dışında bir yanıt (örn. backend ayakta ama henüz hazır değil)
 // ya da hiç yanıt (backend henüz dinlemiyor) geldiğinde onProgress ile

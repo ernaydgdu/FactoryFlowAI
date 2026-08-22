@@ -33,9 +33,9 @@ export function DashboardLayout() {
   }
 
   return (
-    <div className="flex min-h-svh bg-background">
+    <div className="flex h-svh overflow-hidden bg-background">
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Navbar />
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />

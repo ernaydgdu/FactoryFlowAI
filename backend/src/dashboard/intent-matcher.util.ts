@@ -20,7 +20,28 @@ export type IntentDefinition = {
   /** Anahtar kelime eşleşmesine ek, isteğe bağlı sert koşul (ör. soruda
    * sipariş numarası geçmesi zorunluluğu). */
   gate?: (question: string) => boolean;
+  /** Serbest metindeki sayıları doğrudan bir hesaplamaya sokan intent'ler
+   * için işaretlenir (ör. sarfiyattan adet, OEE, başabaş noktası). Böyle
+   * bir intent zaten anahtar kelimeyle eşleştiyse ve soruda "2+ sayı +
+   * birim" (bkz. hasNumericUnitSignal) geçiyorsa, kullanıcının verdiği
+   * rakamların bilgi kütüphanesindeki sabit bir tanım kartı yerine gerçek
+   * hesaplamaya gitmesini garantilemek için skoruna +1 bonus eklenir. */
+  calculationType?: boolean;
 };
+
+// "95645 mt", "1.35 m/adet", "%2", "15 gün" gibi sayı+birim örüntülerini
+// sayar. Birden fazla eşleşme, kullanıcının somut rakamlarla bir hesaplama
+// istediğine dair güçlü bir sinyaldir — sadece bir hesaplama intent'inin
+// anahtar kelimeleri zaten eşleştiğinde skoru güçlendirmek için kullanılır
+// (bkz. IntentDefinition.calculationType), tek başına bir intent'i
+// tetiklemez.
+const NUMBER_THEN_UNIT_PATTERN =
+  /\d+(?:[.,]\d+)?\s*(metre|mt|m|adet|tl|₺|%|gün|saat|kg|dk|cm)\b/gi;
+
+export function hasNumericUnitSignal(question: string): boolean {
+  const matches = question.match(NUMBER_THEN_UNIT_PATTERN);
+  return (matches?.length ?? 0) >= 2;
+}
 
 export type IntentMatchResult = {
   intentId: string | null;
@@ -55,6 +76,11 @@ export function scoreIntent(
       best = Math.max(best, clause.length);
     }
   }
+
+  if (best > 0 && intent.calculationType && hasNumericUnitSignal(question)) {
+    best += 1;
+  }
+
   return best;
 }
 
