@@ -32,6 +32,8 @@ export type Permission =
   | 'quality.write'
   | 'inventory.write'
   | 'purchasing.write'
+  | 'finishedGoods.read'
+  | 'lineStatus.read'
 
 const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
   ADMIN: [
@@ -66,6 +68,8 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'quality.write',
     'inventory.write',
     'purchasing.write',
+    'finishedGoods.read',
+    'lineStatus.read',
   ],
   MANAGER: [
     'platform.settings',
@@ -98,6 +102,8 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'quality.write',
     'inventory.write',
     'purchasing.write',
+    'finishedGoods.read',
+    'lineStatus.read',
   ],
   PLANNER: [
     'dashboard.view',
@@ -120,6 +126,8 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'ai.read',
     'inventory.write',
     'purchasing.write',
+    'finishedGoods.read',
+    'lineStatus.read',
   ],
   SHOP_FLOOR_OPERATOR: [
     'dashboard.view',
@@ -128,8 +136,9 @@ const ROLE_PERMISSIONS: Record<KeplerRole, readonly Permission[]> = {
     'production.read',
     'quality.read',
     'quality.write',
+    'lineStatus.read',
   ],
-  VIEWER: ['dashboard.view', 'reports.read'],
+  VIEWER: ['dashboard.view', 'reports.read', 'finishedGoods.read', 'lineStatus.read'],
 }
 
 const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
@@ -158,6 +167,8 @@ const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: '/packaging', permission: 'warehouse.read' },
   { prefix: '/warehouse', permission: 'warehouse.read' },
   { prefix: '/stock', permission: 'warehouse.read' },
+  { prefix: '/finished-goods', permission: 'finishedGoods.read' },
+  { prefix: '/line-status', permission: 'lineStatus.read' },
   { prefix: '/suppliers', permission: 'reports.read' },
   { prefix: '/subcontractors', permission: 'reports.read' },
   { prefix: '/export-logistics', permission: 'shipping.read' },
