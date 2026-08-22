@@ -56,3 +56,6 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+# Electron paketlemesi için üretilen prod-only node_modules (npm run build:prod-deps)
+/deploy

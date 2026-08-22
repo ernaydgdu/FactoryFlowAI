@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -13,7 +13,8 @@
     "test": "vitest run",
     "build:icon": "node scripts/build-icon.mjs",
     "electron:dev": "concurrently -k -n VITE,BACKEND,ELECTRON -c blue,green,magenta \"npm:dev\" \"npm run start:dev --prefix ../backend\" \"wait-on tcp:5173 tcp:3000 -t 45000 && electron .\"",
-    "electron:build": "npm run build && npm run build --prefix ../backend && electron-builder --win"
+    "electron:build": "npm run build && npm run build --prefix ../backend && npm run build:prod-deps --prefix ../backend && electron-builder --win",
+    "electron:release": "npm run electron:build -- --publish always"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.6",
@@ -74,7 +75,7 @@
     "extraResources": [
       { "from": "dist", "to": "frontend-dist" },
       { "from": "../backend/dist", "to": "backend/dist" },
-      { "from": "../backend/node_modules", "to": "backend/node_modules" },
+      { "from": "C:/Users/ErenCan/AppData/Local/FactoryFlowAI-backend-deploy/node_modules", "to": "backend/node_modules" },
       { "from": "../backend/.env", "to": "backend/.env" },
       { "from": "../backend/package.json", "to": "backend/package.json" }
     ],
@@ -87,6 +88,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "ernaydgdu",
+      "repo": "FactoryFlowAI"
     }
   }
 }

@@ -1,0 +1,9 @@
+{
+  "name": "kepler-erp-electron-main",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Electron ana süreç bağımlılıkları - frontend/node_modules'ten izole (paket boyutunu küçük tutmak için).",
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  }
+}
