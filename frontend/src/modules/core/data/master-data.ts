@@ -31,12 +31,16 @@ export const OPERATIONS: { code: string; name: string; sequence: number; departm
 export const SIZE_PRESETS = {
   letter: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   numeric: ['28', '29', '30', '31', '32'],
+  // Genel konfeksiyon (EU) numaralandırması — pantolon bel bedeni olan
+  // `numeric`ten farklı, gömlek/elbise gibi ürünlerde kullanılan aralık.
+  eu: ['36', '38', '40', '42', '44', '46'],
   baby: ['0-3 Ay', '3-6 Ay', '6-9 Ay'],
 }
 
 export const ALL_SIZE_OPTIONS = [
   ...SIZE_PRESETS.letter,
   ...SIZE_PRESETS.numeric,
+  ...SIZE_PRESETS.eu,
   ...SIZE_PRESETS.baby,
 ]
 

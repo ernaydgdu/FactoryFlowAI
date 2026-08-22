@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Save, Trash2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { Plus, Save, Trash2, X } from 'lucide-react'
+import { useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { applicationQueryKeys } from '@/application/core/query-keys'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { SIZE_PRESETS } from '@/modules/core/data/master-data'
 import {
   createBOMItem,
   createOrder,
@@ -46,6 +47,21 @@ let colorSizeRowCounter = 0
 function createColorSizeRow(): ColorSizeRow {
   colorSizeRowCounter += 1
   return { key: `csr-${colorSizeRowCounter}`, color: '', size: '', quantity: '' }
+}
+
+// Beden tablosu seçenekleri — "letter" ve "numeric" master-data.ts'teki
+// SIZE_PRESETS ile aynı (OrderDetailPage'deki "... ekle" butonlarıyla
+// tutarlı); "custom" seçilirse kullanıcı virgülle ayırarak kendi beden
+// listesini elle girer (bkz. `customSizesInput`).
+const SIZE_TABLE_OPTIONS: { id: string; label: string; sizes: readonly string[] | null }[] = [
+  { id: 'letter', label: SIZE_PRESETS.letter.join('-'), sizes: SIZE_PRESETS.letter },
+  { id: 'eu', label: SIZE_PRESETS.eu.join('-'), sizes: SIZE_PRESETS.eu },
+  { id: 'numeric', label: SIZE_PRESETS.numeric.join('-'), sizes: SIZE_PRESETS.numeric },
+  { id: 'custom', label: 'Özel (elle gir)', sizes: null },
+]
+
+function matrixCellKey(color: string, size: string): string {
+  return `${color}|${size}`
 }
 
 type BOMRow = {
@@ -87,6 +103,12 @@ export function OrderCreatePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
+  const [colors, setColors] = useState<string[]>([])
+  const [colorInput, setColorInput] = useState('')
+  const [sizeTableId, setSizeTableId] = useState('')
+  const [customSizesInput, setCustomSizesInput] = useState('')
+  const [matrixQuantities, setMatrixQuantities] = useState<Record<string, string>>({})
+  const [showManualEntry, setShowManualEntry] = useState(false)
   const [colorSizeRows, setColorSizeRows] = useState<ColorSizeRow[]>([])
   const [bomRows, setBomRows] = useState<BOMRow[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -119,6 +141,46 @@ export function OrderCreatePage() {
     setColorSizeRows((prev) => prev.filter((row) => row.key !== key))
   }
 
+  function addColor(raw: string) {
+    const value = raw.trim()
+    if (!value) return
+    setColors((prev) => (prev.includes(value) ? prev : [...prev, value]))
+    setColorInput('')
+  }
+
+  function removeColor(value: string) {
+    setColors((prev) => prev.filter((c) => c !== value))
+  }
+
+  // Kullanıcı virgül yazdığı anda (paste dahil) o ana kadarki metni bir
+  // renk chip'i olarak eklenir; son (virgülsüz) parça input'ta kalır.
+  function handleColorInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value
+    if (raw.includes(',')) {
+      const parts = raw.split(',')
+      const last = parts.pop() ?? ''
+      parts.forEach(addColor)
+      setColorInput(last)
+    } else {
+      setColorInput(raw)
+    }
+  }
+
+  function handleColorInputKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addColor(colorInput)
+    }
+  }
+
+  function updateMatrixQuantity(color: string, size: string, value: string) {
+    setMatrixQuantities((prev) => ({ ...prev, [matrixCellKey(color, size)]: value }))
+  }
+
+  function matrixCellValue(color: string, size: string): number {
+    return Number(matrixQuantities[matrixCellKey(color, size)]) || 0
+  }
+
   function addBOMRow() {
     setBomRows((prev) => [...prev, createBOMRow()])
   }
@@ -136,6 +198,26 @@ export function OrderCreatePage() {
     0,
   )
   const totalQuantityNumber = Number(form.totalQuantity) || 0
+
+  const selectedSizeOption = SIZE_TABLE_OPTIONS.find((o) => o.id === sizeTableId) ?? null
+  const selectedSizes =
+    selectedSizeOption?.sizes ??
+    (sizeTableId === 'custom'
+      ? customSizesInput
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [])
+  const showMatrix = colors.length > 0 && selectedSizes.length > 0
+
+  const matrixColumnTotals = selectedSizes.map((size) =>
+    colors.reduce((sum, color) => sum + matrixCellValue(color, size), 0),
+  )
+  const matrixRowTotals = colors.map((color) =>
+    selectedSizes.reduce((sum, size) => sum + matrixCellValue(color, size), 0),
+  )
+  const matrixGrandTotal = matrixColumnTotals.reduce((sum, t) => sum + t, 0)
+  const combinedEnteredTotal = matrixGrandTotal + colorSizeEnteredTotal
 
   function estimatedBOMNeed(row: BOMRow): number {
     const unitConsumption = Number(row.unitConsumption) || 0
@@ -160,6 +242,24 @@ export function OrderCreatePage() {
     if (!form.shipmentDate) {
       setError('EXF tarihi zorunludur.')
       return
+    }
+
+    const matrixEntries: { color: string; size: string; quantity: number }[] = []
+    if (showMatrix) {
+      for (const color of colors) {
+        for (const size of selectedSizes) {
+          const raw = matrixQuantities[matrixCellKey(color, size)]
+          if (raw === undefined || raw === '') continue
+          const quantity = Number(raw)
+          if (Number.isNaN(quantity) || quantity < 0) {
+            setError(`"${color} / ${size}" hücresi için geçerli bir miktar girin.`)
+            return
+          }
+          if (quantity > 0) {
+            matrixEntries.push({ color, size, quantity })
+          }
+        }
+      }
     }
 
     const validColorSizeRows = colorSizeRows.filter(
@@ -196,6 +296,10 @@ export function OrderCreatePage() {
         totalQuantity,
         shipmentDate: form.shipmentDate,
       })
+
+      for (const entry of matrixEntries) {
+        await upsertColorSize(order.id, entry)
+      }
 
       for (const row of validColorSizeRows) {
         await upsertColorSize(order.id, {
@@ -323,80 +427,214 @@ export function OrderCreatePage() {
           <CardTitle className="text-base">Renk/Beden Dağılımı (Opsiyonel)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {colorSizeRows.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="colorInput">Renkler</Label>
+              <Input
+                id="colorInput"
+                value={colorInput}
+                onChange={handleColorInputChange}
+                onKeyDown={handleColorInputKeyDown}
+                placeholder="Renk yazıp Enter'a basın (Lacivert, Beyaz, Siyah...)"
+              />
+              {colors.length > 0 ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {colors.map((color) => (
+                    <span
+                      key={color}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-sm"
+                    >
+                      {color}
+                      <button
+                        type="button"
+                        onClick={() => removeColor(color)}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label={`${color} rengini kaldır`}
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="sizeTable">Beden Tablosu</Label>
+              <select
+                id="sizeTable"
+                value={sizeTableId}
+                onChange={(e) => setSizeTableId(e.target.value)}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+              >
+                <option value="">Seçiniz...</option>
+                {SIZE_TABLE_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {sizeTableId === 'custom' ? (
+                <Input
+                  value={customSizesInput}
+                  onChange={(e) => setCustomSizesInput(e.target.value)}
+                  placeholder="34,36,38,40"
+                />
+              ) : null}
+            </div>
+          </div>
+
+          {showMatrix ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
                     <th className="px-3 py-2">Renk</th>
-                    <th className="px-3 py-2">Beden</th>
-                    <th className="px-3 py-2">Miktar</th>
-                    <th className="px-3 py-2" />
+                    {selectedSizes.map((size) => (
+                      <th key={size} className="px-2 py-2 text-center">
+                        {size}
+                      </th>
+                    ))}
+                    <th className="px-3 py-2 text-right">Satır Toplamı</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {colorSizeRows.map((row) => (
-                    <tr key={row.key} className="border-b border-border/60">
-                      <td className="px-3 py-2">
-                        <Input
-                          value={row.color}
-                          onChange={(e) => updateColorSizeRow(row.key, 'color', e.target.value)}
-                          placeholder="Lacivert"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <Input
-                          value={row.size}
-                          onChange={(e) => updateColorSizeRow(row.key, 'size', e.target.value)}
-                          placeholder="M"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={row.quantity}
-                          onChange={(e) => updateColorSizeRow(row.key, 'quantity', e.target.value)}
-                          placeholder="100"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeColorSizeRow(row.key)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+                  {colors.map((color, colorIndex) => (
+                    <tr key={color} className="border-b border-border/60">
+                      <td className="px-3 py-2 font-medium whitespace-nowrap">{color}</td>
+                      {selectedSizes.map((size) => (
+                        <td key={size} className="px-2 py-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={matrixQuantities[matrixCellKey(color, size)] ?? ''}
+                            onChange={(e) => updateMatrixQuantity(color, size, e.target.value)}
+                            placeholder="0"
+                            className="w-20 text-center"
+                          />
+                        </td>
+                      ))}
+                      <td className="px-3 py-2 text-right font-medium tabular-nums">
+                        {matrixRowTotals[colorIndex].toLocaleString('tr-TR')}
                       </td>
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t bg-muted/20 text-sm font-medium">
+                    <td className="px-3 py-2">Sütun Toplamı</td>
+                    {matrixColumnTotals.map((total, index) => (
+                      <td key={selectedSizes[index]} className="px-2 py-2 text-center tabular-nums">
+                        {total.toLocaleString('tr-TR')}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {matrixGrandTotal.toLocaleString('tr-TR')}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Henüz renk/beden satırı eklenmedi. Bu bölüm opsiyoneldir, boş bırakabilirsiniz.
+              Matris tablosunu görmek için en az bir renk ekleyin ve bir beden tablosu seçin. Bu
+              bölüm opsiyoneldir, boş bırakabilirsiniz.
             </p>
           )}
 
-          <Button type="button" variant="outline" size="sm" onClick={addColorSizeRow}>
-            <Plus className="size-4" /> Renk/Beden Ekle
-          </Button>
-
-          {colorSizeRows.length > 0 ? (
+          {showMatrix || colorSizeRows.length > 0 ? (
             <div
               className={cn(
                 'rounded-lg border px-4 py-3 text-sm font-medium',
-                colorSizeEnteredTotal === totalQuantityNumber
+                combinedEnteredTotal === totalQuantityNumber
                   ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                   : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
               )}
             >
-              Girilen Toplam: {colorSizeEnteredTotal.toLocaleString('tr-TR')} / Sipariş Toplamı
+              Girilen Toplam: {combinedEnteredTotal.toLocaleString('tr-TR')} / Sipariş Toplamı
               (Toplam Miktar alanından): {totalQuantityNumber.toLocaleString('tr-TR')}
-              {colorSizeEnteredTotal === totalQuantityNumber ? ' ✓' : ''}
+              {combinedEnteredTotal === totalQuantityNumber ? ' ✓' : ''}
+            </div>
+          ) : null}
+
+          {!showManualEntry && colorSizeRows.length === 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowManualEntry(true)}
+              className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              veya elle satır ekle
+            </button>
+          ) : null}
+
+          {showManualEntry || colorSizeRows.length > 0 ? (
+            <div className="space-y-4 border-t border-border/60 pt-4">
+              {colorSizeRows.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+                        <th className="px-3 py-2">Renk</th>
+                        <th className="px-3 py-2">Beden</th>
+                        <th className="px-3 py-2">Miktar</th>
+                        <th className="px-3 py-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {colorSizeRows.map((row) => (
+                        <tr key={row.key} className="border-b border-border/60">
+                          <td className="px-3 py-2">
+                            <Input
+                              value={row.color}
+                              onChange={(e) =>
+                                updateColorSizeRow(row.key, 'color', e.target.value)
+                              }
+                              placeholder="Lacivert"
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <Input
+                              value={row.size}
+                              onChange={(e) => updateColorSizeRow(row.key, 'size', e.target.value)}
+                              placeholder="M"
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={row.quantity}
+                              onChange={(e) =>
+                                updateColorSizeRow(row.key, 'quantity', e.target.value)
+                              }
+                              placeholder="100"
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeColorSizeRow(row.key)}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Nadir durumlar için (ör. tek bir özel renk/beden kombinasyonu) tek tek satır
+                  ekleyebilirsiniz.
+                </p>
+              )}
+
+              <Button type="button" variant="outline" size="sm" onClick={addColorSizeRow}>
+                <Plus className="size-4" /> Renk/Beden Ekle
+              </Button>
             </div>
           ) : null}
         </CardContent>
